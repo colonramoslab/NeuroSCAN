@@ -4,3 +4,4 @@ build
 .venv
 rclone.conf
 ingress-promoterdb.yaml
+.idea/
