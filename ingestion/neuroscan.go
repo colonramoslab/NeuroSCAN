@@ -352,7 +352,6 @@ func createIngestWaitGroups() *ingestWaitGroups {
 		cphates:    sync.WaitGroup{},
 		nerveRings: sync.WaitGroup{},
 	}
-
 }
 
 // ProcessEntities processes the entities in the directory in the proper order
@@ -361,7 +360,7 @@ func (n *Neuroscan) ProcessEntities(path string) {
 	channels := createIngestChannels()
 	waitGroups := createIngestWaitGroups()
 
-	// start the worker pool
+	// start the worker pool, we don't do multiple workers right now because sqlite3 does not handle concurrent writes
 	//for w := 1; w <= 4; w++ {
 	go func() {
 		for neuronPath := range channels.neurons {
