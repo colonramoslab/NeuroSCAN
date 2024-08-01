@@ -11,58 +11,74 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Neuroscan struct {
-	developmentalStages int
-	neurons             int
-	synapses            int
-	contacts            int
-	cphates             int
-	nerveRings          int
-	dbPath              string
-	debug               bool
+	neurons    int64
+	synapses   int64
+	contacts   int64
+	cphates    int64
+	nerveRings int64
+	dbPath     string
+	debug      bool
+}
+
+type ingestChannels struct {
+	neurons    chan string
+	contacts   chan string
+	synapses   chan string
+	cphates    chan string
+	nerveRings chan string
+}
+
+type ingestWaitGroups struct {
+	neurons    sync.WaitGroup
+	contacts   sync.WaitGroup
+	synapses   sync.WaitGroup
+	cphates    sync.WaitGroup
+	nerveRings sync.WaitGroup
 }
 
 // NewNeuroscan creates a new neuroscan object
 func NewNeuroscan() *Neuroscan {
 	return &Neuroscan{
-		developmentalStages: 0,
-		neurons:             0,
-		synapses:            0,
-		contacts:            0,
-		cphates:             0,
-		nerveRings:          0,
-		dbPath:              "",
-		debug:               false,
+		neurons:    0,
+		synapses:   0,
+		contacts:   0,
+		cphates:    0,
+		nerveRings: 0,
+		dbPath:     "",
+		debug:      false,
 	}
 }
 
 // IncrementNeuron increments the neuron count in the Neuroscan object
 func (n *Neuroscan) IncrementNeuron() {
-	n.neurons++
+	atomic.AddInt64(&n.neurons, 1)
 }
 
 // IncrementContact increments the contact count in the Neuroscan object
 func (n *Neuroscan) IncrementContact() {
-	n.contacts++
+	atomic.AddInt64(&n.contacts, 1)
 }
 
 // IncrementSynapse increments the synapse count in the Neuroscan object
 func (n *Neuroscan) IncrementSynapse() {
-	n.synapses++
+	atomic.AddInt64(&n.synapses, 1)
 }
 
 // IncrementCphate increments the cphate count in the Neuroscan object
 func (n *Neuroscan) IncrementCphate() {
-	n.cphates++
+	atomic.AddInt64(&n.cphates, 1)
 }
 
 // IncrementNerveRing increments the nerveRing count in the Neuroscan object
 func (n *Neuroscan) IncrementNerveRing() {
-	n.nerveRings++
+	atomic.AddInt64(&n.nerveRings, 1)
 }
 
 // SetDBPath sets the database path in the Neuroscan object
@@ -77,7 +93,7 @@ func (n *Neuroscan) SetDebug(debug bool) {
 
 // ConnectDB connects to the database
 func (n *Neuroscan) ConnectDB() (*sql.DB, error) {
-	log.Debug("Connecting to database", "path", n.dbPath)
+	//log.Debug("Connecting to database", "path", n.dbPath)
 	db, err := sql.Open("sqlite3", n.dbPath)
 	if err != nil {
 		return nil, err
@@ -123,6 +139,11 @@ func (n *Neuroscan) ListDBTables() ([]string, error) {
 	}
 
 	return tables, nil
+}
+
+// ValidExtension checks if the file has a valid extension, currently that's just .gltf
+func ValidExtension(fileName string) bool {
+	return filepath.Ext(fileName) == ".gltf"
 }
 
 // HashFile returns the SHA256 hash of a file
@@ -254,9 +275,9 @@ func Int64ToNil(i int64) sql.NullInt64 {
 }
 
 // walkDirFolder walks a directory and processes the files for a specific entity type
-func (n *Neuroscan) walkDirFolder(path string, entityType string) error {
+func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGroups *ingestWaitGroups) error {
 	log.Info("Walking directory", "path", path)
-	err := filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
+	return filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			log.Error("Error walking directory", "err", err)
 			return err
@@ -267,59 +288,104 @@ func (n *Neuroscan) walkDirFolder(path string, entityType string) error {
 			return nil
 		}
 
+		// if it's not a valid extension, skip it
+		if !ValidExtension(path) {
+			return nil
+		}
+
 		// depending on the type of file, we want to process it differently
 		currentEntity, err := GetEntityType(path)
 
 		if err != nil {
-			log.Debug("Error getting entity type", "path", path, "err", err)
-		}
-
-		if currentEntity != entityType {
-			return nil
+			log.Error("Error getting entity type", "err", err)
 		}
 
 		// switch case to handle different entity types
 		switch currentEntity {
 		case "neurons":
-			ProcessNeuron(n, path)
+			log.Debug("Adding neuron to channel", "path", path)
+			waitGroups.neurons.Add(1)
+			channels.neurons <- path
 		case "contacts":
-			ProcessContact(n, path)
+			log.Debug("Adding contact to channel", "path", path)
+			waitGroups.contacts.Add(1)
+			channels.contacts <- path
 		case "synapses":
-			log.Debug("Processing synapse", "path", path)
+			log.Debug("Adding synapse to channel", "path", path)
+			//channels.synapses <- path
 			//ProcessSynapse(n, path)
 		case "cphate":
-			log.Debug("Processing cphate", "path", path)
+			log.Debug("Adding cphate to channel", "path", path)
+			//channels.cphates <- path
 			//ProcessCphate(n, path)
 		case "nerveRing":
-			log.Debug("Processing nerveRing", "path", path)
+			log.Debug("Adding nerveRing to channel", "path", path)
+			//channels.nerveRings <- path
 			//ProcessNerveRing(n, path)
+		default:
+			log.Error("Unknown entity type", "type", currentEntity)
 		}
 
 		log.Debug("Processing file", "path", path)
 
 		return nil
 	})
+}
 
-	if err != nil {
-		log.Error("Error walking directory", "err", err)
-		return err
+// createIngestChannels creates the ingest channels
+func createIngestChannels() *ingestChannels {
+	return &ingestChannels{
+		neurons:    make(chan string, 10_000),
+		contacts:   make(chan string, 100_000),
+		synapses:   make(chan string, 100_000),
+		cphates:    make(chan string, 20),
+		nerveRings: make(chan string, 20),
+	}
+}
+
+// createIngestWaitGroups creates the ingest wait groups
+func createIngestWaitGroups() *ingestWaitGroups {
+	return &ingestWaitGroups{
+		neurons:    sync.WaitGroup{},
+		contacts:   sync.WaitGroup{},
+		synapses:   sync.WaitGroup{},
+		cphates:    sync.WaitGroup{},
+		nerveRings: sync.WaitGroup{},
 	}
 
-	return nil
 }
 
 // ProcessEntities processes the entities in the directory in the proper order
 func (n *Neuroscan) ProcessEntities(path string) {
 
-	order := []string{"neurons", "contacts", "synapses", "cphate", "nerveRing"}
+	channels := createIngestChannels()
+	waitGroups := createIngestWaitGroups()
 
-	// we want to process the entities in a specific order
-	for _, entityType := range order {
-		err := n.walkDirFolder(path, entityType)
-		if err != nil {
-			log.Error("Error processing entities", "err", err)
+	// start the worker pool
+	//for w := 1; w <= 4; w++ {
+	go func() {
+		for neuronPath := range channels.neurons {
+			ProcessNeuron(n, neuronPath)
+			waitGroups.neurons.Done()
 		}
+
+		for contactPath := range channels.contacts {
+			ProcessContact(n, contactPath)
+			waitGroups.contacts.Done()
+		}
+	}()
+	//}
+
+	err := n.walkDirFolder(path, channels, waitGroups)
+	if err != nil {
+		log.Error("Error processing entities", "err", err)
 	}
+
+	waitGroups.neurons.Wait()
+	close(channels.neurons)
+
+	waitGroups.contacts.Wait()
+	close(channels.contacts)
 
 	log.Info("Done processing entities")
 	log.Info("Neurons ingested: ", "count", n.neurons)
