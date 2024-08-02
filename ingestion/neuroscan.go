@@ -1,30 +1,38 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
 	"github.com/charmbracelet/log"
 	"io"
+	"neuroscan/gltf"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Neuroscan struct {
-	neurons    int64
-	synapses   int64
-	contacts   int64
-	cphates    int64
-	nerveRings int64
-	dbPath     string
-	debug      bool
+	neurons      int64
+	synapses     int64
+	contacts     int64
+	cphates      int64
+	nerveRings   int64
+	skipExisting bool
+	debug        bool
+	dbUrl        string
+	dbType       string
+	processTypes []string
+	connPool     *pgxpool.Pool
+	context      context.Context
 }
 
 type ingestChannels struct {
@@ -43,6 +51,14 @@ type ingestWaitGroups struct {
 	nerveRings sync.WaitGroup
 }
 
+type NeuroscanFilepathData struct {
+	uid                string
+	filename           string
+	filehash           string
+	timepoint          int
+	developmentalStage string
+}
+
 // NewNeuroscan creates a new neuroscan object
 func NewNeuroscan() *Neuroscan {
 	return &Neuroscan{
@@ -51,8 +67,9 @@ func NewNeuroscan() *Neuroscan {
 		contacts:   0,
 		cphates:    0,
 		nerveRings: 0,
-		dbPath:     "",
+		dbUrl:      "",
 		debug:      false,
+		context:    context.Background(),
 	}
 }
 
@@ -81,65 +98,72 @@ func (n *Neuroscan) IncrementNerveRing() {
 	atomic.AddInt64(&n.nerveRings, 1)
 }
 
-// SetDBPath sets the database path in the Neuroscan object
-func (n *Neuroscan) SetDBPath(path string) {
-	n.dbPath = path
-}
-
 // SetDebug sets the debug flag in the Neuroscan object
 func (n *Neuroscan) SetDebug(debug bool) {
 	n.debug = debug
 }
 
-// ConnectDB connects to the database
-func (n *Neuroscan) ConnectDB() (*sql.DB, error) {
-	//log.Debug("Connecting to database", "path", n.dbPath)
-	db, err := sql.Open("sqlite3", n.dbPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
+// SetDBType sets the database type in the Neuroscan object
+func (n *Neuroscan) SetDBType(dbType string) {
+	n.dbType = dbType
 }
 
-// TestDBConnection tests the database connection
-func (n *Neuroscan) TestDBConnection() error {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	return nil
+// GetDBType gets the database type from the Neuroscan object
+func (n *Neuroscan) GetDBType() string {
+	return n.dbType
 }
 
-// ListDBTables lists the tables in the database
-func (n *Neuroscan) ListDBTables() ([]string, error) {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	rows, err := db.Query("SELECT name FROM sqlite_master WHERE type='table';")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tables []string
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return nil, err
-		}
-
-		tables = append(tables, name)
-	}
-
-	return tables, nil
+// GetDBUrl gets the database URL from the Neuroscan object
+func (n *Neuroscan) GetDBUrl() string {
+	return n.dbUrl
 }
+
+// SetDBUrl sets the database URL in the Neuroscan object
+func (n *Neuroscan) SetDBUrl(url string) {
+	n.dbUrl = url
+}
+
+// SetSkipExisting sets the skip existing flag in the Neuroscan object
+func (n *Neuroscan) SetSkipExisting(skipExisting bool) {
+	n.skipExisting = skipExisting
+}
+
+// SetProcessTypes sets the process types in the Neuroscan object
+func (n *Neuroscan) SetProcessTypes(processTypes []string) {
+	n.processTypes = processTypes
+}
+
+// SetDefaultProcessTypes sets the default process types in the Neuroscan object
+func (n *Neuroscan) SetDefaultProcessTypes() {
+	n.processTypes = []string{"neurons", "contacts", "synapses", "cphate", "nerveRing"}
+}
+
+// BuildConnectionPool builds the connection pool on the Neuroscan object
+func (n *Neuroscan) BuildConnectionPool() {
+
+	// if we already have a connection pool, return
+	if n.connPool != nil {
+		return
+	}
+
+	connPool, err := pgxpool.New(n.context, n.dbUrl)
+	if err != nil {
+		log.Fatal("Error connecting to database", "err", err)
+	}
+
+	n.connPool = connPool
+}
+
+//// ConnectDB connects to the database
+//func (n *Neuroscan) ConnectDB(ctx context.Context) (*pgx.Conn, error) {
+//	//log.Debug("Connecting to database", "path", n.dbPath)
+//	conn, err := pgx.Connect(ctx, n.dbUrl)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return conn, nil
+//}
 
 // ValidExtension checks if the file has a valid extension, currently that's just .gltf
 func ValidExtension(fileName string) bool {
@@ -241,6 +265,56 @@ func BuildUID(filename string) string {
 	return uid
 }
 
+// FilePathParse takes a filepath and returns the various metadata relating to the context of the file
+func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
+	filename := filepath.Base(filePath)
+
+	filehash, err := HashFile(filePath)
+
+	if err != nil {
+		log.Error("Error getting file hash", "err", err)
+		return []NeuroscanFilepathData{}, err
+	}
+
+	timepoint, err := GetTimepoint(filePath)
+	if err != nil {
+		log.Error("Error getting timepoint", "err", err)
+		return []NeuroscanFilepathData{}, err
+	}
+
+	devStageUID, err := GetDevStage(filePath)
+
+	if err != nil {
+		log.Error("Error getting developmental stage", "err", err)
+		return []NeuroscanFilepathData{}, err
+	}
+
+	var parsedFiles []NeuroscanFilepathData
+	// attempt to open and decode the gltf file
+	doc, err := gltf.Open(filePath)
+	if err != nil {
+		log.Error("Error opening gltf file", "err", err)
+		return []NeuroscanFilepathData{}, err
+	}
+
+	for _, node := range doc.Nodes {
+		uid := node.Name
+
+		parsedFile := NeuroscanFilepathData{
+			uid:                uid,
+			filename:           filename,
+			filehash:           filehash,
+			timepoint:          timepoint,
+			developmentalStage: devStageUID,
+		}
+
+		parsedFiles = append(parsedFiles, parsedFile)
+
+	}
+
+	return parsedFiles, nil
+}
+
 // EmptyStringToNil converts an empty string to a nil string
 func EmptyStringToNil(s string) sql.NullString {
 	if s == "" {
@@ -300,6 +374,10 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 			log.Error("Error getting entity type", "err", err)
 		}
 
+		if !slices.Contains(n.processTypes, currentEntity) {
+			return nil
+		}
+
 		// switch case to handle different entity types
 		switch currentEntity {
 		case "neurons":
@@ -312,16 +390,16 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 			channels.contacts <- path
 		case "synapses":
 			log.Debug("Adding synapse to channel", "path", path)
-			//channels.synapses <- path
-			//ProcessSynapse(n, path)
+			waitGroups.synapses.Add(1)
+			channels.synapses <- path
 		case "cphate":
 			log.Debug("Adding cphate to channel", "path", path)
-			//channels.cphates <- path
-			//ProcessCphate(n, path)
+			waitGroups.cphates.Add(1)
+			channels.cphates <- path
 		case "nerveRing":
 			log.Debug("Adding nerveRing to channel", "path", path)
-			//channels.nerveRings <- path
-			//ProcessNerveRing(n, path)
+			waitGroups.nerveRings.Add(1)
+			channels.nerveRings <- path
 		default:
 			log.Error("Unknown entity type", "type", currentEntity)
 		}
@@ -361,19 +439,34 @@ func (n *Neuroscan) ProcessEntities(path string) {
 	waitGroups := createIngestWaitGroups()
 
 	// start the worker pool, we don't do multiple workers right now because sqlite3 does not handle concurrent writes
-	//for w := 1; w <= 4; w++ {
-	go func() {
-		for neuronPath := range channels.neurons {
-			ProcessNeuron(n, neuronPath)
-			waitGroups.neurons.Done()
-		}
+	for w := 1; w <= 8; w++ {
+		go func() {
+			for neuronPath := range channels.neurons {
+				ProcessNeuron(n, neuronPath)
+				waitGroups.neurons.Done()
+			}
 
-		for contactPath := range channels.contacts {
-			ProcessContact(n, contactPath)
-			waitGroups.contacts.Done()
-		}
-	}()
-	//}
+			for contactPath := range channels.contacts {
+				ProcessContact(n, contactPath)
+				waitGroups.contacts.Done()
+			}
+
+			for synapsePath := range channels.synapses {
+				ProcessSynapse(n, synapsePath)
+				waitGroups.synapses.Done()
+			}
+
+			for cphatePath := range channels.cphates {
+				ProcessCphate(n, cphatePath)
+				waitGroups.cphates.Done()
+			}
+
+			for nerveRingPath := range channels.nerveRings {
+				ProcessNerveRing(n, nerveRingPath)
+				waitGroups.nerveRings.Done()
+			}
+		}()
+	}
 
 	err := n.walkDirFolder(path, channels, waitGroups)
 	if err != nil {
@@ -385,6 +478,15 @@ func (n *Neuroscan) ProcessEntities(path string) {
 
 	waitGroups.contacts.Wait()
 	close(channels.contacts)
+
+	waitGroups.synapses.Wait()
+	close(channels.synapses)
+
+	waitGroups.cphates.Wait()
+	close(channels.cphates)
+
+	waitGroups.nerveRings.Wait()
+	close(channels.nerveRings)
 
 	log.Info("Done processing entities")
 	log.Info("Neurons ingested: ", "count", n.neurons)

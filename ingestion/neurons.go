@@ -3,11 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"path/filepath"
-	"strings"
-
 	"github.com/charmbracelet/log"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Neuron struct {
@@ -26,33 +22,13 @@ func (n *Neuroscan) GetNeuron(uid string, timepoint int, devStage sql.NullInt64)
 	log.Debug("Getting neuron", "uid", uid, "timepoint", timepoint, "devStage", devStage)
 	var neuron Neuron
 
-	db, err := n.ConnectDB()
+	query := "SELECT neurons.id, uid, embryonic, filename, file_hash, developmental_stage, timepoint FROM neurons WHERE uid = $1 AND timepoint = $2 AND developmental_stage = $3"
 
+	args := []interface{}{uid, timepoint, devStage}
+
+	err := n.connPool.QueryRow(n.context, query, args...).Scan(&neuron.id, &neuron.uid, &neuron.embryonic, &neuron.filename, &neuron.fileHash, &neuron.developmentalStage, &neuron.timepoint)
 	if err != nil {
-		log.Error("Error connecting to database", "err", err)
-		return neuron, err
-	}
-
-	defer db.Close()
-
-	query := `
-		SELECT neurons.id, uid, embryonic, filename, file_hash, "developmental-stage_id", timepoint
-		FROM neurons
-		    INNER JOIN neurons__developmental_stages
-		        ON neurons.id = neurons__developmental_stages.neuron_id
-		WHERE uid = ?
-		AND timepoint = ?
-	`
-
-	args := []interface{}{uid, timepoint}
-
-	if devStage.Valid {
-		query += "AND `developmental-stage_id` = ?"
-		args = append(args, devStage)
-	}
-
-	err = db.QueryRow(query, args...).Scan(&neuron.id, &neuron.uid, &neuron.embryonic, &neuron.filename, &neuron.fileHash, &neuron.developmentalStage, &neuron.timepoint)
-	if err != nil {
+		log.Error("Error getting neuron: ", "uid", uid, "timepoint", timepoint, "err", err)
 		return neuron, err
 	}
 
@@ -67,30 +43,24 @@ func (neuron Neuron) writeToDB(n *Neuroscan) {
 		log.Error("Error checking if neuron exists", "err", err)
 	}
 
-	db, err := n.ConnectDB()
-
-	if err != nil {
-		log.Error("Error connecting to database", "err", err)
+	// if the neurons exists and we skip existing, return
+	if n.skipExisting && exists {
+		log.Debug("Neuron exists, skipping", "uid", neuron.uid)
 		return
 	}
 
-	defer db.Close()
-
 	if exists {
-		log.Debug("Neuron exists, updating record", "uid", neuron.uid)
-		err := n.UpdateNeuron(neuron.uid, neuron.timepoint, neuron.embryonic, neuron.filename, neuron.fileHash, neuron.developmentalStage)
+		err = n.DeleteNeuron(neuron.uid, neuron.timepoint)
+		if err != nil {
+			log.Error("Error deleting existing neuron", "err", err)
+			return
+		}
+	}
 
-		if err != nil {
-			log.Error("Error updating neuron record", "err", err)
-			return
-		}
-	} else {
-		log.Debug("Neuron does not exist, inserting new record", "uid", neuron.uid)
-		err := n.CreateNeuron(neuron.uid, neuron.embryonic, neuron.filename, neuron.fileHash, neuron.developmentalStage, neuron.timepoint)
-		if err != nil {
-			log.Error("Error inserting new neuron record", "err", err)
-			return
-		}
+	err = n.CreateNeuron(neuron.uid, neuron.embryonic, neuron.filename, neuron.fileHash, neuron.developmentalStage, neuron.timepoint)
+	if err != nil {
+		log.Error("Error inserting new neuron record", "err", err)
+		return
 	}
 
 	n.IncrementNeuron()
@@ -100,15 +70,9 @@ func (neuron Neuron) writeToDB(n *Neuroscan) {
 
 // NeuronExists checks if a neuron exists by the given uid and timepoint
 func (n *Neuroscan) NeuronExists(uid string, timepoint int) (bool, error) {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return false, err
-	}
-	defer db.Close()
-
 	var exists bool
 
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM neurons WHERE uid = ? AND timepoint = ?)", uid, timepoint).Scan(&exists)
+	err := n.connPool.QueryRow(n.context, "SELECT EXISTS(SELECT 1 FROM neurons WHERE uid = $1 AND timepoint = $2)", uid, timepoint).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -117,70 +81,79 @@ func (n *Neuroscan) NeuronExists(uid string, timepoint int) (bool, error) {
 }
 
 // UpdateNeuron updates the neuron record in the database by the given uid, for the provided params
-func (n *Neuroscan) UpdateNeuron(uid string, timepoint int, embryonic bool, filename string, fileHash string, developmentalStage sql.NullInt64) error {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+//func (n *Neuroscan) UpdateNeuron(uid string, timepoint int, embryonic bool, filename string, fileHash string, developmentalStage sql.NullInt64) error {
+//	conn, err := n.ConnectDB(n.context)
+//	if err != nil {
+//		return err
+//	}
+//	defer conn.Close(n.context)
+//
+//	exists, err := n.NeuronExists(uid, timepoint)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	if !exists {
+//		return errors.New("neuron does not exist")
+//	}
+//
+//	query := "UPDATE neurons SET "
+//
+//	set := []string{}
+//
+//	args := []interface{}{}
+//
+//	if embryonic {
+//		set = append(set, "embryonic = ?")
+//		args = append(args, embryonic)
+//	}
+//
+//	if filename != "" {
+//		set = append(set, "filename = ?")
+//		args = append(args, filename)
+//	}
+//
+//	if fileHash != "" {
+//		set = append(set, "file_hash = ?")
+//		args = append(args, fileHash)
+//	}
+//
+//	if developmentalStage.Valid {
+//		set = append(set, "developmental_stage = ?")
+//		args = append(args, developmentalStage)
+//	}
+//
+//	setString := strings.Join(set, ", ")
+//
+//	query += setString
+//
+//	query += " WHERE uid = ? AND timepoint = ?"
+//
+//	// debug the query
+//	log.Debug("Query", "query", query)
+//
+//	args = append(args, timepoint, uid)
+//
+//	_, err = conn.Exec(n.context, query, args...)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// get the neuron ID
+//	var neuronID int
+//
+//	err = conn.QueryRow(n.context, "SELECT id FROM neurons WHERE uid = ? AND timepoint = ?", uid, timepoint).Scan(&neuronID)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
-	exists, err := n.NeuronExists(uid, timepoint)
-
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return errors.New("neuron does not exist")
-	}
-
-	query := "UPDATE neurons SET "
-
-	set := []string{}
-
-	args := []interface{}{}
-
-	if embryonic {
-		set = append(set, "embryonic = ?")
-		args = append(args, embryonic)
-	}
-
-	if filename != "" {
-		set = append(set, "filename = ?")
-		args = append(args, filename)
-	}
-
-	if fileHash != "" {
-		set = append(set, "file_hash = ?")
-		args = append(args, fileHash)
-	}
-
-	setString := strings.Join(set, ", ")
-
-	query += setString
-
-	query += " WHERE uid = ? AND timepoint = ?"
-
-	// debug the query
-	log.Debug("Query", "query", query)
-
-	args = append(args, timepoint, uid)
-
-	_, err = db.Exec(query, args...)
-	if err != nil {
-		return err
-	}
-
-	// get the neuron ID
-	var neuronID int
-
-	err = db.QueryRow("SELECT id FROM neurons WHERE uid = ? AND timepoint = ?", uid, timepoint).Scan(&neuronID)
-	if err != nil {
-		return err
-	}
-
-	// update the developmental stage
-	_, err = db.Exec("UPDATE neurons__developmental_stages SET `developmental-stage_id` = ? WHERE neuron_id = ?", developmentalStage, neuronID)
+// DeleteNeuron deletes a neuron record from the database by the given uid and timepoint
+func (n *Neuroscan) DeleteNeuron(uid string, timepoint int) error {
+	_, err := n.connPool.Exec(n.context, "DELETE FROM neurons WHERE uid = $1 AND timepoint = $2", uid, timepoint)
 	if err != nil {
 		return err
 	}
@@ -190,13 +163,6 @@ func (n *Neuroscan) UpdateNeuron(uid string, timepoint int, embryonic bool, file
 
 // CreateNeuron creates a new neuron record in the database
 func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, fileHash string, developmentalStage sql.NullInt64, timepoint int) error {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
-
 	exists, err := n.NeuronExists(uid, timepoint)
 
 	if err != nil {
@@ -207,19 +173,18 @@ func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, fi
 		return errors.New("neuron already exists")
 	}
 
-	result, err := db.Exec("INSERT INTO neurons (uid, embryonic, filename, file_hash, timepoint) VALUES (?, ?, ?, ?, ?)", uid, embryonic, filename, fileHash, timepoint)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO neurons (uid, embryonic, filename, file_hash, timepoint, developmental_stage) VALUES ($1, $2, $3, $4, $5, $6)", uid, embryonic, filename, fileHash, timepoint, developmentalStage)
 	if err != nil {
 		return err
 	}
 
-	neuronID, err := result.LastInsertId()
+	newNeuron, err := n.GetNeuron(uid, timepoint, developmentalStage)
+
 	if err != nil {
 		return err
 	}
 
-	// insert the accompanying developmental stage join
-
-	_, err = db.Exec("INSERT INTO neurons__developmental_stages (neuron_id, `developmental-stage_id`) VALUES (?, ?)", neuronID, developmentalStage)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO neurons__developmental_stages (neuron_id, \"developmental-stage_id\") VALUES ($1, $2)", newNeuron.id, developmentalStage)
 	if err != nil {
 		return err
 	}
@@ -229,34 +194,16 @@ func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, fi
 
 // parseNeuron takes filename and returns a neuron object
 func parseNeuron(n *Neuroscan, filePath string) (Neuron, error) {
+	fileMetas, err := FilePathParse(filePath)
 
-	// filename is the last part of the path
-	filename := filepath.Base(filePath)
-
-	// check if we can get the file hash
-	filehash, err := HashFile(filePath)
 	if err != nil {
-		log.Error("Error hashing file", "err", err)
+		log.Error("Error parsing file path", "err", err)
 		return Neuron{}, err
 	}
 
-	// parse the filename, it looks like SVV_RIAL.gltf, the UID is everything after the underscore and without the extension
-	uid := BuildUID(filename)
+	fileMeta := fileMetas[0]
 
-	timepoint, err := GetTimepoint(filePath)
-	if err != nil {
-		log.Error("Error getting timepoint", "err", err)
-		return Neuron{}, err
-	}
-
-	// get the developmental stage from the filename
-	developmentalStage, err := GetDevStage(filePath)
-	if err != nil {
-		log.Error("Error getting developmental stage", "err", err)
-		return Neuron{}, err
-	}
-
-	devStage, err := n.GetDevStageByUID(developmentalStage)
+	devStage, err := n.GetDevStageByUID(fileMeta.developmentalStage)
 
 	if err != nil {
 		log.Error("Error getting dev stage ID", "err", err)
@@ -264,12 +211,12 @@ func parseNeuron(n *Neuroscan, filePath string) (Neuron, error) {
 	}
 
 	neuron := Neuron{
-		uid:                uid,
+		uid:                fileMeta.uid,
 		embryonic:          false,
-		filename:           filename,
-		fileHash:           filehash,
+		filename:           fileMeta.filename,
+		fileHash:           fileMeta.filehash,
 		developmentalStage: devStage.id,
-		timepoint:          timepoint,
+		timepoint:          fileMeta.timepoint,
 	}
 
 	return neuron, nil

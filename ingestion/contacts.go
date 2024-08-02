@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/log"
@@ -25,16 +24,7 @@ func (n *Neuroscan) GetContact(uid string, timepoint int) (Contact, error) {
 	log.Debug("Getting contact", "uid", uid, "timepoint", timepoint)
 	var contact Contact
 
-	db, err := n.ConnectDB()
-
-	if err != nil {
-		log.Error("Error connecting to database", "err", err)
-		return contact, err
-	}
-
-	defer db.Close()
-
-	err = db.QueryRow("SELECT id, uid, weight, neuron_a, neuron_b, filename, file_hash, timepoint FROM contacts WHERE uid = ? AND timepoint = ?", uid, timepoint).Scan(&contact.id, &contact.uid, &contact.weight, IntToNil(&contact.neuronA), IntToNil(&contact.neuronB), &contact.filename, &contact.fileHash, &contact.timepoint)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, weight, \"neuronA\", \"neuronB\", filename, file_hash, timepoint FROM contacts WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&contact.id, &contact.uid, &contact.weight, IntToNil(&contact.neuronA), IntToNil(&contact.neuronB), &contact.filename, &contact.fileHash, &contact.timepoint)
 	if err != nil {
 		return contact, err
 	}
@@ -51,30 +41,26 @@ func (contact Contact) writeToDB(n *Neuroscan) {
 		return
 	}
 
-	db, err := n.ConnectDB()
-
-	if err != nil {
-		log.Error("Error connecting to database", "err", err)
+	// if the contacts exists and we skip existing, return
+	if n.skipExisting && exists {
+		log.Debug("Neuron exists, skipping", "uid", contact.uid)
 		return
 	}
 
-	defer db.Close()
-
 	if exists {
-		log.Debug("Contact exists, updating record", "uid", contact.uid)
-		err := n.UpdateContact(contact.uid, contact.timepoint, contact.weight, contact.neuronA, contact.neuronB, contact.filename, contact.fileHash)
+		// delete the contact
+		err = n.DeleteContact(contact.uid, contact.timepoint)
+		if err != nil {
+			log.Error("Error deleting existing contact", "err", err)
+			return
+		}
+	}
 
-		if err != nil {
-			log.Error("Error updating contact record", "err", err)
-			return
-		}
-	} else {
-		log.Debug("Contact does not exist, inserting new record", "uid", contact.uid)
-		err := n.CreateContact(contact.uid, contact.weight, contact.neuronA, contact.neuronB, contact.filename, contact.fileHash, contact.timepoint)
-		if err != nil {
-			log.Error("Error inserting new contact record", "err", err)
-			return
-		}
+	log.Debug("Contact does not exist, inserting new record", "uid", contact.uid)
+	err = n.CreateContact(contact.uid, contact.weight, contact.neuronA, contact.neuronB, contact.filename, contact.fileHash, contact.timepoint)
+	if err != nil {
+		log.Error("Error inserting new contact record", "err", err)
+		return
 	}
 
 	n.IncrementContact()
@@ -84,15 +70,9 @@ func (contact Contact) writeToDB(n *Neuroscan) {
 
 // ContactExists checks if a contact exists by the given uid and timepoint
 func (n *Neuroscan) ContactExists(uid string, timepoint int) (bool, error) {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return false, err
-	}
-	defer db.Close()
-
 	var exists bool
 
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM contacts WHERE uid = ? AND timepoint = ?)", uid, timepoint).Scan(&exists)
+	err := n.connPool.QueryRow(n.context, "SELECT EXISTS(SELECT 1 FROM contacts WHERE uid = $1 AND timepoint = $2)", uid, timepoint).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -101,63 +81,73 @@ func (n *Neuroscan) ContactExists(uid string, timepoint int) (bool, error) {
 }
 
 // UpdateContact updates a contact by the given uid, for the provided params
-func (n *Neuroscan) UpdateContact(uid string, timepoint int, weight int, neuronA int, neuronB int, filename string, fileHash string) error {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+//func (n *Neuroscan) UpdateContact(uid string, timepoint int, weight int, neuronA int, neuronB int, filename string, fileHash string) error {
+//	conn, err := n.ConnectDB(n.context)
+//	if err != nil {
+//		return err
+//	}
+//	defer conn.Close(n.context)
+//
+//	exists, err := n.ContactExists(uid, timepoint)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	if !exists {
+//		return errors.New("contact does not exist")
+//	}
+//
+//	query := "UPDATE contacts SET "
+//
+//	set := []string{}
+//
+//	args := []interface{}{}
+//
+//	if weight != 0 {
+//		set = append(set, "weight = ?")
+//		args = append(args, weight)
+//	}
+//
+//	if neuronA != 0 {
+//		set = append(set, "neuronA = ?")
+//		args = append(args, neuronA)
+//	}
+//
+//	if neuronB != 0 {
+//		set = append(set, "neuronB = ?")
+//		args = append(args, neuronB)
+//	}
+//
+//	if filename != "" {
+//		set = append(set, "filename = ?")
+//		args = append(args, filename)
+//	}
+//
+//	if fileHash != "" {
+//		set = append(set, "file_hash = ?")
+//		args = append(args, fileHash)
+//	}
+//
+//	setString := strings.Join(set, ", ")
+//
+//	query += setString
+//
+//	query += " WHERE uid = ? AND timepoint = ?"
+//
+//	args = append(args, uid, timepoint)
+//
+//	_, err = conn.Exec(n.context, query, args...)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
-	exists, err := n.ContactExists(uid, timepoint)
-
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return errors.New("contact does not exist")
-	}
-
-	query := "UPDATE contacts SET "
-
-	set := []string{}
-
-	args := []interface{}{}
-
-	if weight != 0 {
-		set = append(set, "weight = ?")
-		args = append(args, weight)
-	}
-
-	if neuronA != 0 {
-		set = append(set, "neuron_a = ?")
-		args = append(args, neuronA)
-	}
-
-	if neuronB != 0 {
-		set = append(set, "neuron_b = ?")
-		args = append(args, neuronB)
-	}
-
-	if filename != "" {
-		set = append(set, "filename = ?")
-		args = append(args, filename)
-	}
-
-	if fileHash != "" {
-		set = append(set, "file_hash = ?")
-		args = append(args, fileHash)
-	}
-
-	setString := strings.Join(set, ", ")
-
-	query += setString
-
-	query += " WHERE uid = ? AND timepoint = ?"
-
-	args = append(args, timepoint, uid)
-
-	_, err = db.Exec(query, args...)
+// DeleteContact deletes a contact by the given uid and timepoint
+func (n *Neuroscan) DeleteContact(uid string, timepoint int) error {
+	_, err := n.connPool.Exec(n.context, "DELETE FROM contacts WHERE uid = $1 AND timepoint = $2", uid, timepoint)
 	if err != nil {
 		return err
 	}
@@ -167,13 +157,6 @@ func (n *Neuroscan) UpdateContact(uid string, timepoint int, weight int, neuronA
 
 // CreateContact creates a new contact in the database
 func (n *Neuroscan) CreateContact(uid string, weight int, neuronA int, neuronB int, filename string, fileHash string, timepoint int) error {
-	db, err := n.ConnectDB()
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
-
 	exists, err := n.ContactExists(uid, timepoint)
 
 	if err != nil {
@@ -184,7 +167,7 @@ func (n *Neuroscan) CreateContact(uid string, weight int, neuronA int, neuronB i
 		return errors.New("contact already exists")
 	}
 
-	_, err = db.Exec("INSERT INTO contacts (uid, weight, neuron_a, neuron_b, filename, file_hash, timepoint) VALUES (?, ?, ?, ?, ?, ?, ?)", uid, weight, neuronA, neuronB, filename, fileHash, timepoint)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO contacts (uid, weight, \"neuronA\", \"neuronB\", filename, file_hash, timepoint) VALUES ($1, $2, $3, $4, $5, $6, $7)", uid, weight, neuronA, neuronB, filename, fileHash, timepoint)
 	if err != nil {
 		return err
 	}
@@ -205,40 +188,25 @@ func getContactUIDNeurons(filename string) (string, string) {
 
 // parseContact takes the file path and returns a contact object
 func parseContact(n *Neuroscan, filePath string) (Contact, error) {
-	filename := filepath.Base(filePath)
-
-	filehash, err := HashFile(filePath)
+	fileMetas, err := FilePathParse(filePath)
 
 	if err != nil {
-		log.Error("Error getting file hash", "err", err)
+		log.Error("Error parsing file path", "err", err)
 		return Contact{}, err
 	}
 
-	uid := BuildUID(filename)
+	fileMeta := fileMetas[0]
 
-	timepoint, err := GetTimepoint(filePath)
-	if err != nil {
-		log.Error("Error getting timepoint", "err", err)
-		return Contact{}, err
-	}
-
-	devStageUID, err := GetDevStage(filePath)
+	devStage, err := n.GetDevStageByUID(fileMeta.developmentalStage)
 
 	if err != nil {
 		log.Error("Error getting developmental stage", "err", err)
 		return Contact{}, err
 	}
 
-	devStage, err := n.GetDevStageByUID(devStageUID)
+	contactNeuronA, contactNeuronB := getContactUIDNeurons(fileMeta.uid)
 
-	if err != nil {
-		log.Error("Error getting developmental stage", "err", err)
-		return Contact{}, err
-	}
-
-	contactNeuronA, contactNeuronB := getContactUIDNeurons(uid)
-
-	neuronA, err := n.GetNeuron(contactNeuronA, timepoint, devStage.id)
+	neuronA, err := n.GetNeuron(contactNeuronA, fileMeta.timepoint, devStage.id)
 
 	if err != nil {
 		log.Error("Error getting neuron", "err", err)
@@ -247,7 +215,7 @@ func parseContact(n *Neuroscan, filePath string) (Contact, error) {
 		}
 	}
 
-	neuronB, err := n.GetNeuron(contactNeuronB, timepoint, devStage.id)
+	neuronB, err := n.GetNeuron(contactNeuronB, fileMeta.timepoint, devStage.id)
 
 	if err != nil {
 		log.Error("Error getting neuron", "err", err)
@@ -257,13 +225,13 @@ func parseContact(n *Neuroscan, filePath string) (Contact, error) {
 	}
 
 	contact := Contact{
-		uid:       uid,
+		uid:       fileMeta.uid,
 		weight:    0,
 		neuronA:   neuronA.id,
 		neuronB:   neuronB.id,
-		filename:  filename,
-		fileHash:  filehash,
-		timepoint: timepoint,
+		filename:  fileMeta.filename,
+		fileHash:  fileMeta.filehash,
+		timepoint: fileMeta.timepoint,
 	}
 
 	return contact, nil
