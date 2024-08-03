@@ -51,7 +51,7 @@ func (n *Neuroscan) GetSynapse(uid string) (Synapse, error) {
 
 	// get the post neurons associated with the synapse
 	var postNeuronIDs []int
-	err = n.connPool.QueryRow(n.context, "SELECT id FROM synapse_post_neurons WHERE synapse_id = $1", synapse.id).Scan(&postNeuronIDs)
+	err = n.connPool.QueryRow(n.context, "SELECT id FROM synapses_neuron_post WHERE synapse_id = $1", synapse.id).Scan(&postNeuronIDs)
 	if err != nil {
 		return synapse, nil
 	}
@@ -140,7 +140,7 @@ func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string
 	}
 	// now we need in insert the post neurons
 	for _, postNeuron := range postNeurons {
-		_, err = n.connPool.Exec(n.context, "INSERT INTO synapse_post_neurons (synapse_id, neuron_id) VALUES ($1, $2)", synapse.id, postNeuron)
+		_, err = n.connPool.Exec(n.context, "INSERT INTO synapses__neuron_post (synapse_id, neuron_id) VALUES ($1, $2)", synapse.id, postNeuron)
 		if err != nil {
 			log.Error("Error inserting post neuron", "err", err)
 		}
@@ -157,13 +157,13 @@ func (n *Neuroscan) DeleteSynapse(uid string, timepoint int) error {
 		return err
 	}
 
-	_, err = n.connPool.Exec(n.context, "DELETE FROM synapse_post_neurons WHERE synapse_id = (SELECT id FROM synapses WHERE uid = $1 AND timepoint = $2)", uid, timepoint)
+	_, err = n.connPool.Exec(n.context, "DELETE FROM synapses__neuron_post WHERE synapse_id = (SELECT id FROM synapses WHERE uid = $1 AND timepoint = $2)", uid, timepoint)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = n.connPool.Exec(n.context, "DELETE FROM synapses WHERE uid = $1 AND timepoint = $1", uid, timepoint)
+	_, err = n.connPool.Exec(n.context, "DELETE FROM synapses WHERE uid = $1 AND timepoint = $2", uid, timepoint)
 
 	if err != nil {
 		return err
@@ -355,7 +355,6 @@ func getSynapseData(uid string) SynapseData {
 	// if the Synapse type is not present, we cannot split the string by ""
 	if synapseType == "" {
 		log.Error("Synapse type not present in UID", "uid", uid)
-		return SynapseData{}
 	}
 
 	neuronSections := strings.Split(uid, synapseType)
