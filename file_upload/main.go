@@ -1,20 +1,21 @@
 package main
 
 import (
-  "context"
-  "log"
-  "errors"
-  "fmt"
-	"time"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"os"
 	"path/filepath"
+	"slices"
 	"sync"
-  "bytes"
-  "os"
+	"time"
 
-  "github.com/aws/aws-sdk-go-v2/aws"
-  "github.com/aws/aws-sdk-go-v2/config"
-  "github.com/aws/aws-sdk-go-v2/service/s3"
-  "github.com/spf13/viper"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/spf13/viper"
 )
 
 type S3ClientConfig struct {
@@ -29,10 +30,13 @@ var uploadWg = new(sync.WaitGroup)
 var uploadBucket = "neuroscan-files"
 var directoryIgnore = "/Users/inghamemerson/Code/intralab/neuroscan/applications/neuroscan/backend/public/"
 var uploadDirectory = "/Users/inghamemerson/Code/intralab/neuroscan/applications/neuroscan/backend/public/files/neuroscan"
-var fileIgnore = []string{".DS_Store", "Thumbs.db", "desktop.ini"}
+var bucketFolder string
+var validExtensions = []string{".gltf"}
 
 func main() {
-  processUploadDirectory(uploadDirectory)
+	// bucket folder is a string representing the datetime of the upload
+	bucketFolder = time.Now().Format("2006_01_02T15_04_05")
+	processUploadDirectory(uploadDirectory)
 }
 
 func InitClient(ctx context.Context, bucket string) (*s3.Client, error) {
@@ -63,7 +67,7 @@ func CreateS3Client(ctx context.Context, clientConfig S3ClientConfig) *s3.Client
 }
 
 func GetClientConfig(bucket string) (S3ClientConfig, error) {
-	var config S3ClientConfig
+	var clientConfig S3ClientConfig
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
 	viper.AddConfigPath("/etc/vsa/")
@@ -71,7 +75,7 @@ func GetClientConfig(bucket string) (S3ClientConfig, error) {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		return config, errors.New("unable to read config file")
+		return clientConfig, errors.New("unable to read config file")
 	}
 
 	viperKey := "bucket." + bucket
@@ -81,12 +85,12 @@ func GetClientConfig(bucket string) (S3ClientConfig, error) {
 	region := viper.GetString(viperKey + ".REGION")
 	profile := viper.GetString(viperKey + ".PROFILE")
 
-	config.RoleArn = roleArn
-	config.RoleSessionName = roleSessionName
-	config.Region = region
-	config.Profile = profile
+	clientConfig.RoleArn = roleArn
+	clientConfig.RoleSessionName = roleSessionName
+	clientConfig.Region = region
+	clientConfig.Profile = profile
 
-	return config, nil
+	return clientConfig, nil
 }
 
 func processUploadDirectory(dir string) {
@@ -111,12 +115,12 @@ func processUploadDirectory(dir string) {
 			return nil
 		}
 
-    // if the file is a type we ignore, skip it
-    for _, ignore := range fileIgnore {
-      if ignore == d.Name() {
-        return nil
-      }
-    }
+		// if the extension is not in the valid extensions, skip it
+		ext := filepath.Ext(path)
+
+		if !slices.Contains(validExtensions, ext) {
+			return nil
+		}
 
 		// increment the total files
 		totalFiles++
@@ -142,7 +146,7 @@ func processUploadDirectory(dir string) {
 
 func fileUploadWorker() {
 	for file := range uploadFiles {
-			processUploadFiles(file)
+		processUploadFiles(file)
 	}
 }
 
@@ -156,40 +160,42 @@ func processUploadFiles(file string) {
 
 	var fileContents []byte
 
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		log.Fatal("File does not exist: ", file)
+	}
 
-  if _, err := os.Stat(file); os.IsNotExist(err) {
-    log.Fatal("File does not exist: ", file)
-  }
+	fileContents, err = os.ReadFile(file)
 
-  fileContents, err = os.ReadFile(file)
+	if err != nil {
+		uploadWg.Done()
+		log.Fatal("Unable to read file: ", err)
+		return
+	}
 
-  if err != nil {
-    log.Fatal("Unable to read file: ", err)
-    uploadWg.Done()
-    return
-  }
+	// the key is just the path without the directoryIgnore
+	key := file[len(directoryIgnore):]
 
-  // the key is just the path without the directoryIgnore
-  key := file[len(directoryIgnore):]
+	// now we add the bucketFolder as a prefix to the key
+	key = bucketFolder + "/" + key
 
-  fmt.Println("Uploading file: ", key)
+	fmt.Println("Uploading file: ", key)
 
-  // if the key is empty, skip it
-  if key == "" {
-    log.Println("Skipping empty key")
-    uploadWg.Done()
-    return
-  }
+	// if the key is empty, skip it
+	if key == "" {
+		log.Println("Skipping empty key")
+		uploadWg.Done()
+		return
+	}
 
-  _, err = client.PutObject(ctx, &s3.PutObjectInput{
-    Bucket: aws.String(uploadBucket),
-    Key: aws.String(key),
-    Body: bytes.NewReader(fileContents),
-  })
+	_, err = client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(uploadBucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader(fileContents),
+	})
 
-  if err != nil {
-    log.Fatal("Unable to upload file: ", err)
-  }
+	if err != nil {
+		log.Fatal("Unable to upload file: ", err)
+	}
 
-  uploadWg.Done()
+	uploadWg.Done()
 }

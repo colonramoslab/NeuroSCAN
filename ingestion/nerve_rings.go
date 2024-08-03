@@ -66,7 +66,7 @@ func (nerveRing NerveRing) writeToDB(n *Neuroscan) {
 func (n *Neuroscan) NerveRingExists(uid string, timepoint int) (bool, error) {
 	var count int
 
-	err := n.connPool.QueryRow(n.context, "SELECT COUNT(*) FROM nerve_rings WHERE uid = ? AND timepoint = ?", uid, timepoint).Scan(&count)
+	err := n.connPool.QueryRow(n.context, "SELECT COUNT(*) FROM nerve_rings WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&count)
 
 	if err != nil {
 		return false, err
