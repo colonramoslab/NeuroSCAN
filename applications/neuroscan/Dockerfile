@@ -89,5 +89,4 @@ RUN chmod +x scripts/*.sh
 
 EXPOSE 1337
 
-# run scripts/start.sh
-CMD scripts/start.sh
+CMD "yarn start"
