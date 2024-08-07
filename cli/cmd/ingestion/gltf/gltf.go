@@ -1,0 +1,507 @@
+package gltf
+
+import (
+	"encoding/base64"
+	"errors"
+	"strings"
+	"sync"
+)
+
+// Index is an utility function that returns a pointer to a int.
+func Index(i int) *int {
+	return &i
+}
+
+// Float is an utility function that returns a pointer to a float64.
+func Float(val float64) *float64 {
+	return &val
+}
+
+// An Asset is metadata about the glTF asset.
+type Asset struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Copyright  string     `json:"copyright,omitempty"`  // A copyright message suitable for display to credit the content creator.
+	Generator  string     `json:"generator,omitempty"`  // Tool that generated this glTF model. Useful for debugging.
+	Version    string     `json:"version"`              // The glTF version that this asset targets.
+	MinVersion string     `json:"minVersion,omitempty"` // The minimum glTF version that this asset targets.
+}
+
+// Document defines the root object for a glTF asset.
+type Document struct {
+	Extensions         Extensions    `json:"extensions,omitempty"`
+	Extras             any           `json:"extras,omitempty"`
+	ExtensionsUsed     []string      `json:"extensionsUsed,omitempty"`
+	ExtensionsRequired []string      `json:"extensionsRequired,omitempty"`
+	Accessors          []*Accessor   `json:"accessors,omitempty"`
+	Animations         []*Animation  `json:"animations,omitempty"`
+	Asset              Asset         `json:"asset"`
+	Buffers            []*Buffer     `json:"buffers,omitempty"`
+	BufferViews        []*BufferView `json:"bufferViews,omitempty"`
+	Cameras            []*Camera     `json:"cameras,omitempty"`
+	Images             []*Image      `json:"images,omitempty"`
+	Materials          []*Material   `json:"materials,omitempty"`
+	Meshes             []*Mesh       `json:"meshes,omitempty"`
+	Nodes              []*Node       `json:"nodes,omitempty"`
+	Samplers           []*Sampler    `json:"samplers,omitempty"`
+	Scene              *int          `json:"scene,omitempty"`
+	Scenes             []*Scene      `json:"scenes,omitempty"`
+	Skins              []*Skin       `json:"skins,omitempty"`
+	Textures           []*Texture    `json:"textures,omitempty"`
+}
+
+// NewDocument returns a new Document with sane defaults.
+func NewDocument() *Document {
+	return &Document{
+		Scene:  Index(0),
+		Scenes: []*Scene{{Name: "Root Scene"}},
+		Asset: Asset{
+			Generator: "qmuntal/gltf",
+			Version:   "2.0",
+		},
+	}
+}
+
+// An Accessor is a typed view into a bufferView.
+// An accessor provides a typed view into a bufferView or a subset of a bufferView
+// similar to how WebGL's vertexAttribPointer() defines an attribute in a buffer.
+type Accessor struct {
+	Extensions    Extensions    `json:"extensions,omitempty"`
+	Extras        any           `json:"extras,omitempty"`
+	Name          string        `json:"name,omitempty"`
+	BufferView    *int          `json:"bufferView,omitempty"`
+	ByteOffset    int           `json:"byteOffset,omitempty"`
+	ComponentType ComponentType `json:"componentType"`
+	Normalized    bool          `json:"normalized,omitempty"` // Specifies whether integer data values should be normalized.
+	Count         int           `json:"count"`                // The number of attributes referenced by this accessor.
+	Type          AccessorType  `json:"type"`
+	Max           []float64     `json:"max,omitempty"`    // Maximum value of each component in this attribute.
+	Min           []float64     `json:"min,omitempty"`    // Minimum value of each component in this attribute.
+	Sparse        *Sparse       `json:"sparse,omitempty"` // Sparse storage of attributes that deviate from their initialization value.
+}
+
+// Sparse storage of attributes that deviate from their initialization value.
+type Sparse struct {
+	Extensions Extensions    `json:"extensions,omitempty"`
+	Extras     any           `json:"extras,omitempty"`
+	Count      int           `json:"count"`   // Number of entries stored in the sparse array.
+	Indices    SparseIndices `json:"indices"` // Index array of size count that points to those accessor attributes that deviate from their initialization value.
+	Values     SparseValues  `json:"values"`  // Array of size count times number of components, storing the displaced accessor attributes pointed by indices.
+}
+
+// SparseValues stores the displaced accessor attributes pointed by accessor.sparse.indices.
+type SparseValues struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	BufferView int        `json:"bufferView"`
+	ByteOffset int        `json:"byteOffset,omitempty"`
+}
+
+// SparseIndices defines the indices of those attributes that deviate from their initialization value.
+type SparseIndices struct {
+	Extensions    Extensions    `json:"extensions,omitempty"`
+	Extras        any           `json:"extras,omitempty"`
+	BufferView    int           `json:"bufferView"`
+	ByteOffset    int           `json:"byteOffset,omitempty"`
+	ComponentType ComponentType `json:"componentType"`
+}
+
+// A Buffer points to binary geometry, animation, or skins.
+// If Data length is 0 and the Buffer is an external resource the Data won't be flushed,
+// which can be useful when there is no need to load data in memory.
+type Buffer struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	URI        string     `json:"uri,omitempty"`
+	ByteLength int        `json:"byteLength"`
+	Data       []byte     `json:"-"`
+}
+
+// IsEmbeddedResource returns true if the buffer points to an embedded resource.
+func (b *Buffer) IsEmbeddedResource() bool {
+	return strings.HasPrefix(b.URI, mimetypeApplicationOctet)
+}
+
+// EmbeddedResource defines the buffer as an embedded resource and encodes the URI so it points to the the resource.
+func (b *Buffer) EmbeddedResource() {
+	b.URI = mimetypeApplicationOctet + "," + base64.StdEncoding.EncodeToString(b.Data)
+}
+
+// marshalData decode the buffer from the URI. If the buffer is not en embedded resource the returned array will be empty.
+func (b *Buffer) marshalData() ([]byte, error) {
+	if !b.IsEmbeddedResource() {
+		return nil, nil
+	}
+	startPos := len(mimetypeApplicationOctet) + 1
+	if len(b.URI) < startPos {
+		return nil, errors.New("gltf: Invalid base64 content")
+	}
+	sl, err := base64.StdEncoding.DecodeString(b.URI[startPos:])
+	if len(sl) == 0 || err != nil {
+		return nil, err
+	}
+	return sl, nil
+}
+
+// BufferView is a view into a buffer generally representing a subset of the buffer.
+type BufferView struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Buffer     int        `json:"buffer"`
+	ByteOffset int        `json:"byteOffset,omitempty"`
+	ByteLength int        `json:"byteLength"`
+	ByteStride int        `json:"byteStride,omitempty"`
+	Target     Target     `json:"target,omitempty"`
+	Name       string     `json:"name,omitempty"`
+}
+
+// The Scene contains a list of root nodes.
+type Scene struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	Nodes      []int      `json:"nodes,omitempty"`
+}
+
+// A Node in the node hierarchy.
+// It can have either a matrix or any combination of translation/rotation/scale (TRS) properties.
+type Node struct {
+	Extensions  Extensions  `json:"extensions,omitempty"`
+	Extras      any         `json:"extras,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	Camera      *int        `json:"camera,omitempty"`
+	Children    []int       `json:"children,omitempty"`
+	Skin        *int        `json:"skin,omitempty"`
+	Matrix      [16]float64 `json:"matrix"` // A 4x4 transformation matrix stored in column-major order.
+	Mesh        *int        `json:"mesh,omitempty"`
+	Rotation    [4]float64  `json:"rotation"` // The node's unit quaternion rotation in the order (x, y, z, w), where w is the scalar.
+	Scale       [3]float64  `json:"scale"`
+	Translation [3]float64  `json:"translation"`
+	Weights     []float64   `json:"weights,omitempty"` // The weights of the instantiated Morph Target.
+}
+
+// MatrixOrDefault returns the node matrix if it represents a valid affine matrix, else return the default one.
+func (n *Node) MatrixOrDefault() [16]float64 {
+	if n.Matrix == emptyMatrix {
+		return DefaultMatrix
+	}
+	return n.Matrix
+}
+
+// RotationOrDefault returns the node rotation if it represents a valid quaternion, else return the default one.
+func (n *Node) RotationOrDefault() [4]float64 {
+	if n.Rotation == emptyRotation {
+		return DefaultRotation
+	}
+	return n.Rotation
+}
+
+// ScaleOrDefault returns the node scale if it represents a valid scale factor, else return the default one.
+func (n *Node) ScaleOrDefault() [3]float64 {
+	if n.Scale == emptyScale {
+		return DefaultScale
+	}
+	return n.Scale
+}
+
+// TranslationOrDefault returns the node translation.
+func (n *Node) TranslationOrDefault() [3]float64 {
+	return n.Translation
+}
+
+// Skin defines joints and matrices.
+type Skin struct {
+	Extensions          Extensions `json:"extensions,omitempty"`
+	Extras              any        `json:"extras,omitempty"`
+	Name                string     `json:"name,omitempty"`
+	InverseBindMatrices *int       `json:"inverseBindMatrices,omitempty"` // The index of the accessor containing the floating-point 4x4 inverse-bind matrices.
+	Skeleton            *int       `json:"skeleton,omitempty"`            // The index of the node used as a skeleton root. When undefined, joints transforms resolve to scene root.
+	Joints              []int      `json:"joints"`                        // Indices of skeleton nodes, used as joints in this skin.
+}
+
+// A Camera projection. A node can reference a camera to apply a transform to place the camera in the scene.
+type Camera struct {
+	Extensions   Extensions    `json:"extensions,omitempty"`
+	Extras       any           `json:"extras,omitempty"`
+	Name         string        `json:"name,omitempty"`
+	Orthographic *Orthographic `json:"orthographic,omitempty"`
+	Perspective  *Perspective  `json:"perspective,omitempty"`
+}
+
+// Orthographic camera containing properties to create an orthographic projection matrix.
+type Orthographic struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Xmag       float64    `json:"xmag"`  // The horizontal magnification of the view.
+	Ymag       float64    `json:"ymag"`  // The vertical magnification of the view.
+	Zfar       float64    `json:"zfar"`  // The distance to the far clipping plane.
+	Znear      float64    `json:"znear"` // The distance to the near clipping plane.
+}
+
+// Perspective camera containing properties to create a perspective projection matrix.
+type Perspective struct {
+	Extensions  Extensions `json:"extensions,omitempty"`
+	Extras      any        `json:"extras,omitempty"`
+	AspectRatio *float64   `json:"aspectRatio,omitempty"`
+	Yfov        float64    `json:"yfov"`           // The vertical field of view in radians.
+	Zfar        *float64   `json:"zfar,omitempty"` // The distance to the far clipping plane.
+	Znear       float64    `json:"znear"`          // The distance to the near clipping plane.
+}
+
+// A Mesh is a set of primitives to be rendered. A node can contain one mesh. A node's transform places the mesh in the scene.
+type Mesh struct {
+	Extensions Extensions   `json:"extensions,omitempty"`
+	Extras     any          `json:"extras,omitempty"`
+	Name       string       `json:"name,omitempty"`
+	Primitives []*Primitive `json:"primitives"`
+	Weights    []float64    `json:"weights,omitempty"`
+}
+
+// Primitive defines the geometry to be rendered with the given material.
+type Primitive struct {
+	Extensions Extensions            `json:"extensions,omitempty"`
+	Extras     any                   `json:"extras,omitempty"`
+	Attributes PrimitiveAttributes   `json:"attributes"`
+	Indices    *int                  `json:"indices,omitempty"` // The index of the accessor that contains the indices.
+	Material   *int                  `json:"material,omitempty"`
+	Mode       PrimitiveMode         `json:"mode,omitempty"`
+	Targets    []PrimitiveAttributes `json:"targets,omitempty"` // Only POSITION, NORMAL, and TANGENT supported.
+}
+
+// The Material appearance of a primitive.
+type Material struct {
+	Extensions           Extensions            `json:"extensions,omitempty"`
+	Extras               any                   `json:"extras,omitempty"`
+	Name                 string                `json:"name,omitempty"`
+	PBRMetallicRoughness *PBRMetallicRoughness `json:"pbrMetallicRoughness,omitempty"`
+	NormalTexture        *NormalTexture        `json:"normalTexture,omitempty"`
+	OcclusionTexture     *OcclusionTexture     `json:"occlusionTexture,omitempty"`
+	EmissiveTexture      *TextureInfo          `json:"emissiveTexture,omitempty"`
+	EmissiveFactor       [3]float64            `json:"emissiveFactor,omitempty"`
+	AlphaMode            AlphaMode             `json:"alphaMode,omitempty"`
+	AlphaCutoff          *float64              `json:"alphaCutoff,omitempty"`
+	DoubleSided          bool                  `json:"doubleSided,omitempty"`
+}
+
+// AlphaCutoffOrDefault returns the scale if it is not nil, else return the default one.
+func (m *Material) AlphaCutoffOrDefault() float64 {
+	if m.AlphaCutoff == nil {
+		return 0.5
+	}
+	return *m.AlphaCutoff
+}
+
+// A NormalTexture references to a normal texture.
+type NormalTexture struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Index      *int       `json:"index,omitempty"`
+	TexCoord   int        `json:"texCoord,omitempty"` // The index of texture's TEXCOORD attribute used for texture coordinate mapping.
+	Scale      *float64   `json:"scale,omitempty"`
+}
+
+// ScaleOrDefault returns the scale if it is not nil, else return the default one.
+func (n *NormalTexture) ScaleOrDefault() float64 {
+	if n.Scale == nil {
+		return 1
+	}
+	return *n.Scale
+}
+
+// An OcclusionTexture references to an occlusion texture
+type OcclusionTexture struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Index      *int       `json:"index,omitempty"`
+	TexCoord   int        `json:"texCoord,omitempty"` // The index of texture's TEXCOORD attribute used for texture coordinate mapping.
+	Strength   *float64   `json:"strength,omitempty"`
+}
+
+// StrengthOrDefault returns the strength if it is not nil, else return the default one.
+func (o *OcclusionTexture) StrengthOrDefault() float64 {
+	if o.Strength == nil {
+		return 1
+	}
+	return *o.Strength
+}
+
+// PBRMetallicRoughness defines a set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology.
+type PBRMetallicRoughness struct {
+	Extensions               Extensions   `json:"extensions,omitempty"`
+	Extras                   any          `json:"extras,omitempty"`
+	BaseColorFactor          *[4]float64  `json:"baseColorFactor,omitempty"`
+	BaseColorTexture         *TextureInfo `json:"baseColorTexture,omitempty"`
+	MetallicFactor           *float64     `json:"metallicFactor,omitempty"`
+	RoughnessFactor          *float64     `json:"roughnessFactor,omitempty"`
+	MetallicRoughnessTexture *TextureInfo `json:"metallicRoughnessTexture,omitempty"`
+}
+
+// MetallicFactorOrDefault returns the metallic factor if it is not nil, else return the default one.
+func (p *PBRMetallicRoughness) MetallicFactorOrDefault() float64 {
+	if p.MetallicFactor == nil {
+		return 1
+	}
+	return *p.MetallicFactor
+}
+
+// RoughnessFactorOrDefault returns the roughness factor if it is not nil, else return the default one.
+func (p *PBRMetallicRoughness) RoughnessFactorOrDefault() float64 {
+	if p.RoughnessFactor == nil {
+		return 1
+	}
+	return *p.RoughnessFactor
+}
+
+// BaseColorFactorOrDefault returns the base color factor if it is not nil, else return the default one.
+func (p *PBRMetallicRoughness) BaseColorFactorOrDefault() [4]float64 {
+	if p.BaseColorFactor == nil {
+		return [4]float64{1, 1, 1, 1}
+	}
+	return *p.BaseColorFactor
+}
+
+// TextureInfo references to a texture.
+type TextureInfo struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Index      int        `json:"index"`
+	TexCoord   int        `json:"texCoord,omitempty"` // The index of texture's TEXCOORD attribute used for texture coordinate mapping.
+}
+
+// A Texture and its sampler.
+type Texture struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	Sampler    *int       `json:"sampler,omitempty"`
+	Source     *int       `json:"source,omitempty"`
+}
+
+// Sampler of a texture for filtering and wrapping modes.
+type Sampler struct {
+	Extensions Extensions   `json:"extensions,omitempty"`
+	Extras     any          `json:"extras,omitempty"`
+	Name       string       `json:"name,omitempty"`
+	MagFilter  MagFilter    `json:"magFilter,omitempty"`
+	MinFilter  MinFilter    `json:"minFilter,omitempty"`
+	WrapS      WrappingMode `json:"wrapS,omitempty"`
+	WrapT      WrappingMode `json:"wrapT,omitempty"`
+}
+
+// Image data used to create a texture. Image can be referenced by URI or bufferView index.
+// mimeType is required in the latter case.
+type Image struct {
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     any        `json:"extras,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	URI        string     `json:"uri,omitempty"`
+	MimeType   string     `json:"mimeType,omitempty"`   // Manadatory if BufferView is defined.
+	BufferView *int       `json:"bufferView,omitempty"` // Use this instead of the image's uri property.
+}
+
+// IsEmbeddedResource returns true if the buffer points to an embedded resource.
+func (im *Image) IsEmbeddedResource() bool {
+	return strings.HasPrefix(im.URI, mimetypeImagePNG) || strings.HasPrefix(im.URI, mimetypeImageJPG)
+}
+
+// MarshalData decode the image from the URI. If the image is not en embedded resource the returned array will be empty.
+func (im *Image) MarshalData() ([]byte, error) {
+	if !im.IsEmbeddedResource() {
+		return []byte{}, nil
+	}
+	mimetype := mimetypeImagePNG
+	if strings.HasPrefix(im.URI, mimetypeImageJPG) {
+		mimetype = mimetypeImageJPG
+	}
+	startPos := len(mimetype) + 1
+	if len(im.URI) < startPos {
+		return []byte{}, errors.New("gltf: Invalid base64 content")
+	}
+	return base64.StdEncoding.DecodeString(im.URI[startPos:])
+}
+
+// An Animation keyframe.
+type Animation struct {
+	Extensions Extensions          `json:"extensions,omitempty"`
+	Extras     any                 `json:"extras,omitempty"`
+	Name       string              `json:"name,omitempty"`
+	Channels   []*AnimationChannel `json:"channels"`
+	Samplers   []*AnimationSampler `json:"samplers"`
+}
+
+// AnimationSampler combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target).
+type AnimationSampler struct {
+	Extensions    Extensions    `json:"extensions,omitempty"`
+	Extras        any           `json:"extras,omitempty"`
+	Input         int           `json:"input"` // The index of an accessor containing keyframe input values.
+	Interpolation Interpolation `json:"interpolation,omitempty"`
+	Output        int           `json:"output"` // The index of an accessor containing keyframe output values.
+}
+
+// The AnimationChannel targets an animation's sampler at a node's property.
+type AnimationChannel struct {
+	Extensions Extensions             `json:"extensions,omitempty"`
+	Extras     any                    `json:"extras,omitempty"`
+	Sampler    int                    `json:"sampler"`
+	Target     AnimationChannelTarget `json:"target"`
+}
+
+// AnimationChannelTarget describes the index of the node and TRS property that an animation channel targets.
+// The Path represents the name of the node's TRS property to modify, or the "weights" of the Morph Targets it instantiates.
+// For the "translation" property, the values that are provided by the sampler are the translation along the x, y, and z axes.
+// For the "rotation" property, the values are a quaternion in the order (x, y, z, w), where w is the scalar.
+// For the "scale" property, the values are the scaling factors along the x, y, and z axes.
+type AnimationChannelTarget struct {
+	Extensions Extensions  `json:"extensions,omitempty"`
+	Extras     any         `json:"extras,omitempty"`
+	Node       *int        `json:"node,omitempty"`
+	Path       TRSProperty `json:"path"`
+}
+
+// Extensions is map where the keys are the extension identifiers and the values are the extensions payloads.
+// If a key matches with one of the supported extensions the value will be marshalled as a pointer to the extension struct.
+// If a key does not match with any of the supported extensions the value will be a json.RawMessage so its decoding can be delayed.
+type Extensions map[string]any
+
+var (
+	extMu      sync.RWMutex
+	extensions = make(map[string]func([]byte) (any, error))
+)
+
+// RegisterExtension registers a function that returns a new extension of the given
+// byte array. This is intended to be called from the init function in
+// packages that implement extensions.
+func RegisterExtension(key string, f func([]byte) (any, error)) {
+	extMu.Lock()
+	defer extMu.Unlock()
+	extensions[key] = f
+}
+
+func queryExtension(key string) (func([]byte) (any, error), bool) {
+	extMu.RLock()
+	ext, ok := extensions[key]
+	extMu.RUnlock()
+	return ext, ok
+}
+
+// SizeOfElement returns the size, in bytes, of an element.
+// The element size may not be (component size) * (number of components),
+// as some of the elements are tightly packed in order to ensure
+// that they are aligned to 4-byte boundaries.
+func SizeOfElement(c ComponentType, t AccessorType) int {
+	// special cases
+	switch {
+	case (t == AccessorVec3 || t == AccessorVec2) && (c == ComponentByte || c == ComponentUbyte):
+		return 4
+	case t == AccessorVec3 && (c == ComponentShort || c == ComponentUshort):
+		return 8
+	case t == AccessorMat2 && (c == ComponentByte || c == ComponentUbyte):
+		return 8
+	case t == AccessorMat3 && (c == ComponentByte || c == ComponentUbyte):
+		return 12
+	case t == AccessorMat3 && (c == ComponentShort || c == ComponentUshort):
+		return 24
+	}
+	return c.ByteSize() * t.Components()
+}
