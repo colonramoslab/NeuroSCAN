@@ -157,11 +157,11 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 		uid := node.Name
 
 		parsedFile := NeuroscanFilepathData{
-			UID:                uid,
-			Filename:           filename,
-			Filehash:           filehash,
-			Timepoint:          timepoint,
-			DevelopmentalStage: devStageUID,
+			UID:                &uid,
+			Filename:           &filename,
+			Filehash:           &filehash,
+			Timepoint:          &timepoint,
+			DevelopmentalStage: &devStageUID,
 		}
 
 		parsedFiles = append(parsedFiles, parsedFile)
