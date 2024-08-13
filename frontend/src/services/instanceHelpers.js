@@ -220,16 +220,16 @@ export const getLocationPrefixFromType = (item) => {
   const devStage = getDevStageFromTimepoint(item.timepoint);
   switch (item.instanceType) {
     case NEURON_TYPE: {
-      return `${filesURL}/files/neuroscan/${devStage}/${item.timepoint}/neurons/${item.filename}`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/neurons/${item.filename}`;
     }
     case CONTACT_TYPE: {
-      return `${filesURL}/files/neuroscan/${devStage}/${item.timepoint}/contacts/${item.filename}`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/contacts/${item.filename}`;
     }
     case SYNAPSE_TYPE: {
-      return `${filesURL}/files/neuroscan/${devStage}/${item.timepoint}/synapses/${item.filename}`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/synapses/${item.filename}`;
     }
     case CPHATE_TYPE: {
-      return `${filesURL}/files/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.zip`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.zip`;
     }
     default: {
       return '';

@@ -65,14 +65,20 @@ COPY ./backend/package.json ./
 COPY ./backend/yarn.lock ./
 
 # create data directory
-RUN mkdir -p /my-path/data
-COPY ./backend/data/data.db ./data
+#RUN mkdir -p /my-path/data
+#COPY ./backend/data/data.db ./data
 
 RUN yarn install
 
 COPY ./backend .
 
 ENV NODE_ENV production
+
+ENV DATABASE_HOST "p.sof37zx5r5eyvap5utivoqvnzi.db.postgresbridge.com"
+ENV DATABASE_NAME "postgres"
+ENV DATABASE_USERNAME "application"
+ENV DATABASE_PASSWORD "HKE7CnynfYJvoiOpYk4gPKjYQ6L68XT4xW9Q87rn18P7HZQnLrBiNvZwKpRinFFM"
+ENV DATABASE_PORT "5432"
 
 RUN yarn build
 

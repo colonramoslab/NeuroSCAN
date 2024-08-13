@@ -5,3 +5,7 @@ build
 rclone.conf
 ingress-promoterdb.yaml
 .idea/
+./neuroscan
+node_modules/
+applications/neuroscan/backend/public/files/
+ applications/neuroscan/backend/.tmp/
