@@ -8,4 +8,4 @@ ingress-promoterdb.yaml
 ./neuroscan
 node_modules/
 applications/neuroscan/backend/public/files/
- applications/neuroscan/backend/.tmp/
+applications/neuroscan/backend/.tmp/
