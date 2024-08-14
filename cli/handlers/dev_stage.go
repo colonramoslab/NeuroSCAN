@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	"neuroscan/pkg/models"
+	"neuroscan/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

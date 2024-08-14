@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"neuroscan/pkg/models"
-	"neuroscan/pkg/toolshed"
+	"neuroscan/models"
+	"neuroscan/toolshed"
 
 	"github.com/charmbracelet/log"
 	"github.com/jackc/pgx/v5/pgxpool"
