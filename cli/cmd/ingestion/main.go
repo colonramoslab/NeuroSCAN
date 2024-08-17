@@ -63,6 +63,12 @@ func Run() {
 	log.Debug("Database URL: ", "db-url", *dbUrl)
 	log.Debug("Directory path: ", "dir", *dirPath)
 
+	err := neuroscan.LoadDevStages()
+
+	if err != nil {
+		log.Fatal("Error loading developmental stages", "err", err)
+	}
+
 	// walk the directory
 	neuroscan.ProcessEntities(*dirPath)
 

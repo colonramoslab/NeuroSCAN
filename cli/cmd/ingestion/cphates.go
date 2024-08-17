@@ -2,6 +2,7 @@ package ingestion
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"github.com/charmbracelet/log"
 	"strconv"
@@ -24,91 +25,99 @@ type Cphate struct {
 	id                 int
 	timepoint          int
 	developmentalStage sql.NullInt64
-	filename           string
-	fileHash           string
-	nodes              []CphateNode
+	structure          CphateMeta
+	//nodes              []CphateNode
+}
+
+type CphateMeta []CphateMetaItem
+
+type CphateMetaItem struct {
+	I       int      `json:"i"`
+	C       int      `json:"c"`
+	Neurons []string `json:"neurons"`
+	ObjFile string   `json:"objFile"`
 }
 
 // GetCphate gets the CPHATE by timepoint and returns it
 func (n *Neuroscan) GetCphate(timepoint int) (Cphate, error) {
 	var cphate Cphate
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, timepoint, filename, file_hash FROM cphates WHERE timepoint = $1", timepoint).Scan(&cphate.id, &cphate.timepoint, &cphate.filename, &cphate.fileHash)
+	err := n.connPool.QueryRow(n.context, "SELECT id, timepoint FROM cphates WHERE timepoint = $1", timepoint).Scan(&cphate.id, &cphate.timepoint)
 	if err != nil {
 		return cphate, err
 	}
 
-	var cphateNodes []CphateNode
-	rows, err := n.connPool.Query(n.context, "SELECT id, uid, cphate_id, cluster, cluster_count, iteration, iteration_count, serial FROM cphate_nodes WHERE cphate_id = $1", cphate.id)
+	//var cphateNodes []CphateNode
+	//rows, err := n.connPool.Query(n.context, "SELECT id, uid, cphate_id, cluster, cluster_count, iteration, iteration_count, serial FROM cphate_nodes WHERE cphate_id = $1", cphate.id)
 
-	if err != nil {
-		return cphate, err
-	}
+	//if err != nil {
+	//	return cphate, err
+	//}
 
-	defer rows.Close()
+	//defer rows.Close()
 
-	for rows.Next() {
-		var cphateNode CphateNode
-		err = rows.Scan(&cphateNode.id, &cphateNode.uid, &cphateNode.cphateId, &cphateNode.cluster, &cphateNode.clusterCount, &cphateNode.iteration, &cphateNode.iterationCount, &cphateNode.serial)
-		if err != nil {
-			return cphate, err
-		}
-
-		var nodeNeurons []string
-
-		neurons, err := n.connPool.Query(n.context, "SELECT neuron_id FROM cphate_node_neurons WHERE cphate_node_id = $1", cphateNode.id)
-
-		if err != nil {
-			return cphate, err
-		}
-
-		defer neurons.Close()
-
-		for neurons.Next() {
-			var neuron string
-			err = neurons.Scan(&neuron)
-			if err != nil {
-				return cphate, err
-			}
-			nodeNeurons = append(nodeNeurons, neuron)
-		}
-
-		cphateNodes = append(cphateNodes, cphateNode)
-	}
+	//for rows.Next() {
+	//	var cphateNode CphateNode
+	//	err = rows.Scan(&cphateNode.id, &cphateNode.uid, &cphateNode.cphateId, &cphateNode.cluster, &cphateNode.clusterCount, &cphateNode.iteration, &cphateNode.iterationCount, &cphateNode.serial)
+	//	if err != nil {
+	//		return cphate, err
+	//	}
+	//
+	//	var nodeNeurons []string
+	//
+	//	neurons, err := n.connPool.Query(n.context, "SELECT neuron_id FROM cphate_node_neurons WHERE cphate_node_id = $1", cphateNode.id)
+	//
+	//	if err != nil {
+	//		return cphate, err
+	//	}
+	//
+	//	defer neurons.Close()
+	//
+	//	for neurons.Next() {
+	//		var neuron string
+	//		err = neurons.Scan(&neuron)
+	//		if err != nil {
+	//			return cphate, err
+	//		}
+	//		nodeNeurons = append(nodeNeurons, neuron)
+	//	}
+	//
+	//	cphateNodes = append(cphateNodes, cphateNode)
+	//}
 
 	return cphate, nil
 }
 
 // GetCphateNode gets a CPHATE node by UID and cphate ID
-func (n *Neuroscan) GetCphateNode(uid string, cphateID int) (CphateNode, error) {
-	var cphateNode CphateNode
-
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, cphate_id, cluster, cluster_count, iteration, iteration_count, serial FROM cphate_nodes WHERE cphate_id = $1 AND uid = $2", cphateID, uid).Scan(&cphateNode.id, &cphateNode.uid, &cphateNode.cphateId, &cphateNode.cluster, &cphateNode.clusterCount, &cphateNode.iteration, &cphateNode.iterationCount, &cphateNode.serial)
-	if err != nil {
-		return cphateNode, err
-	}
-
-	var nodeNeurons []string
-
-	neurons, err := n.connPool.Query(n.context, "SELECT neuron_id FROM cphate_node_neurons WHERE cphate_node_id = $1", cphateNode.id)
-
-	if err != nil {
-		return cphateNode, err
-	}
-
-	defer neurons.Close()
-
-	for neurons.Next() {
-		var neuron string
-		err = neurons.Scan(&neuron)
-		if err != nil {
-			return cphateNode, err
-		}
-		nodeNeurons = append(nodeNeurons, neuron)
-	}
-
-	return cphateNode, nil
-}
+//func (n *Neuroscan) GetCphateNode(uid string, cphateID int) (CphateNode, error) {
+//	var cphateNode CphateNode
+//
+//	err := n.connPool.QueryRow(n.context, "SELECT id, uid, cphate_id, cluster, cluster_count, iteration, iteration_count, serial FROM cphate_nodes WHERE cphate_id = $1 AND uid = $2", cphateID, uid).Scan(&cphateNode.id, &cphateNode.uid, &cphateNode.cphateId, &cphateNode.cluster, &cphateNode.clusterCount, &cphateNode.iteration, &cphateNode.iterationCount, &cphateNode.serial)
+//	if err != nil {
+//		return cphateNode, err
+//	}
+//
+//	var nodeNeurons []string
+//
+//	neurons, err := n.connPool.Query(n.context, "SELECT neuron_id FROM cphate_node_neurons WHERE cphate_node_id = $1", cphateNode.id)
+//
+//	if err != nil {
+//		return cphateNode, err
+//	}
+//
+//	defer neurons.Close()
+//
+//	for neurons.Next() {
+//		var neuron string
+//		err = neurons.Scan(&neuron)
+//		if err != nil {
+//			return cphateNode, err
+//		}
+//		nodeNeurons = append(nodeNeurons, neuron)
+//	}
+//
+//	return cphateNode, nil
+//}
 
 // writeToDb writes the CPHATE to the database
 func (cphate Cphate) writeToDB(n *Neuroscan) {
@@ -131,7 +140,7 @@ func (cphate Cphate) writeToDB(n *Neuroscan) {
 		}
 	}
 
-	err = n.CreateCphate(cphate.timepoint, cphate.developmentalStage, cphate.filename, cphate.fileHash, cphate.nodes)
+	err = n.CreateCphate(cphate.timepoint, cphate.structure)
 
 	if err != nil {
 		log.Error("Error creating CPHATE", "err", err)
@@ -157,7 +166,7 @@ func (n *Neuroscan) CphateExists(timepoint int) (bool, error) {
 }
 
 // CreateCphate creates a CPHATE in the database
-func (n *Neuroscan) CreateCphate(timepoint int, devStage sql.NullInt64, filename string, fileHash string, nodes []CphateNode) error {
+func (n *Neuroscan) CreateCphate(timepoint int, structure CphateMeta) error {
 	exists, err := n.CphateExists(timepoint)
 
 	if err != nil {
@@ -170,69 +179,123 @@ func (n *Neuroscan) CreateCphate(timepoint int, devStage sql.NullInt64, filename
 		return nil
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO cphates (timepoint, filename, file_hash) VALUES ($1, $2, $3)", timepoint, filename, fileHash)
+	name := strconv.Itoa(timepoint)
+
+	structureJson, err := json.Marshal(structure)
 
 	if err != nil {
 		return err
 	}
 
-	newCphate, err := n.GetCphate(timepoint)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO cphates (name, structure, timepoint) VALUES ($1, $2, $3)", name, structureJson, timepoint)
 
 	if err != nil {
 		return err
 	}
 
-	for _, node := range nodes {
-		_, err := n.connPool.Exec(n.context, "INSERT INTO cphate_nodes (cphate_id, uid, cluster, cluster_count, iteration, iteration_count, serial) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", newCphate.id, node.uid, node.cluster, node.clusterCount, node.iteration, node.iterationCount, node.serial)
+	//newCphate, err := n.GetCphate(timepoint)
+	//
+	//if err != nil {
+	//	return err
+	//}
 
-		if err != nil {
-			return err
-		}
-
-		newNode, err := n.GetCphateNode(node.uid, newCphate.id)
-
-		if err != nil {
-			return err
-		}
-
-		for _, neuronNode := range node.neurons {
-			// we need to get the neuron ID by the neuron UID
-			neuron, err := n.GetNeuron(neuronNode, timepoint, devStage)
-
-			if err != nil {
-				log.Error("Error getting neuron", "err", err)
-				continue
-			}
-
-			_, err = n.connPool.Exec(n.context, "INSERT INTO cphate_node_neurons (cphate_node_id, neuron_id) VALUES ($1, $2)", newNode.id, neuron.id)
-
-			if err != nil {
-				return err
-			}
-		}
-	}
+	//for _, node := range nodes {
+	//	_, err := n.connPool.Exec(n.context, "INSERT INTO cphate_nodes (cphate_id, uid, cluster, cluster_count, iteration, iteration_count, serial) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", newCphate.id, node.uid, node.cluster, node.clusterCount, node.iteration, node.iterationCount, node.serial)
+	//
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	newNode, err := n.GetCphateNode(node.uid, newCphate.id)
+	//
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	for _, neuronNode := range node.neurons {
+	//		// we need to get the neuron ID by the neuron UID
+	//		neuron, err := n.GetNeuron(neuronNode, timepoint, devStage)
+	//
+	//		if err != nil {
+	//			log.Error("Error getting neuron", "err", err)
+	//			continue
+	//		}
+	//
+	//		_, err = n.connPool.Exec(n.context, "INSERT INTO cphate_node_neurons (cphate_node_id, neuron_id) VALUES ($1, $2)", newNode.id, neuron.id)
+	//
+	//		if err != nil {
+	//			return err
+	//		}
+	//	}
+	//}
 
 	return nil
 }
 
 // DeleteCphate deletes a CPHATE by timepoint
 func (n *Neuroscan) DeleteCphate(timepoint int) error {
-	_, err := n.connPool.Exec(n.context, "DELETE FROM cphate_node_neurons WHERE cphate_node_id IN (SELECT id FROM cphate_nodes WHERE cphate_id = (SELECT id FROM cphates WHERE timepoint = $1))", timepoint)
-	if err != nil {
-		return err
-	}
+	//_, err := n.connPool.Exec(n.context, "DELETE FROM cphate_node_neurons WHERE cphate_node_id IN (SELECT id FROM cphate_nodes WHERE cphate_id = (SELECT id FROM cphates WHERE timepoint = $1))", timepoint)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = n.connPool.Exec(n.context, "DELETE FROM cphate_nodes WHERE cphate_id = (SELECT id FROM cphates WHERE timepoint = $1)", timepoint)
+	//if err != nil {
+	//	return err
+	//}
 
-	_, err = n.connPool.Exec(n.context, "DELETE FROM cphate_nodes WHERE cphate_id = (SELECT id FROM cphates WHERE timepoint = $1)", timepoint)
-	if err != nil {
-		return err
-	}
-
-	_, err = n.connPool.Exec(n.context, "DELETE FROM cphates WHERE timepoint = $1", timepoint)
+	_, err := n.connPool.Exec(n.context, "DELETE FROM cphates WHERE timepoint = $1", timepoint)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// buildCphateMeta builds the CPHATE meta object
+func buildCphateMetaItem(n *Neuroscan, node string) (CphateMetaItem, error) {
+	// split the node string by the "-" character
+	// the first part is the neuron names
+	// the second part is the cluster, iteration, and serial
+	// if we don't have a "-" character, then return an error
+	parts := strings.SplitN(node, "-", 2)
+
+	if len(parts) != 2 {
+		return CphateMetaItem{}, errors.New("invalid cphate node")
+	}
+
+	// split the first part by the "_" character
+	// this will give us the neuron names
+	neurons := strings.Split(parts[0], "_")
+
+	// split the second part by the "-" character
+	// this will give us the cluster, iteration, and serial
+	clusterParts := strings.Split(parts[1], "-")
+
+	// loop over the cluster parts
+	// check if they contain i, c, or s, as it determines if it is an iteration, cluster, or serial
+
+	var cluster, iteration int
+
+	for _, part := range clusterParts {
+		if strings.Contains(part, "i") {
+			part = strings.Replace(part, "i", "", 1)
+			iterationParts := strings.Split(part, "/")
+			iteration, _ = strconv.Atoi(iterationParts[0])
+		} else if strings.Contains(part, "c") {
+			part = strings.Replace(part, "c", "", 1)
+			clusterParts := strings.Split(part, "/")
+			cluster, _ = strconv.Atoi(clusterParts[0])
+		}
+	}
+
+	cphateMetaItem := CphateMetaItem{
+		I:       iteration,
+		C:       cluster,
+		Neurons: neurons,
+	}
+
+	return cphateMetaItem, nil
 }
 
 // parseCphateNode processes a CPHATE node name string and return a CPHATE node object
@@ -319,26 +382,31 @@ func parseCphate(n *Neuroscan, filePath string) (Cphate, error) {
 		return Cphate{}, err
 	}
 
-	var cphateNodes []CphateNode
+	//var cphateNodes []CphateNode
+	var cphateMetaItems []CphateMetaItem
 
 	// loop over the fileMetas and create a CPHATE node for each
 	for _, fileMeta := range fileMetas {
-		cphateNode, err := parseCphateNode(n, fileMeta.uid)
+		//cphateNode, err := parseCphateNode(n, fileMeta.uid)
+		cphateMetaItem, err := buildCphateMetaItem(n, fileMeta.uid)
 
 		if err != nil {
 			log.Error("Error parsing CPHATE node", "err", err)
 			continue
 		}
 
-		cphateNodes = append(cphateNodes, cphateNode)
+		cphateMetaItems = append(cphateMetaItems, cphateMetaItem)
+
+		//cphateNodes = append(cphateNodes, cphateNode)
 	}
 
 	cphate := Cphate{
 		timepoint:          fileMetas[0].timepoint,
 		developmentalStage: devStage.id,
-		filename:           fileMetas[0].filename,
-		fileHash:           fileMetas[0].filehash,
-		nodes:              cphateNodes,
+		structure:          cphateMetaItems,
+		//filename:           fileMetas[0].filename,
+		//fileHash:           fileMetas[0].filehash,
+		//nodes:              cphateNodes,
 	}
 
 	return cphate, nil

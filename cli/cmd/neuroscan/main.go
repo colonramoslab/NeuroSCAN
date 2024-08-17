@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
-	"neuroscan/app/server"
 	"neuroscan/cmd/ingestion"
 	"neuroscan/cmd/upload"
 )
@@ -22,8 +21,6 @@ func main() {
 	}
 
 	switch args[1] {
-	case "serve":
-		server.Run()
 	case "ingest":
 		ingestion.Run()
 	case "upload":

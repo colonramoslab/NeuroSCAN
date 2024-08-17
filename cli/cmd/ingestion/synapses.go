@@ -18,10 +18,10 @@ type Synapse struct {
 	position    string
 	neuronSite  int
 	neuronPre   sql.NullInt64
+	postNeuron  int
 	postNeurons []int
 	timepoint   int
 	filename    string
-	fileHash    string
 }
 
 type SynapseData struct {
@@ -30,6 +30,7 @@ type SynapseData struct {
 	section     string
 	position    string
 	neuronSite  int
+	postNeuron  string
 	postNeurons []string
 }
 
@@ -44,14 +45,14 @@ func (n *Neuroscan) GetSynapse(uid string) (Synapse, error) {
 	log.Debug("Getting synapse", "uid", uid)
 	var synapse Synapse
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, type, section, position, \"neuronSite\", \"neuronPre\", timepoint, filename, file_hash FROM synapses WHERE uid = $1", uid).Scan(&synapse.id, &synapse.uid, &synapse.synapseType, &synapse.section, &synapse.position, &synapse.neuronSite, &synapse.neuronPre, &synapse.timepoint, &synapse.filename, &synapse.fileHash)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, type, section, position, \"neuronSite\", \"neuronPre\", timepoint, filename FROM synapses WHERE uid = $1", uid).Scan(&synapse.id, &synapse.uid, &synapse.synapseType, &synapse.section, &synapse.position, &synapse.neuronSite, &synapse.neuronPre, &synapse.timepoint, &synapse.filename)
 	if err != nil {
 		return synapse, err
 	}
 
 	// get the post neurons associated with the synapse
 	var postNeuronIDs []int
-	err = n.connPool.QueryRow(n.context, "SELECT id FROM synapses_neuron_post WHERE synapse_id = $1", synapse.id).Scan(&postNeuronIDs)
+	err = n.connPool.QueryRow(n.context, "SELECT id FROM synapses__neuron_post WHERE synapse_id = $1", synapse.id).Scan(&postNeuronIDs)
 	if err != nil {
 		return synapse, nil
 	}
@@ -83,7 +84,7 @@ func (synapse Synapse) writeToDB(n *Neuroscan) {
 	}
 
 	log.Debug("Synapse does not exist, creating record", "uid", synapse.uid)
-	err = n.CreateSynapse(synapse.uid, synapse.synapseType, synapse.section, synapse.position, synapse.neuronSite, synapse.neuronPre, synapse.postNeurons, synapse.timepoint, synapse.filename, synapse.fileHash)
+	err = n.CreateSynapse(synapse.uid, synapse.synapseType, synapse.section, synapse.position, synapse.neuronSite, synapse.neuronPre, synapse.postNeurons, synapse.timepoint, synapse.filename)
 
 	if err != nil {
 		log.Error("Error creating synapse record", "err", err)
@@ -107,7 +108,7 @@ func (n *Neuroscan) SynapseExists(uid string, timepoint int) (bool, error) {
 }
 
 // CreateSynapse creates a new synapse and it's related postneurons
-func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite int, neuronPre sql.NullInt64, postNeurons []int, timepoint int, filename string, fileHash string) error {
+func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite int, neuronPre sql.NullInt64, postNeurons []int, timepoint int, filename string) error {
 	exists, err := n.SynapseExists(uid, timepoint)
 
 	if err != nil {
@@ -118,7 +119,7 @@ func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string
 		return errors.New("synapse already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO synapses (uid, \"neuronPre\", type, section, position, \"neuronSite\", timepoint, filename, file_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", uid, neuronPre, synapseType, section, position, neuronSite, timepoint, filename, fileHash)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO synapses (uid, \"neuronPre\", type, section, position, \"neuronSite\", timepoint, filename) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", uid, neuronPre, synapseType, section, position, neuronSite, timepoint, filename)
 
 	if err != nil {
 		return err
@@ -403,17 +404,10 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 
 	fileMeta := fileMetas[0]
 
-	devStage, err := n.GetDevStageByUID(fileMeta.developmentalStage)
-
-	if err != nil {
-		log.Error("Error getting developmental stage", "err", err)
-		return Synapse{}, err
-	}
-
 	synapseData := getSynapseData(fileMeta.uid)
 
 	//if we have a neuronPre from the synapse data, we can get the neuron ID
-	neuronPreGet, err := n.GetNeuron(synapseData.neuronPre, fileMeta.timepoint, devStage.id)
+	neuronPreGet, err := n.GetNeuron(synapseData.neuronPre, fileMeta.timepoint)
 
 	if err != nil {
 		log.Error("Error getting neuron", "err", err)
@@ -428,7 +422,7 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 	var postNeuronIDs []int
 
 	for _, postNeuron := range synapseData.postNeurons {
-		neuron, err := n.GetNeuron(postNeuron, fileMeta.timepoint, devStage.id)
+		neuron, err := n.GetNeuron(postNeuron, fileMeta.timepoint)
 
 		if err != nil {
 			log.Error("Error getting neuron", "err", err)
@@ -448,7 +442,6 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 		postNeurons: postNeuronIDs,
 		timepoint:   fileMeta.timepoint,
 		filename:    fileMeta.filename,
-		fileHash:    fileMeta.filehash,
 	}
 
 	return synapse, nil

@@ -13,7 +13,6 @@ type NerveRing struct {
 	developmentalStage sql.NullInt64
 	timepoint          int
 	filename           string
-	fileHash           string
 }
 
 // GetNerveRing gets the nerve ring by UID and returns it, taking an optional timepoint and developmental stage
@@ -184,7 +183,6 @@ func parseNerveRing(n *Neuroscan, filePath string) (NerveRing, error) {
 		developmentalStage: devStage.id,
 		timepoint:          fileMeta.timepoint,
 		filename:           fileMeta.filename,
-		fileHash:           fileMeta.filehash,
 	}, nil
 
 }

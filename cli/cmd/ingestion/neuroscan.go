@@ -31,24 +31,25 @@ type Neuroscan struct {
 	dbUrl        string
 	dbType       string
 	processTypes []string
-	connPool     *pgxpool.Pool
+	DevStages    []DevStage
 	context      context.Context
+	connPool     *pgxpool.Pool
 }
 
 type ingestChannels struct {
-	neurons    chan string
-	contacts   chan string
-	synapses   chan string
-	cphates    chan string
-	nerveRings chan string
+	neurons  chan string
+	contacts chan string
+	synapses chan string
+	cphates  chan string
+	//nerveRings chan string
 }
 
 type ingestWaitGroups struct {
-	neurons    sync.WaitGroup
-	contacts   sync.WaitGroup
-	synapses   sync.WaitGroup
-	cphates    sync.WaitGroup
-	nerveRings sync.WaitGroup
+	neurons  sync.WaitGroup
+	contacts sync.WaitGroup
+	synapses sync.WaitGroup
+	cphates  sync.WaitGroup
+	//nerveRings sync.WaitGroup
 }
 
 type NeuroscanFilepathData struct {
@@ -154,7 +155,20 @@ func (n *Neuroscan) BuildConnectionPool() {
 	n.connPool = connPool
 }
 
-//// ConnectDB connects to the database
+// LoadDevStages loads the developmental stages from the database
+func (n *Neuroscan) LoadDevStages() error {
+	devStages, err := n.GetDevStagesAll()
+
+	if err != nil {
+		return err
+	}
+
+	n.DevStages = devStages
+
+	return nil
+}
+
+// ConnectDB connects to the database
 //func (n *Neuroscan) ConnectDB(ctx context.Context) (*pgx.Conn, error) {
 //	//log.Debug("Connecting to database", "path", n.dbPath)
 //	conn, err := pgx.Connect(ctx, n.dbUrl)
@@ -163,6 +177,27 @@ func (n *Neuroscan) BuildConnectionPool() {
 //	}
 //
 //	return conn, nil
+//}
+
+//func (n *Neuroscan) ConnectDB(ctx context.Context) error {
+//	db, err := sql.Open("sqlite3", "./foo.db")
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	n.conn = db
+//	return nil
+//}
+//
+//func (n *Neuroscan) DisconnectDB(ctx context.Context) error {
+//	err := n.conn.Close()
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
 //}
 
 // ValidExtension checks if the file has a valid extension, currently that's just .gltf
@@ -397,9 +432,9 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 			waitGroups.cphates.Add(1)
 			channels.cphates <- path
 		case "nerveRing":
-			log.Debug("Adding nerveRing to channel", "path", path)
-			waitGroups.nerveRings.Add(1)
-			channels.nerveRings <- path
+			//log.Debug("Adding nerveRing to channel", "path", path)
+			//waitGroups.nerveRings.Add(1)
+			//channels.nerveRings <- path
 		default:
 			log.Error("Unknown entity type", "type", currentEntity)
 		}
@@ -413,22 +448,22 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 // createIngestChannels creates the ingest channels
 func createIngestChannels() *ingestChannels {
 	return &ingestChannels{
-		neurons:    make(chan string, 10_000),
-		contacts:   make(chan string, 100_000),
-		synapses:   make(chan string, 100_000),
-		cphates:    make(chan string, 20),
-		nerveRings: make(chan string, 20),
+		neurons:  make(chan string, 10_000),
+		contacts: make(chan string, 100_000),
+		synapses: make(chan string, 100_000),
+		cphates:  make(chan string, 20),
+		//nerveRings: make(chan string, 20),
 	}
 }
 
 // createIngestWaitGroups creates the ingest wait groups
 func createIngestWaitGroups() *ingestWaitGroups {
 	return &ingestWaitGroups{
-		neurons:    sync.WaitGroup{},
-		contacts:   sync.WaitGroup{},
-		synapses:   sync.WaitGroup{},
-		cphates:    sync.WaitGroup{},
-		nerveRings: sync.WaitGroup{},
+		neurons:  sync.WaitGroup{},
+		contacts: sync.WaitGroup{},
+		synapses: sync.WaitGroup{},
+		cphates:  sync.WaitGroup{},
+		//nerveRings: sync.WaitGroup{},
 	}
 }
 
@@ -461,10 +496,10 @@ func (n *Neuroscan) ProcessEntities(path string) {
 				waitGroups.cphates.Done()
 			}
 
-			for nerveRingPath := range channels.nerveRings {
-				ProcessNerveRing(n, nerveRingPath)
-				waitGroups.nerveRings.Done()
-			}
+			//for nerveRingPath := range channels.nerveRings {
+			//	ProcessNerveRing(n, nerveRingPath)
+			//	waitGroups.nerveRings.Done()
+			//}
 		}()
 	}
 
@@ -485,13 +520,13 @@ func (n *Neuroscan) ProcessEntities(path string) {
 	waitGroups.cphates.Wait()
 	close(channels.cphates)
 
-	waitGroups.nerveRings.Wait()
-	close(channels.nerveRings)
+	//waitGroups.nerveRings.Wait()
+	//close(channels.nerveRings)
 
 	log.Info("Done processing entities")
 	log.Info("Neurons ingested: ", "count", n.neurons)
 	log.Info("Contacts ingested: ", "count", n.contacts)
 	log.Info("Synapses ingested: ", "count", n.synapses)
 	log.Info("Cphates ingested: ", "count", n.cphates)
-	log.Info("NerveRings ingested: ", "count", n.nerveRings)
+	//log.Info("NerveRings ingested: ", "count", n.nerveRings)
 }
