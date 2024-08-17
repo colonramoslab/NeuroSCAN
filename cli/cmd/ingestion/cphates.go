@@ -253,7 +253,7 @@ func (n *Neuroscan) DeleteCphate(timepoint int) error {
 }
 
 // buildCphateMeta builds the CPHATE meta object
-func buildCphateMetaItem(n *Neuroscan, node string) (CphateMetaItem, error) {
+func buildCphateMetaItem(n *Neuroscan, node string, filename string) (CphateMetaItem, error) {
 	// split the node string by the "-" character
 	// the first part is the neuron names
 	// the second part is the cluster, iteration, and serial
@@ -293,6 +293,7 @@ func buildCphateMetaItem(n *Neuroscan, node string) (CphateMetaItem, error) {
 		I:       iteration,
 		C:       cluster,
 		Neurons: neurons,
+		ObjFile: filename,
 	}
 
 	return cphateMetaItem, nil
@@ -388,7 +389,7 @@ func parseCphate(n *Neuroscan, filePath string) (Cphate, error) {
 	// loop over the fileMetas and create a CPHATE node for each
 	for _, fileMeta := range fileMetas {
 		//cphateNode, err := parseCphateNode(n, fileMeta.uid)
-		cphateMetaItem, err := buildCphateMetaItem(n, fileMeta.uid)
+		cphateMetaItem, err := buildCphateMetaItem(n, fileMeta.uid, fileMeta.filename)
 
 		if err != nil {
 			log.Error("Error parsing CPHATE node", "err", err)
