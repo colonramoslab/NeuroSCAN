@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/charmbracelet/log"
 	"io"
-	"neuroscan/cmd/ingestion/gltf"
+	"neuroscan/ingestion/gltf"
 	"os"
 	"path/filepath"
 	"strconv"

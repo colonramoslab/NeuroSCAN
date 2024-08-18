@@ -1,4 +1,4 @@
-package ingestion
+package neuroscan
 
 import (
 	"database/sql"
@@ -19,7 +19,7 @@ type NerveRing struct {
 func (n *Neuroscan) GetNerveRing(uid string, timepoint int) (NerveRing, error) {
 	var nerveRing NerveRing
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, developmental_stage, timepoint, filename, filehash FROM nerve_rings WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&nerveRing.id, &nerveRing.uid, &nerveRing.developmentalStage, &nerveRing.timepoint, &nerveRing.filename, &nerveRing.fileHash)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, developmental_stage, timepoint, filename, filehash FROM nerve_rings WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&nerveRing.id, &nerveRing.uid, &nerveRing.developmentalStage, &nerveRing.timepoint, &nerveRing.filename)
 
 	if err != nil {
 		return nerveRing, err
@@ -50,7 +50,7 @@ func (nerveRing NerveRing) writeToDB(n *Neuroscan) {
 		}
 	}
 
-	err = n.CreateNerveRing(nerveRing.uid, int(nerveRing.developmentalStage.Int64), nerveRing.timepoint, nerveRing.filename, nerveRing.fileHash)
+	err = n.CreateNerveRing(nerveRing.uid, int(nerveRing.developmentalStage.Int64), nerveRing.timepoint, nerveRing.filename)
 	if err != nil {
 		log.Error("Error creating nerve ring", "err", err)
 		return
@@ -141,7 +141,7 @@ func (n *Neuroscan) DeleteNerveRing(uid string, timepoint int) error {
 }
 
 // CreateNerveRing creates a new nerve ring in the database
-func (n *Neuroscan) CreateNerveRing(uid string, developmentalStage int, timepoint int, filename string, fileHash string) error {
+func (n *Neuroscan) CreateNerveRing(uid string, developmentalStage int, timepoint int, filename string) error {
 	exists, err := n.NerveRingExists(uid, timepoint)
 
 	if err != nil {
@@ -152,7 +152,7 @@ func (n *Neuroscan) CreateNerveRing(uid string, developmentalStage int, timepoin
 		return errors.New("nerve ring already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO nerve_rings (uid, developmental_stage, timepoint, filename, filehash) VALUES ($1, $2, $3, $4, $5)", uid, developmentalStage, timepoint, filename, fileHash)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO nerve_rings (uid, developmental_stage, timepoint, filename) VALUES ($1, $2, $3, $4)", uid, developmentalStage, timepoint, filename)
 	if err != nil {
 		return err
 	}

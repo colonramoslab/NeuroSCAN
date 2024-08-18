@@ -1,9 +1,9 @@
-package ingestion
+package main
 
 import (
 	"flag"
 	"github.com/charmbracelet/log"
-	_ "github.com/mattn/go-sqlite3"
+	"ingestion/neuroscan"
 )
 
 type arrayFlags []string
@@ -17,7 +17,7 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
-func Run() {
+func main() {
 	var processTypes arrayFlags
 
 	dirPath := flag.String("dir", "", "Path to the directory")
@@ -34,45 +34,45 @@ func Run() {
 	log.SetLevel(log.InfoLevel)
 
 	// create a new neuroscan object
-	neuroscan := NewNeuroscan()
+	app := neuroscan.NewNeuroscan()
 
 	if *debug {
-		neuroscan.SetDebug(true)
+		app.SetDebug(true)
 		log.SetLevel(log.DebugLevel)
 	}
 
 	if *skipExisting {
-		neuroscan.SetSkipExisting(true)
+		app.SetSkipExisting(true)
 	}
 
 	if len(processTypes) > 0 {
 		log.Debug("Processing types: ", "types", processTypes)
-		neuroscan.SetProcessTypes(processTypes)
+		app.SetProcessTypes(processTypes)
 	} else {
 		log.Debug("Processing all types")
-		neuroscan.SetDefaultProcessTypes()
+		app.SetDefaultProcessTypes()
 	}
 
 	// if we have a db url, set it
 	if *dbUrl != "" {
-		neuroscan.SetDBUrl(*dbUrl)
-		neuroscan.SetDBType("postgres")
-		neuroscan.BuildConnectionPool()
+		app.SetDBUrl(*dbUrl)
+		app.SetDBType("postgres")
+		app.BuildConnectionPool()
 	}
 
 	log.Debug("Database URL: ", "db-url", *dbUrl)
 	log.Debug("Directory path: ", "dir", *dirPath)
 
-	err := neuroscan.LoadDevStages()
+	err := app.LoadDevStages()
 
 	if err != nil {
 		log.Fatal("Error loading developmental stages", "err", err)
 	}
 
 	// walk the directory
-	neuroscan.ProcessEntities(*dirPath)
+	app.ProcessEntities(*dirPath)
 
-	neuroscan.connPool.Close()
+	app.CloseConnectionPool()
 
 	log.Info("Done")
 }

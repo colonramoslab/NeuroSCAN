@@ -1,11 +1,10 @@
-package ingestion
+package neuroscan
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/charmbracelet/log"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Contact struct {

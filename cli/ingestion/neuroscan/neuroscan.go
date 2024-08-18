@@ -1,4 +1,4 @@
-package ingestion
+package neuroscan
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/charmbracelet/log"
+	"ingestion/gltf"
 	"io"
-	"neuroscan/cmd/ingestion/gltf"
 	"os"
 	"path/filepath"
 	"slices"
@@ -153,6 +153,11 @@ func (n *Neuroscan) BuildConnectionPool() {
 	}
 
 	n.connPool = connPool
+}
+
+// CloseConnectionPool closes the connection pool on the Neuroscan object
+func (n *Neuroscan) CloseConnectionPool() {
+	n.connPool.Close()
 }
 
 // LoadDevStages loads the developmental stages from the database

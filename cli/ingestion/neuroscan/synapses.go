@@ -1,10 +1,9 @@
-package ingestion
+package neuroscan
 
 import (
 	"database/sql"
 	"errors"
 	"github.com/charmbracelet/log"
-	_ "github.com/mattn/go-sqlite3"
 	"regexp"
 	"strconv"
 	"strings"

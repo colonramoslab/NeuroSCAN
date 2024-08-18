@@ -1,4 +1,4 @@
-package ingestion
+package neuroscan
 
 import (
 	"database/sql"
