@@ -39,7 +39,7 @@ func (nerveRing NerveRing) writeToDB(n *Neuroscan) {
 
 	// if the contacts exists and we skip existing, return
 	if n.skipExisting && exists {
-		log.Debug("Nervering exists, skipping", "uid", nerveRing.uid)
+		log.Debug("Nerve ring exists, skipping", "uid", nerveRing.uid)
 		return
 	}
 

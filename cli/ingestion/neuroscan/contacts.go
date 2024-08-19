@@ -41,7 +41,7 @@ func (contact Contact) writeToDB(n *Neuroscan) {
 
 	// if the contacts exists and we skip existing, return
 	if n.skipExisting && exists {
-		log.Debug("Neuron exists, skipping", "uid", contact.uid)
+		log.Debug("Contact exists, skipping", "uid", contact.uid)
 		return
 	}
 

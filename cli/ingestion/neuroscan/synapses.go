@@ -71,7 +71,7 @@ func (synapse Synapse) writeToDB(n *Neuroscan) {
 
 	// if the synapses exists and we skip existing, return
 	if n.skipExisting && exists {
-		log.Debug("Neuron exists, skipping", "uid", synapse.uid)
+		log.Debug("Synapse exists, skipping", "uid", synapse.uid)
 		return
 	}
 
