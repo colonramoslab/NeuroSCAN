@@ -15,9 +15,9 @@ type Synapse struct {
 	synapseType string
 	section     string
 	position    string
-	neuronSite  int
+	neuronSite  string
 	neuronPre   sql.NullInt64
-	postNeuron  int
+	postNeuron  sql.NullInt64
 	postNeurons []int
 	timepoint   int
 	filename    string
@@ -28,7 +28,7 @@ type SynapseData struct {
 	synapseType string
 	section     string
 	position    string
-	neuronSite  int
+	neuronSite  string
 	postNeuron  string
 	postNeurons []string
 }
@@ -36,7 +36,7 @@ type SynapseData struct {
 type SynapsePosition struct {
 	section  string
 	position string
-	site     int
+	site     string
 }
 
 // GetSynapse get the synapse by UID
@@ -107,7 +107,7 @@ func (n *Neuroscan) SynapseExists(uid string, timepoint int) (bool, error) {
 }
 
 // CreateSynapse creates a new synapse and it's related postneurons
-func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite int, neuronPre sql.NullInt64, postNeurons []int, timepoint int, filename string) error {
+func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite string, neuronPre sql.NullInt64, postNeurons []int, timepoint int, filename string) error {
 	exists, err := n.SynapseExists(uid, timepoint)
 
 	if err != nil {
@@ -337,7 +337,7 @@ func buildSynapsePosition(positionString string) SynapsePosition {
 	return SynapsePosition{
 		section:  section,
 		position: position,
-		site:     site,
+		site:     strconv.Itoa(site),
 	}
 }
 
