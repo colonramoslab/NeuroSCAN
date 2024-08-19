@@ -20,7 +20,7 @@ export class CphateService {
     };
   }
 
-  mapCphateInstance(cphate, cphateZipFile, obj) {
+  mapCphateInstance(cphate, fileUrl, obj, fileType = 'zip') {
     const id = `Cphate_${cphate.timepoint}_${obj.i}_${obj.c}`;
     return {
       id,
@@ -32,8 +32,8 @@ export class CphateService {
       instanceType: CPHATE_TYPE,
       group: null,
       content: {
-        type: 'zip',
-        location: `${cphateZipFile}`,
+        type: fileType,
+        location: `${fileUrl}`,
         fileName: obj.objFile.substring(obj.objFile.lastIndexOf('/') + 1),
       },
       getId: () => this.id,
@@ -41,12 +41,12 @@ export class CphateService {
   }
 
   getInstances(cphate) {
-    const cphateZipFile = getLocationPrefixFromType({
+    const cphateFile = getLocationPrefixFromType({
       timepoint: cphate.timepoint,
       instanceType: CPHATE_TYPE,
     });
     const sortedCphateStructure = sortedInstances(cphate.structure);
-    return sortedCphateStructure.map((obj) => this.mapCphateInstance(cphate, cphateZipFile, obj));
+    return sortedCphateStructure.map((obj) => this.mapCphateInstance(cphate, cphateFile, obj, 'url'));
   }
 
   async getCphateByTimepoint(timepoint) {

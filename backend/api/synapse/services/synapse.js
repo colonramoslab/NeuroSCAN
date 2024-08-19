@@ -27,7 +27,7 @@ const searchSynapseByTerms = (
     left join neurons as n_post on n_post.id = s."postNeuron"
     where s.timepoint = ${timepoint}
     and upper(n_pre.uid) like '%${t}%'
-    ${type.length > 0 ? `and type in ('${type.join("','")}')` : ''}
+    ${type.length > 0 ? `and s.type in ('${type.join("','")}')` : ''}
     ${(postNeuron && !neuronPre) ? `and upper(n_post.uid) like '%${postNeuron.toUpperCase()}%'` : ''}
     ${(!postNeuron && neuronPre) ? `and upper(n_pre.uid) like '%${neuronPre.toUpperCase()}%' and s.position = 'pre'` : ''}
     and ${terms.length - 1} <= (
@@ -90,7 +90,10 @@ module.exports = {
     `;
     const knex = strapi.connections.default;
     const ids = await knex.raw(query);
-    return await strapi.query('synapse').find({ id_in: ids.map(x => x.id), _sort: 'uid' });
+
+    const rows = ids.rows || [];
+
+    return await strapi.query('synapse').find({ id_in: rows.map(x => x.id), _sort: 'uid' });
   },
 
   async count(params, populate) {
@@ -106,7 +109,11 @@ module.exports = {
     )
     `
     const knex = strapi.connections.default;
+    // log the query for debugging
     const r = await knex.raw(query);
-    return r[0].c;
+
+    const rows = r.rows || [];
+
+    return rows[0].c;
   }
 };

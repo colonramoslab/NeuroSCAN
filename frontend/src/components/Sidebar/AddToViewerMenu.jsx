@@ -29,8 +29,11 @@ const AddToViewerMenu = ({
 }) => {
   const classes = useStyles();
   const timePoint = useSelector((state) => state.search.filters.timePoint);
+  console.log('timePoint', timePoint);
   const widgets = useSelector((state) => state.widgets);
+  console.log('widgets', widgets);
   const viewers = getViewersFromWidgets(widgets);
+  console.log('viewers', viewers);
 
   function returnMenu() {
     if (viewers.length > 0) {

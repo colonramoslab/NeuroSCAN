@@ -229,7 +229,7 @@ export const getLocationPrefixFromType = (item) => {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/synapses/${item.filename}`;
     }
     case CPHATE_TYPE: {
-      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.zip`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.gltf`;
     }
     default: {
       return '';
@@ -259,7 +259,7 @@ export const mapToInstance = (item) => {
 
   return {
     id: item.id,
-    uid: `i_${item.uid.replace(/-/g, '_')}_${item.timepoint}`,
+    uid: `i_${item.uid.replace(/[-&~]/g, '_')}_${item.timepoint}`,
     uidFromDb: item.uid,
     name: item.name,
     selected: false,
