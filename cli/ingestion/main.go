@@ -23,6 +23,7 @@ func main() {
 	dirPath := flag.String("dir", "", "Path to the directory")
 	dbUrl := flag.String("db-url", "", "Database URL")
 	debug := flag.Bool("debug", false, "Enable debug mode")
+	threadCount := flag.Int("threads", 1, "Number of threads to use")
 	skipExisting := flag.Bool("skip-existing", false, "Skip existing files")
 	flag.Var(&processTypes, "types", "Types of entities to process (neurons, contacts, nerve_rings), defaults to all entities")
 	flag.Parse()
@@ -52,6 +53,9 @@ func main() {
 		log.Debug("Processing all types")
 		app.SetDefaultProcessTypes()
 	}
+
+	// set the number of threads
+	app.SetThreadCount(*threadCount)
 
 	// if we have a db url, set it
 	if *dbUrl != "" {

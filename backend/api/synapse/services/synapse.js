@@ -13,8 +13,8 @@ const searchSynapseByTerms = (
   const terms = searchTerms.toUpperCase().split('|');
   const { timepoint } = where.find(t => 'timepoint' in t);
   const type = where.filter(t => 'type' in t).map(t => t.type) || {type: []};
-  const { neuronPre } = where.find(t => 'neuronPre' in t) || {neuronPre: null};
-  const { postNeuron } = where.find(t => 'postNeuron' in t) || {postNeuron: null};
+  const { neuronPre } = where.find(t => '"neuronPre"' in t) || {neuronPre: null};
+  const { postNeuron } = where.find(t => '"postNeuron"' in t) || {postNeuron: null};
   const termsPre = neuronPre ? [neuronPre.toUpperCase()] : terms;
 
   return termsPre.reduce((r, t, i) => {
@@ -47,8 +47,8 @@ const searchSynapseByTerms = (
     union
       select s.*, n_pre.uid as neuronPre_uid
       from synapses as s
-      join neurons as n_pre on n_pre.id = s.neuronPre
-      left join neurons as n_post on n_post.id = s.postNeuron
+      join neurons as n_pre on n_pre.id = s."neuronPre"
+      left join neurons as n_post on n_post.id = s."postNeuron"
       where s.timepoint = ${timepoint}
       ${type.length > 0 ? `and type in ('${type.join("','")}')` : ''}
       ${postNeuron ? `and upper(n_post.uid) like '%${postNeuron.toUpperCase()}%'` : ''}

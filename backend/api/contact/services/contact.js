@@ -6,8 +6,8 @@
  */
 
 function baseQuery(qb, timepoint) {
-  qb.join('neurons as neuronA', 'neuronA.id', '=', 'contacts.neuronA')
-  qb.join('neurons as neuronB', 'neuronB.id', '=', 'contacts.neuronB')
+  qb.join('neurons as neuronA', 'neuronA.id', '=', 'contacts."neuronA"')
+  qb.join('neurons as neuronB', 'neuronB.id', '=', 'contacts."neuronB"')
 
   qb.where('contacts.timepoint', timepoint);
   return qb

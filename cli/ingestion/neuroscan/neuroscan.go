@@ -32,6 +32,7 @@ type Neuroscan struct {
 	dbType       string
 	processTypes []string
 	DevStages    []DevStage
+	threadCount  int
 	context      context.Context
 	connPool     *pgxpool.Pool
 }
@@ -63,15 +64,30 @@ type NeuroscanFilepathData struct {
 // NewNeuroscan creates a new neuroscan object
 func NewNeuroscan() *Neuroscan {
 	return &Neuroscan{
-		neurons:    0,
-		synapses:   0,
-		contacts:   0,
-		cphates:    0,
-		nerveRings: 0,
-		dbUrl:      "",
-		debug:      false,
-		context:    context.Background(),
+		neurons:      0,
+		synapses:     0,
+		contacts:     0,
+		cphates:      0,
+		nerveRings:   0,
+		skipExisting: false,
+		dbType:       "",
+		dbUrl:        "",
+		processTypes: []string{},
+		DevStages:    []DevStage{},
+		threadCount:  1,
+		debug:        false,
+		context:      context.Background(),
 	}
+}
+
+// SetThreadCount sets the thread count in the Neuroscan object
+func (n *Neuroscan) SetThreadCount(threadCount int) {
+	n.threadCount = threadCount
+}
+
+// GetThreadCount gets the thread count from the Neuroscan object
+func (n *Neuroscan) GetThreadCount() int {
+	return n.threadCount
 }
 
 // IncrementNeuron increments the neuron count in the Neuroscan object
