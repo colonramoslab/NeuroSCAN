@@ -1,4 +1,4 @@
-import { backendURL, backendClient, CPHATE_TYPE } from '../utilities/constants';
+import {backendURL, backendClient, CPHATE_TYPE, CPHATE_EXPANDED} from '../utilities/constants';
 // eslint-disable-next-line import/no-cycle
 import { getLocationPrefixFromType, sortedInstances } from './instanceHelpers';
 
@@ -44,6 +44,15 @@ export class CphateService {
     const cphateZipFile = getLocationPrefixFromType({
       timepoint: cphate.timepoint,
       instanceType: CPHATE_TYPE,
+    });
+    const sortedCphateStructure = sortedInstances(cphate.structure);
+    return sortedCphateStructure.map((obj) => this.mapCphateInstance(cphate, cphateZipFile, obj));
+  }
+
+  getExpanded(cphate) {
+    const cphateFile = getLocationPrefixFromType({
+      timepoint: cphate.timepoint,
+      instanceType: CPHATE_EXPANDED,
     });
     const sortedCphateStructure = sortedInstances(cphate.structure);
     return sortedCphateStructure.map((obj) => this.mapCphateInstance(cphate, cphateZipFile, obj));

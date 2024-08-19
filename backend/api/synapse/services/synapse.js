@@ -45,7 +45,7 @@ const searchSynapseByTerms = (
       )
   ${!neuronPre ? `
     union
-      select s.*, n_pre.uid as neuronPre_uid
+      select s.*, n_pre.uid as "neuronPre_uid"
       from synapses as s
       join neurons as n_pre on n_pre.id = s."neuronPre"
       left join neurons as n_post on n_post.id = s."postNeuron"

@@ -5,7 +5,8 @@ import doGetAll from '../services/getAllHelper';
 import cphateService from '../services/CphateService';
 import { ADD_CPHATE, addInstances } from './actions/widget';
 import { raiseError, loading, loadingSuccess } from './actions/misc';
-import { VIEWERS } from '../utilities/constants';
+import {CPHATE_EXPANDED, VIEWERS} from '../utilities/constants';
+import {getLocationPrefixFromType} from "../services/instanceHelpers";
 
 const searchMiddleware = (store) => (next) => (action) => {
   switch (action.type) {
@@ -42,8 +43,12 @@ const searchMiddleware = (store) => (next) => (action) => {
         .getCphateByTimepoint(timePoint)
         .then((cphate) => {
           if (cphate) {
-            const cphateInstances = cphateService.getInstances(cphate);
-            store.dispatch(addInstances(null, cphateInstances, VIEWERS.CphateViewer));
+            // const cphateInstances = cphateService.getInstances(cphate);
+            const cphateFile = getLocationPrefixFromType({
+              timepoint: cphate.timepoint,
+              instanceType: CPHATE_EXPANDED,
+            });
+            store.dispatch(addInstances(null, cphateFile, VIEWERS.CphateViewer));
           }
           next(loadingSuccess(msg, action.type));
         }, (e) => {
