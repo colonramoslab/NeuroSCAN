@@ -10,7 +10,7 @@ import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
 import {
-  CONTACT_TYPE, CPHATE_TYPE, filesURL, NEURON_TYPE, SYNAPSE_TYPE, CPHATE_EXPANDED,
+  CONTACT_TYPE, CPHATE_TYPE, filesURL, NEURON_TYPE, SYNAPSE_TYPE,
 } from '../utilities/constants';
 import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
@@ -230,9 +230,6 @@ export const getLocationPrefixFromType = (item) => {
     }
     case CPHATE_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.zip`;
-    }
-    case CPHATE_EXPANDED: {
-      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.gltf`;
     }
     default: {
       return '';
