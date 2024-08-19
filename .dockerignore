@@ -3,3 +3,4 @@ backend/public/files/
 frontend/geppetto-meta/
 .env
 backend/file_upload/
+*.db
