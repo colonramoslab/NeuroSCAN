@@ -18,6 +18,7 @@ import {
   CONTACT_TYPE,
   SYNAPSE_TYPE,
   CPHATE_TYPE,
+  NERVE_RING_TYPE,
 } from '../../../utilities/constants';
 import { getViewersFromWidgets } from '../../../utilities/functions';
 import {
@@ -102,7 +103,7 @@ const Explorer = () => {
         key={viewerId}
       >
         { sortedIterations.length === 0
-        && [NEURON_TYPE, CONTACT_TYPE, SYNAPSE_TYPE].map((instanceType) => {
+        && [NEURON_TYPE, CONTACT_TYPE, SYNAPSE_TYPE, NERVE_RING_TYPE].map((instanceType) => {
           const items = instances.filter((instance) => instance.instanceType === instanceType);
           return (
             <ExplorerTreeItems

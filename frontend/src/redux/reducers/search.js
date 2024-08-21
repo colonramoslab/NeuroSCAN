@@ -15,12 +15,16 @@ export const SEARCH_DEFAULT_STATUS = {
       },
     },
     counters: {
+      nerverings: 0,
       neurons: 0,
       contacts: 0,
       synapses: 0,
     },
     searchesCount: 0,
     results: {
+      nerverings: {
+        items: [],
+      },
       neurons: {
         items: [],
       },
@@ -32,6 +36,9 @@ export const SEARCH_DEFAULT_STATUS = {
       },
     },
     allItems: {
+      nerverings: {
+        items: [],
+      },
       neurons: {
         items: [],
       },
@@ -59,8 +66,11 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
             ...action.synapsesFilter || state.filters.synapsesFilter,
           },
         },
-        searchesCount: state.searchesCount + 3, // neurons, contacts, synapses
+        searchesCount: state.searchesCount + 4, // neurons, contacts, synapses, nerverings
         results: {
+          nerverings: {
+            items: [],
+          },
           neurons: {
             items: [],
           },
@@ -105,6 +115,9 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
       return {
         ...state,
         allItems: {
+          nerverings: {
+            items: [],
+          },
           neurons: {
             items: [],
           },

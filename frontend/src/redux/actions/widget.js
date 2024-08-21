@@ -10,6 +10,7 @@ export const UPDATE_VIEWER_ROTATE = 'UPDATE_VIEWER_ROTATE';
 export const ROTATE_START_ALL = 'ROTATE_START_ALL';
 export const ROTATE_STOP_ALL = 'ROTATE_STOP_ALL';
 export const INVERT_COLORS_FLASHING = 'INVERT_COLORS_FLASHING';
+export const DARKEN_COLORS_FLASHING = 'DARKEN_COLORS_FLASHING';
 export const SET_ORIGINAL_COLORS_FLASHING = 'SET_ORIGINAL_COLORS_FLASHING';
 export const TOGGLE_INSTANCE_HIGHLIGHT = 'TOGGLE_INSTANCE_HIGHLIGHT';
 export const ADD_LAST_SELECTED_INSTANCE = 'ADD_LAST_SELECTED_INSTANCE';
@@ -75,6 +76,12 @@ export const rotateStopAll = (() => ({
 
 export const invertColorsFlashing = ((viewerId, uids) => ({
   type: INVERT_COLORS_FLASHING,
+  viewerId,
+  uids,
+}));
+
+export const darkenColorsFlashing = ((viewerId, uids) => ({
+  type: DARKEN_COLORS_FLASHING,
   viewerId,
   uids,
 }));

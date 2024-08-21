@@ -94,6 +94,7 @@ export const filesURL = 'https://neuroscan-files.s3.amazonaws.com/2024_08_02T12_
 export const NEURON_TYPE = 'neuron';
 export const CONTACT_TYPE = 'contact';
 export const SYNAPSE_TYPE = 'synapse';
+export const NERVE_RING_TYPE = 'nervering';
 export const CPHATE_TYPE = 'cluster';
 
 export const CANVAS_BACKGROUND_COLOR_LIGHT = 0xFFFFFF;

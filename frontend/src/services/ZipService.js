@@ -27,12 +27,8 @@ export default {
     const newZipFile = axios.get(url, {
       responseType: 'arraybuffer',
     }).then((resp) => Buffer.from(resp.data, 'binary'))
-      .then((zipContent) => {
-        console.log({ zipContent });
-        return JSZip().loadAsync(zipContent);
-      });
+      .then((zipContent) => JSZip().loadAsync(zipContent));
 
-    console.log({ newZipFile });
     this.zipFiles.push({
       url,
       zipFile: newZipFile,
@@ -55,10 +51,7 @@ export default {
     return true;
   },
   async getBase64(zipFile, fileName) {
-    console.log({ zipFile });
-    console.log({ fileName });
     const zipFileContent = await this.getZipFile(zipFile);
-    console.log({ zipFileContent });
     return zipFileContent
       .file(fileName)
       .async('string')

@@ -28,9 +28,15 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
+  {
+    title: 'Nerve Ring',
+    resultItem: 'nerverings',
+    image: NEURON,
+  },
 ];
 
 const initialSelectedItems = {
+  nerverings: [],
   neurons: [],
   contacts: [],
   synapses: [],

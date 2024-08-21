@@ -108,7 +108,6 @@ export const addToWidget = (
       highlightedInstances: [],
       addedObjectsToViewer,
     };
-    console.log('newWidget', widgetFromViewerSpec(newWidget));
     return addWidget(widgetFromViewerSpec(newWidget));
   }
   const newWidget = {

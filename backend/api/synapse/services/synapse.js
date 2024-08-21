@@ -10,7 +10,7 @@ const searchSynapseByTerms = (
 ) => {
   const where = params._where || [];
   const { searchTerms } = where.find(t => 'searchTerms' in t);
-  const terms = searchTerms.toUpperCase().split('|');
+  const terms = searchTerms.toUpperCase().split('|').map((term) => decodeURIComponent(term));
   const { timepoint } = where.find(t => 'timepoint' in t);
   const type = where.filter(t => 'type' in t).map(t => t.type) || {type: []};
   const { neuronPre } = where.find(t => '"neuronPre"' in t) || {neuronPre: null};

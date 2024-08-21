@@ -18,6 +18,7 @@ import {
   ROTATE_STOP_ALL,
   updateWidgetConfig,
   INVERT_COLORS_FLASHING,
+  DARKEN_COLORS_FLASHING,
   SET_ORIGINAL_COLORS_FLASHING,
   TOGGLE_INSTANCE_HIGHLIGHT,
   DELETE_FROM_WIDGET,
@@ -45,7 +46,7 @@ import {
   getInstancesOfType,
   mapToInstance,
   invertColorSelectedInstances,
-  setOriginalColorSelectedInstances, fetchDataForEntity,
+  setOriginalColorSelectedInstances, fetchDataForEntity, darkenColorSelectedInstances,
 } from '../services/instanceHelpers';
 
 const devStagesService = new DevStageService();
@@ -113,7 +114,8 @@ const middleware = (store) => (next) => async (action) => {
           const addedObjectsToViewer = Array.isArray(widget?.config?.instances)
           && widget?.config?.instances.length !== 0
             ? widget.config.instances.concat(filteredNewInstances) : action.instances;
-
+          console.log({ widget });
+          console.log({ filteredNewInstances });
           store.dispatch(
             addToWidget(
               widget,
@@ -173,6 +175,20 @@ const middleware = (store) => (next) => async (action) => {
     case INVERT_COLORS_FLASHING: {
       const widget = getWidget(store, action.viewerId);
       const instances = invertColorSelectedInstances(
+        widget.config.instances,
+        action.uids,
+      );
+      widget.config = {
+        ...widget.config,
+        instances,
+      };
+      store.dispatch(updateWidget(widget));
+      break;
+    }
+
+    case DARKEN_COLORS_FLASHING: {
+      const widget = getWidget(store, action.viewerId);
+      const instances = darkenColorSelectedInstances(
         widget.config.instances,
         action.uids,
       );

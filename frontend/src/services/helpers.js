@@ -1,6 +1,7 @@
 import neuronService from './NeuronService';
 import contactService from './ContactService';
 import synapseService from './SynapseService';
+import nerveRingService from './NerveRingService';
 import * as search from '../redux/actions/search';
 //
 
@@ -64,7 +65,27 @@ const doSearchContacts = async (dispatch, searchState) => {
   });
 };
 
-export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses']) => {
+const doSearchNerveRings = async (dispatch, searchState) => {
+  nerveRingService.totalCount(searchState).then((count) => {
+    dispatch(
+      search.updateCounters({
+        nerverings: count,
+      }),
+    );
+  });
+  nerveRingService.search(searchState).then((data) => {
+    dispatch(
+      search.updateResults({
+        nerverings: {
+          ...searchState.results.nerverings,
+          items: searchState.results.nerverings.items.concat(data),
+        },
+      }),
+    );
+  });
+};
+
+export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses', 'nerverings']) => {
   entities.forEach((entity) => {
     switch (entity) {
       case 'neurons': {
@@ -77,6 +98,10 @@ export default async (dispatch, searchState, entities = ['neurons', 'contacts', 
       }
       case 'synapses': {
         doSearchSynapses(dispatch, searchState);
+        break;
+      }
+      case 'nerverings': {
+        doSearchNerveRings(dispatch, searchState);
         break;
       }
 

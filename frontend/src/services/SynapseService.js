@@ -23,7 +23,9 @@ export class SynapseService {
   }
 
   async getByUID(timePoint, uids = []) {
-    const query = `timepoint=${timePoint}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    // UIDS can have ampersands in them, so we need to encode them
+    const encodedUids = uids.map((uid) => encodeURIComponent(uid));
+    const query = `timepoint=${timePoint}${encodedUids.map((uid) => `&uid_in=${uid}`).join('')}`;
     const response = await backendClient.get(`${synapsesBackendUrl}?${query}`);
     return response.data.map((synapse) => ({
       instanceType: SYNAPSE_TYPE,

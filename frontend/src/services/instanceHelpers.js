@@ -5,12 +5,13 @@ import {
   setOriginalColors,
   addLastSelectedInstance,
   updateWidgetConfig,
+  darkenColorsFlashing,
 } from '../redux/actions/widget';
 import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
 import {
-  CONTACT_TYPE, CPHATE_TYPE, filesURL, NEURON_TYPE, SYNAPSE_TYPE,
+  CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE,
 } from '../utilities/constants';
 import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
@@ -26,6 +27,18 @@ export const invertColor = ({
   r, g, b, a,
 }) => ({
   r: 1 - r, g: 1 - g, b: 1 - b, a,
+});
+
+export const darkenColor = ({
+  r, g, b, a,
+}) => ({
+  r, g, b, a: a - 0.2,
+});
+
+export const lightenColor = ({
+  r, g, b, a,
+}) => ({
+  r, g, b, a: a + 0.2,
 });
 
 export const invertColorSelectedInstances = (instances, selectedUids) => (
@@ -46,6 +59,28 @@ export const invertColorSelectedInstances = (instances, selectedUids) => (
       }
       return newInstance;
     }));
+
+// darkenColorSelectedInstances is used to darken the color of the selected instances by 20%
+export const darkenColorSelectedInstances = (instances, selectedUids) => (
+  instances
+    .map((instance) => {
+      if (selectedUids.indexOf(instance.uid) < 0) {
+        return instance;
+      }
+      const { color } = instance;
+      const newInstance = { ...instance };
+      newInstance.flash = !newInstance.flash;
+      if (instance.colorOriginal) {
+        newInstance.color = instance.flash ? darkenColor(color) : lightenColor(color);
+      } else if (color) {
+        delete newInstance.color;
+      } else {
+        // eslint-disable-next-line object-curly-newline
+        newInstance.color = { r: 1, g: 0, b: 0, a: 1 };
+      }
+      return newInstance;
+    })
+);
 
 export const setOriginalColorSelectedInstances = (instances, selectedUids) => (
   instances
@@ -72,10 +107,10 @@ const updateInstanceSelected = (instances, selectedUids) => {
         selected: true,
         flash: true,
         colorOriginal: instance.color,
-        color: instance.color
-          ? invertColor(instance.color)
-          // eslint-disable-next-line object-curly-newline
-          : { r: 1, g: 0, b: 0, a: 1 },
+        color: instance.color,
+        // ? invertColor(instance.color)
+        // eslint-disable-next-line object-curly-newline
+        // : { r: 1, g: 0, b: 0, a: 1 },
       };
     }
     return {
@@ -85,6 +120,32 @@ const updateInstanceSelected = (instances, selectedUids) => {
   });
   return i;
 };
+
+const getColorFromGLTF = (gltf) => {
+  // materials[0].pbrMetallicRoughness.baseColorFactor
+  // try to get the color array from the gltf
+  if (gltf
+    && gltf.materials
+    && gltf.materials[0]
+    && gltf.materials[0].pbrMetallicRoughness
+    && gltf.materials[0].pbrMetallicRoughness.baseColorFactor
+    && gltf.materials[0].pbrMetallicRoughness.baseColorFactor.length === 4) {
+    return {
+      r: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[0],
+      g: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[1],
+      b: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[2],
+      a: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[3],
+    };
+  }
+
+  return null;
+};
+
+// const getFileJSONPayload = async (url) => (
+//   await fetch(url)
+//     .then((resp) => resp.text())
+//     .then((data) => JSON.parse(data))
+// );
 
 const hideInstanceSelected = (instances, selectedUids) => instances.map((instance) => {
   if (selectedUids.find((x) => x === instance.uid)) {
@@ -133,7 +194,8 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
       clearInterval(interval);
       store.dispatch(setOriginalColors(viewerId, selectedUids));
     } else {
-      store.dispatch(invertColorsFlashing(viewerId, selectedUids));
+      // store.dispatch(invertColorsFlashing(viewerId, selectedUids));
+      store.dispatch(darkenColorsFlashing(viewerId, selectedUids));
     }
     counter += 1;
   }, 750);
@@ -231,6 +293,9 @@ export const getLocationPrefixFromType = (item) => {
     case CPHATE_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.gltf`;
     }
+    case NERVE_RING_TYPE: {
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/${item.filename}`;
+    }
     default: {
       return '';
     }
@@ -293,9 +358,11 @@ const createSimpleInstance = async (instance) => {
   // const contentService = urlService;
   // content.fileName = 'sphere.obj';
   // content.location = `${filesURL}/../uploads/${content.fileName}`;
-
   const base64Content = await contentService.getBase64(content.location, content.fileName);
-
+  // remove 'data:model/obj;base64,' from the base64 string
+  const JSONContent = JSON.parse(atob(base64Content.slice(22)));
+  // const JSONContent = JSON.parse(atob(base64Content));
+  const color = getColorFromGLTF(JSONContent);
   let visualValue;
   const fileExtension = content.fileName.split('.').pop().toLowerCase();
   switch (fileExtension) {
@@ -324,6 +391,7 @@ const createSimpleInstance = async (instance) => {
     name: instance.name,
     type: { eClass: 'SimpleType' },
     visualValue,
+    color,
   });
 };
 
