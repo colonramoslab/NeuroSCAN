@@ -48,7 +48,7 @@ const searchSynapseByTerms = (
       select s.*, n_pre.uid as "neuronPre_uid"
       from synapses as s
       join neurons as n_pre on n_pre.id = s."neuronPre"
-      left join neurons as n_post on n_post.id = s."postNeuron"
+      join neurons as n_post on n_post.id = s."postNeuron"
       where s.timepoint = ${timepoint}
       ${type.length > 0 ? `and type in ('${type.join("','")}')` : ''}
       ${postNeuron ? `and upper(n_post.uid) like '%${postNeuron.toUpperCase()}%'` : ''}

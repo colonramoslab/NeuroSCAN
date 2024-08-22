@@ -1,5 +1,9 @@
 ####################################################################
 # FRONTEND BUILD
+FROM alpine:3.10 AS ffmpeg-build
+
+RUN apk update
+RUN apk add --no-cache ffmpeg
 
 FROM node:14.16.1-alpine3.10 AS fronend-build
 
@@ -10,7 +14,6 @@ ARG REACT_APP_BACKEND_URL=''
 RUN apk update
 RUN apk add git
 RUN npm install -g typescript
-# install handbrake
 
 # INSTALL PACKAGES
 RUN mkdir -p /app
@@ -18,6 +21,8 @@ WORKDIR /app/frontend
 
 COPY ./frontend/package.json ./
 COPY ./frontend/yarn.lock ./
+
+
 
 ### START GEPPETTO META DEVELOP
 #
@@ -41,8 +46,6 @@ RUN yarn build
 
 # MAIN BUILD
 
-# FROM alpine:edge
-# RUN apk update && apk add --no-cache handbrake --repository="http://dl-cdn.alpinelinux.org/alpine/edge/community"
 # https://github.com/strapi/strapi-docker/blob/master/examples/custom/Dockerfile
 FROM strapi/base as base
 
@@ -60,6 +63,9 @@ ENV NODE_ENV production
 RUN yarn build
 
 COPY --from=fronend-build /app/frontend/build ./public
+
+# copy ffmpeg from frontend build to backend
+COPY --from=ffmpeg-build /usr/bin/ffmpeg /usr/bin/ffmpeg
 
 COPY ./scripts ./scripts
 
