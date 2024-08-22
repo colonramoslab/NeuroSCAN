@@ -1,4 +1,4 @@
-package upload
+package main
 
 import (
 	"bytes"
@@ -28,12 +28,12 @@ type S3ClientConfig struct {
 var uploadFiles = make(chan string)
 var uploadWg = new(sync.WaitGroup)
 var uploadBucket = "neuroscan-files"
-var directoryIgnore = "/Users/inghamemerson/Code/intralab/neuroscan/applications/neuroscan/backend/public/"
-var uploadDirectory = "/Users/inghamemerson/Code/intralab/neuroscan/applications/neuroscan/backend/public/files/neuroscan"
+var directoryIgnore = "/Users/inghamemerson/Code/intralab/neuroscan/backend/public/"
+var uploadDirectory = "/Users/inghamemerson/Code/intralab/neuroscan/backend/public/files/neuroscan"
 var bucketFolder string
 var validExtensions = []string{".gltf"}
 
-func Run() {
+func main() {
 	// bucket folder is a string representing the datetime of the upload
 	bucketFolder = time.Now().Format("2006_01_02T15_04_05")
 	processUploadDirectory(uploadDirectory)

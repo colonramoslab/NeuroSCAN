@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/charmbracelet/log"
 	_ "github.com/mattn/go-sqlite3"
+	"strconv"
 )
 
 type NerveRing struct {
@@ -11,13 +12,14 @@ type NerveRing struct {
 	uid       string
 	timepoint int
 	filename  string
+	color     Color
 }
 
 // GetNerveRing gets the nerve ring by UID and returns it, taking an optional timepoint and developmental stage
 func (n *Neuroscan) GetNerveRing(uid string, timepoint int) (NerveRing, error) {
 	var nerveRing NerveRing
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, timepoint, filename FROM nerve_rings WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&nerveRing.id, &nerveRing.uid, &nerveRing.timepoint, &nerveRing.filename)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, timepoint, filename, color FROM nerve_rings WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&nerveRing.id, &nerveRing.uid, &nerveRing.timepoint, &nerveRing.filename, &nerveRing.color)
 
 	if err != nil {
 		return nerveRing, err
@@ -48,7 +50,9 @@ func (nerveRing NerveRing) writeToDB(n *Neuroscan) {
 		}
 	}
 
-	err = n.CreateNerveRing(nerveRing.uid, nerveRing.timepoint, nerveRing.filename)
+	name := "Nerve Ring " + strconv.Itoa(nerveRing.timepoint)
+
+	err = n.CreateNerveRing(name, nerveRing.timepoint, nerveRing.filename, nerveRing.color)
 	if err != nil {
 		log.Error("Error creating nerve ring", "err", err)
 		return
@@ -139,7 +143,7 @@ func (n *Neuroscan) DeleteNerveRing(uid string, timepoint int) error {
 }
 
 // CreateNerveRing creates a new nerve ring in the database
-func (n *Neuroscan) CreateNerveRing(uid string, timepoint int, filename string) error {
+func (n *Neuroscan) CreateNerveRing(uid string, timepoint int, filename string, color Color) error {
 	exists, err := n.NerveRingExists(uid, timepoint)
 
 	if err != nil {
@@ -150,7 +154,7 @@ func (n *Neuroscan) CreateNerveRing(uid string, timepoint int, filename string) 
 		return errors.New("nerve ring already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO nerve_rings (uid, timepoint, filename) VALUES ($1, $2, $3)", uid, timepoint, filename)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO nerve_rings (uid, timepoint, filename, color) VALUES ($1, $2, $3, $4)", uid, timepoint, filename, color)
 	if err != nil {
 		return err
 	}
@@ -173,6 +177,7 @@ func parseNerveRing(n *Neuroscan, filePath string) (NerveRing, error) {
 		uid:       fileMeta.uid,
 		timepoint: fileMeta.timepoint,
 		filename:  fileMeta.filename,
+		color:     fileMeta.color,
 	}, nil
 
 }

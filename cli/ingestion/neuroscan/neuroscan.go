@@ -53,13 +53,16 @@ type ingestWaitGroups struct {
 	nerveRings sync.WaitGroup
 }
 
-type NeuroscanFilepathData struct {
+type FilepathData struct {
 	uid                string
 	filename           string
 	filehash           string
 	timepoint          int
 	developmentalStage string
+	color              Color
 }
+
+type Color [4]float64
 
 // NewNeuroscan creates a new neuroscan object
 func NewNeuroscan() *Neuroscan {
@@ -322,46 +325,49 @@ func BuildUID(filename string) string {
 }
 
 // FilePathParse takes a filepath and returns the various metadata relating to the context of the file
-func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
+func FilePathParse(filePath string) ([]FilepathData, error) {
 	filename := filepath.Base(filePath)
 
 	filehash, err := HashFile(filePath)
 
 	if err != nil {
 		log.Error("Error getting file hash", "err", err)
-		return []NeuroscanFilepathData{}, err
+		return []FilepathData{}, err
 	}
 
 	timepoint, err := GetTimepoint(filePath)
 	if err != nil {
 		log.Error("Error getting timepoint", "err", err)
-		return []NeuroscanFilepathData{}, err
+		return []FilepathData{}, err
 	}
 
 	devStageUID, err := GetDevStage(filePath)
 
 	if err != nil {
 		log.Error("Error getting developmental stage", "err", err)
-		return []NeuroscanFilepathData{}, err
+		return []FilepathData{}, err
 	}
 
-	var parsedFiles []NeuroscanFilepathData
+	var parsedFiles []FilepathData
 	// attempt to open and decode the gltf file
 	doc, err := gltf.Open(filePath)
 	if err != nil {
 		log.Error("Error opening gltf file", "err", err)
-		return []NeuroscanFilepathData{}, err
+		return []FilepathData{}, err
 	}
+
+	color := doc.Materials[0].PBRMetallicRoughness.BaseColorFactor
 
 	for _, node := range doc.Nodes {
 		uid := node.Name
 
-		parsedFile := NeuroscanFilepathData{
+		parsedFile := FilepathData{
 			uid:                uid,
 			filename:           filename,
 			filehash:           filehash,
 			timepoint:          timepoint,
 			developmentalStage: devStageUID,
+			color:              *color,
 		}
 
 		parsedFiles = append(parsedFiles, parsedFile)
@@ -413,21 +419,27 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 			return err
 		}
 
-		// we want to skip directories
-		if d.IsDir() {
-			return nil
-		}
-
-		// if it's not a valid extension, skip it
-		if !ValidExtension(path) {
-			return nil
-		}
-
 		// depending on the type of file, we want to process it differently
 		currentEntity, err := GetEntityType(path)
 
 		if err != nil {
 			log.Error("Error getting entity type", "err", err)
+		}
+
+		// we want to skip directories
+		if d.IsDir() && currentEntity != "cphate" {
+			return nil
+		}
+
+		if d.IsDir() && currentEntity == "cphate" {
+			log.Debug("Adding cphate dir to channel", "path", path)
+			waitGroups.cphates.Add(1)
+			channels.cphates <- path
+		}
+
+		// if it's not a valid extension, skip it
+		if !ValidExtension(path) {
+			return nil
 		}
 
 		if !slices.Contains(n.processTypes, currentEntity) {
@@ -448,14 +460,12 @@ func (n *Neuroscan) walkDirFolder(path string, channels *ingestChannels, waitGro
 			log.Debug("Adding synapse to channel", "path", path)
 			waitGroups.synapses.Add(1)
 			channels.synapses <- path
-		case "cphate":
-			log.Debug("Adding cphate to channel", "path", path)
-			waitGroups.cphates.Add(1)
-			channels.cphates <- path
 		case "nerveRing":
 			log.Debug("Adding nerveRing to channel", "path", path)
 			waitGroups.nerveRings.Add(1)
 			channels.nerveRings <- path
+		case "cphate":
+			log.Debug("Skipping cphate", "path", path)
 		default:
 			log.Error("Unknown entity type", "type", currentEntity)
 		}
@@ -512,8 +522,8 @@ func (n *Neuroscan) ProcessEntities(path string) {
 				waitGroups.synapses.Done()
 			}
 
-			for cphatePath := range channels.cphates {
-				ProcessCphate(n, cphatePath)
+			for cphateDir := range channels.cphates {
+				ProcessCphate(n, cphateDir)
 				waitGroups.cphates.Done()
 			}
 

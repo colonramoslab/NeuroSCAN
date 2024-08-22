@@ -11,6 +11,7 @@ type Neuron struct {
 	embryonic bool
 	filename  string
 	timepoint int
+	color     Color
 }
 
 // GetNeuron gets the neuron by UID and returns it, taking an optional timepoint and developmental stage
@@ -19,11 +20,11 @@ func (n *Neuroscan) GetNeuron(uid string, timepoint int) (Neuron, error) {
 	log.Debug("Getting neuron", "uid", uid, "timepoint", timepoint)
 	var neuron Neuron
 
-	query := "SELECT neurons.id, uid, embryonic, filename, timepoint FROM neurons WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT neurons.id, uid, embryonic, filename, timepoint, color FROM neurons WHERE uid = $1 AND timepoint = $2"
 
 	args := []interface{}{uid, timepoint}
 
-	err := n.connPool.QueryRow(n.context, query, args...).Scan(&neuron.id, &neuron.uid, &neuron.embryonic, &neuron.filename, &neuron.timepoint)
+	err := n.connPool.QueryRow(n.context, query, args...).Scan(&neuron.id, &neuron.uid, &neuron.embryonic, &neuron.filename, &neuron.timepoint, &neuron.color)
 	if err != nil {
 		log.Error("Error getting neuron: ", "uid", uid, "timepoint", timepoint, "err", err)
 		return neuron, err
@@ -54,7 +55,7 @@ func (neuron Neuron) writeToDB(n *Neuroscan) {
 		}
 	}
 
-	err = n.CreateNeuron(neuron.uid, neuron.embryonic, neuron.filename, neuron.timepoint)
+	err = n.CreateNeuron(neuron.uid, neuron.embryonic, neuron.filename, neuron.timepoint, neuron.color)
 	if err != nil {
 		log.Error("Error inserting new neuron record", "err", err)
 		return
@@ -163,7 +164,7 @@ func (n *Neuroscan) DeleteNeuron(uid string, timepoint int) error {
 }
 
 // CreateNeuron creates a new neuron record in the database
-func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, timepoint int) error {
+func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, timepoint int, color Color) error {
 	exists, err := n.NeuronExists(uid, timepoint)
 
 	if err != nil {
@@ -174,7 +175,7 @@ func (n *Neuroscan) CreateNeuron(uid string, embryonic bool, filename string, ti
 		return errors.New("neuron already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO neurons (uid, embryonic, filename, timepoint) VALUES ($1, $2, $3, $4)", uid, embryonic, filename, timepoint)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO neurons (uid, embryonic, filename, timepoint, color) VALUES ($1, $2, $3, $4, $5)", uid, embryonic, filename, timepoint, color)
 	if err != nil {
 		return err
 	}
@@ -198,6 +199,7 @@ func parseNeuron(n *Neuroscan, filePath string) (Neuron, error) {
 		embryonic: false,
 		filename:  fileMeta.filename,
 		timepoint: fileMeta.timepoint,
+		color:     fileMeta.color,
 	}
 
 	return neuron, nil

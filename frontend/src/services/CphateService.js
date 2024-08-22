@@ -33,7 +33,7 @@ export class CphateService {
       group: null,
       content: {
         type: fileType,
-        location: `${fileUrl}`,
+        location: `${fileUrl}${obj.objFile}`,
         fileName: obj.objFile.substring(obj.objFile.lastIndexOf('/') + 1),
       },
       getId: () => this.id,

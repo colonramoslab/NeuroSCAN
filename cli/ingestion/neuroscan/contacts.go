@@ -15,6 +15,7 @@ type Contact struct {
 	neuronB   int `sql:",null"`
 	filename  string
 	timepoint int
+	color     Color
 }
 
 // GetContact gets the contact by UID and returns it, taking an optional timepoint
@@ -22,7 +23,7 @@ func (n *Neuroscan) GetContact(uid string, timepoint int) (Contact, error) {
 	log.Debug("Getting contact", "uid", uid, "timepoint", timepoint)
 	var contact Contact
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, weight, \"neuronA\", \"neuronB\", filename, timepoint FROM contacts WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&contact.id, &contact.uid, &contact.weight, IntToNil(&contact.neuronA), IntToNil(&contact.neuronB), &contact.filename, &contact.timepoint)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, weight, \"neuronA\", \"neuronB\", filename, timepoint, color FROM contacts WHERE uid = $1 AND timepoint = $2", uid, timepoint).Scan(&contact.id, &contact.uid, &contact.weight, IntToNil(&contact.neuronA), IntToNil(&contact.neuronB), &contact.filename, &contact.timepoint, &contact.color)
 	if err != nil {
 		return contact, err
 	}
@@ -55,7 +56,7 @@ func (contact Contact) writeToDB(n *Neuroscan) {
 	}
 
 	log.Debug("Contact does not exist, inserting new record", "uid", contact.uid)
-	err = n.CreateContact(contact.uid, contact.weight, contact.neuronA, contact.neuronB, contact.filename, contact.timepoint)
+	err = n.CreateContact(contact.uid, contact.weight, contact.neuronA, contact.neuronB, contact.filename, contact.timepoint, contact.color)
 	if err != nil {
 		log.Error("Error inserting new contact record", "err", err)
 		return
@@ -154,7 +155,7 @@ func (n *Neuroscan) DeleteContact(uid string, timepoint int) error {
 }
 
 // CreateContact creates a new contact in the database
-func (n *Neuroscan) CreateContact(uid string, weight int, neuronA int, neuronB int, filename string, timepoint int) error {
+func (n *Neuroscan) CreateContact(uid string, weight int, neuronA int, neuronB int, filename string, timepoint int, color Color) error {
 	exists, err := n.ContactExists(uid, timepoint)
 
 	if err != nil {
@@ -165,7 +166,7 @@ func (n *Neuroscan) CreateContact(uid string, weight int, neuronA int, neuronB i
 		return errors.New("contact already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO contacts (uid, weight, \"neuronA\", \"neuronB\", filename, timepoint) VALUES ($1, $2, $3, $4, $5, $6)", uid, weight, neuronA, neuronB, filename, timepoint)
+	_, err = n.connPool.Exec(n.context, "INSERT INTO contacts (uid, weight, \"neuronA\", \"neuronB\", filename, timepoint, color) VALUES ($1, $2, $3, $4, $5, $6, $7)", uid, weight, neuronA, neuronB, filename, timepoint, color)
 	if err != nil {
 		return err
 	}
@@ -222,6 +223,7 @@ func parseContact(n *Neuroscan, filePath string) (Contact, error) {
 		neuronB:   neuronB.id,
 		filename:  fileMeta.filename,
 		timepoint: fileMeta.timepoint,
+		color:     fileMeta.color,
 	}
 
 	return contact, nil

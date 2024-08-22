@@ -114,8 +114,6 @@ const middleware = (store) => (next) => async (action) => {
           const addedObjectsToViewer = Array.isArray(widget?.config?.instances)
           && widget?.config?.instances.length !== 0
             ? widget.config.instances.concat(filteredNewInstances) : action.instances;
-          console.log({ widget });
-          console.log({ filteredNewInstances });
           store.dispatch(
             addToWidget(
               widget,

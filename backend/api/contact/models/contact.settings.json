@@ -37,6 +37,9 @@
     },
     "uid": {
       "type": "string"
+    },
+    "color": {
+      "type": "json"
     }
   }
 }

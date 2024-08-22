@@ -37,11 +37,13 @@ const searchMiddleware = (store) => (next) => (action) => {
     case ADD_CPHATE: {
       const { timePoint } = action;
       const msg = 'Add cphate';
+      console.log('add cphate: ', timePoint);
       next(loading(msg, action.type));
       cphateService
         .getCphateByTimepoint(timePoint)
         .then((cphate) => {
           if (cphate) {
+            console.log('cphate: ', cphate);
             const cphateInstances = cphateService.getInstances(cphate);
             store.dispatch(addInstances(null, cphateInstances, VIEWERS.CphateViewer));
           }

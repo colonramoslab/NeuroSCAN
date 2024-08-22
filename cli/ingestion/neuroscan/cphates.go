@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/charmbracelet/log"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -36,6 +38,7 @@ type CphateMetaItem struct {
 	C       int      `json:"c"`
 	Neurons []string `json:"neurons"`
 	ObjFile string   `json:"objFile"`
+	Color   Color    `json:"color"`
 }
 
 // GetCphate gets the CPHATE by timepoint and returns it
@@ -179,7 +182,7 @@ func (n *Neuroscan) CreateCphate(timepoint int, structure CphateMeta) error {
 		return nil
 	}
 
-	name := strconv.Itoa(timepoint)
+	name := "CPHATE " + strconv.Itoa(timepoint)
 
 	structureJson, err := json.Marshal(structure)
 
@@ -253,7 +256,7 @@ func (n *Neuroscan) DeleteCphate(timepoint int) error {
 }
 
 // buildCphateMeta builds the CPHATE meta object
-func buildCphateMetaItem(n *Neuroscan, node string, filename string) (CphateMetaItem, error) {
+func buildCphateMetaItem(n *Neuroscan, node string, filename string, color Color) (CphateMetaItem, error) {
 	// split the node string by the "-" character
 	// the first part is the neuron names
 	// the second part is the cluster, iteration, and serial
@@ -294,6 +297,7 @@ func buildCphateMetaItem(n *Neuroscan, node string, filename string) (CphateMeta
 		C:       cluster,
 		Neurons: neurons,
 		ObjFile: filename,
+		Color:   color,
 	}
 
 	return cphateMetaItem, nil
@@ -368,15 +372,22 @@ func parseCphateNode(n *Neuroscan, node string) (CphateNode, error) {
 }
 
 // parseCphate parses the CPHATE file and returns a CPHATE object
-func parseCphate(n *Neuroscan, filePath string) (Cphate, error) {
-	fileMetas, err := FilePathParse(filePath)
+func parseCphate(n *Neuroscan, dirPath string) (Cphate, error) {
 
+	timepoint, err := GetTimepoint(dirPath)
 	if err != nil {
-		log.Error("Error parsing file path", "err", err)
+		log.Error("Error getting timepoint", "err", err)
 		return Cphate{}, err
 	}
 
-	devStage, err := n.GetDevStageByUID(fileMetas[0].developmentalStage)
+	devStageUID, err := GetDevStage(dirPath)
+
+	if err != nil {
+		log.Error("Error getting developmental stage", "err", err)
+		return Cphate{}, err
+	}
+
+	devStage, err := n.GetDevStageByUID(devStageUID)
 
 	if err != nil {
 		log.Error("Failed to get developmental stage by UID", "error", err)
@@ -386,23 +397,55 @@ func parseCphate(n *Neuroscan, filePath string) (Cphate, error) {
 	//var cphateNodes []CphateNode
 	var cphateMetaItems []CphateMetaItem
 
-	// loop over the fileMetas and create a CPHATE node for each
-	for _, fileMeta := range fileMetas {
-		//cphateNode, err := parseCphateNode(n, fileMeta.uid)
-		cphateMetaItem, err := buildCphateMetaItem(n, fileMeta.uid, fileMeta.filename)
-
+	// loop over the directory and get all the files
+	err = filepath.WalkDir(dirPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			log.Error("Error parsing CPHATE node", "err", err)
-			continue
+			log.Error("Error walking directory", "err", err)
+			return errors.New("error walking directory")
 		}
 
-		cphateMetaItems = append(cphateMetaItems, cphateMetaItem)
+		if d.IsDir() {
+			return nil
+		}
 
-		//cphateNodes = append(cphateNodes, cphateNode)
+		if !ValidExtension(path) {
+			return nil
+		}
+
+		fileMetas, err := FilePathParse(path)
+
+		if err != nil {
+			log.Error("Error parsing file path", "err", err)
+			return err
+		}
+
+		log.Debug("Processing file", "path", path, "filename", fileMetas[0].filename)
+
+		// loop over the fileMetas and create a CPHATE node for each
+		for _, fileMeta := range fileMetas {
+			//cphateNode, err := parseCphateNode(n, fileMeta.uid)
+			cphateMetaItem, err := buildCphateMetaItem(n, fileMeta.uid, fileMeta.filename, fileMeta.color)
+
+			if err != nil {
+				log.Error("Error parsing CPHATE node", "err", err)
+				continue
+			}
+
+			cphateMetaItems = append(cphateMetaItems, cphateMetaItem)
+
+			//cphateNodes = append(cphateNodes, cphateNode)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Error("Error walking directory", "err", err)
+		return Cphate{}, err
 	}
 
 	cphate := Cphate{
-		timepoint:          fileMetas[0].timepoint,
+		timepoint:          timepoint,
 		developmentalStage: devStage.id,
 		structure:          cphateMetaItems,
 		//filename:           fileMetas[0].filename,

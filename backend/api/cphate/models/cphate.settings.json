@@ -21,6 +21,9 @@
     "timepoint": {
       "type": "integer",
       "required": true
+    },
+    "color": {
+      "type": "json"
     }
   }
 }

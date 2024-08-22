@@ -121,26 +121,6 @@ const updateInstanceSelected = (instances, selectedUids) => {
   return i;
 };
 
-const getColorFromGLTF = (gltf) => {
-  // materials[0].pbrMetallicRoughness.baseColorFactor
-  // try to get the color array from the gltf
-  if (gltf
-    && gltf.materials
-    && gltf.materials[0]
-    && gltf.materials[0].pbrMetallicRoughness
-    && gltf.materials[0].pbrMetallicRoughness.baseColorFactor
-    && gltf.materials[0].pbrMetallicRoughness.baseColorFactor.length === 4) {
-    return {
-      r: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[0],
-      g: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[1],
-      b: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[2],
-      a: gltf.materials[0].pbrMetallicRoughness.baseColorFactor[3],
-    };
-  }
-
-  return null;
-};
-
 // const getFileJSONPayload = async (url) => (
 //   await fetch(url)
 //     .then((resp) => resp.text())
@@ -291,7 +271,7 @@ export const getLocationPrefixFromType = (item) => {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/synapses/${item.filename}`;
     }
     case CPHATE_TYPE: {
-      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/cphate.gltf`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/`;
     }
     case NERVE_RING_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/${item.filename}`;
@@ -301,6 +281,13 @@ export const getLocationPrefixFromType = (item) => {
     }
   }
 };
+
+export const buildColor = (arr) => ({
+  r: arr[0],
+  g: arr[1],
+  b: arr[2],
+  a: arr[3],
+});
 
 export const mapToInstance = (item) => {
   const fileName = item.filename || '';
@@ -320,6 +307,10 @@ export const mapToInstance = (item) => {
         a: 1,
       };
     }
+  }
+
+  if (item.color && item.color.length === 4) {
+    color = buildColor(item.color);
   }
 
   return {
@@ -359,10 +350,6 @@ const createSimpleInstance = async (instance) => {
   // content.fileName = 'sphere.obj';
   // content.location = `${filesURL}/../uploads/${content.fileName}`;
   const base64Content = await contentService.getBase64(content.location, content.fileName);
-  // remove 'data:model/obj;base64,' from the base64 string
-  const JSONContent = JSON.parse(atob(base64Content.slice(22)));
-  // const JSONContent = JSON.parse(atob(base64Content));
-  const color = getColorFromGLTF(JSONContent);
   let visualValue;
   const fileExtension = content.fileName.split('.').pop().toLowerCase();
   switch (fileExtension) {
@@ -391,7 +378,6 @@ const createSimpleInstance = async (instance) => {
     name: instance.name,
     type: { eClass: 'SimpleType' },
     visualValue,
-    color,
   });
 };
 
