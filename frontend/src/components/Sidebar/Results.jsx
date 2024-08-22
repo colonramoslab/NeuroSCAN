@@ -29,7 +29,7 @@ const list = [
     image: SYNAPSES,
   },
   {
-    title: 'Nerve Ring',
+    title: 'Nerve Ring (add last)',
     resultItem: 'nerverings',
     image: NEURON,
   },
