@@ -13,12 +13,12 @@ import store from '../redux/store';
 import {
   CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE,
 } from '../utilities/constants';
-import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
+// import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
-const neuronColorLegend = [];
-fetch(NeuronColorLegendFile)
-  .then((response) => response.text())
-  .then((data) => data.split('\n').forEach((r) => neuronColorLegend.push(r.split(','))));
+// const neuronColorLegend = [];
+// fetch(NeuronColorLegendFile)
+//   .then((response) => response.text())
+//   .then((data) => data.split('\n').forEach((r) => neuronColorLegend.push(r.split(','))));
 
 export const instanceEqualsInstance = (instanceA, instanceB) => instanceA.uid === instanceB.uid
   && instanceA.instanceType === instanceB.instanceType;
@@ -294,22 +294,23 @@ export const mapToInstance = (item) => {
   const location = getLocationPrefixFromType(item);
 
   let color = {
-    r: Math.random(), g: Math.random(), b: Math.random(), a: 1,
+    r: Math.random(), g: Math.random(), b: Math.random(), a: 0.98,
   };
 
-  if ('name' in item) {
-    const colorLegend = neuronColorLegend.find((value, index) => value[0] === item.name);
-    if (colorLegend) {
-      color = {
-        r: colorLegend[3] / 255,
-        g: colorLegend[4] / 255,
-        b: colorLegend[5] / 255,
-        a: 1,
-      };
-    }
-  }
+  // if ('name' in item) {
+  //   const colorLegend = neuronColorLegend.find((value, index) => value[0] === item.name);
+  //   if (colorLegend) {
+  //     color = {
+  //       r: colorLegend[3] / 255,
+  //       g: colorLegend[4] / 255,
+  //       b: colorLegend[5] / 255,
+  //       a: 1,
+  //     };
+  //   }
+  // }
 
   if (item.color && item.color.length === 4) {
+    console.debug('item.color', item.color);
     color = buildColor(item.color);
   }
 
