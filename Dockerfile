@@ -8,7 +8,6 @@ ARG REACT_APP_BACKEND_URL=''
 
 # YARN REQUIRES GIT BINARY
 RUN apk add git
-# RUN apk add git ca-certificates fuse3 sqlite
 RUN npm install -g typescript
 
 # INSTALL PACKAGES
@@ -43,30 +42,10 @@ RUN yarn build
 # https://github.com/strapi/strapi-docker/blob/master/examples/custom/Dockerfile
 FROM strapi/base as base
 
-#RUN apt-get update -qq
-#RUN apt-get install -qq handbrake-cli
-
-# Configured by helm chart
-# ENV DATABASE_FILENAME .tmp/data.db
-
-# install rclone
-# WORKDIR /tmp
-# COPY ./backend/rclone/rclone-current-linux-amd64.zip /tmp
-# RUN unzip rclone-current-linux-amd64.zip
-# RUN rm rclone-current-linux-amd64.zip
-# RUN cp rclone*/rclone /usr/bin/rclone
-# RUN rm -rf rclone*
-
-#
 WORKDIR /my-path
 
-# COPY ./litefs.yml ./
 COPY ./backend/package.json ./
 COPY ./backend/yarn.lock ./
-
-# create data directory
-#RUN mkdir -p /my-path/data
-#COPY ./backend/data/data.db ./data
 
 RUN yarn install
 
@@ -77,16 +56,11 @@ ENV NODE_ENV production
 RUN yarn build
 
 COPY --from=fronend-build /app/frontend/build ./public
-# COPY --from=flyio/litefs:0.5 /usr/local/bin/litefs /usr/local/bin/litefs
 
 COPY ./scripts ./scripts
-# configure rclone
-# RUN mkdir -p /root/.config/rclone
-# COPY ./backend/rclone/rclone.conf /root/.config/rclone/rclone.conf
 
 RUN chmod +x scripts/*.sh
-# RUN chmod +x rclone/rclone-sync.sh
 
 EXPOSE 1337
 
-CMD "yarn start"
+CMD scripts/start.sh
