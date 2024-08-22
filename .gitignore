@@ -9,4 +9,4 @@ ingress-promoterdb.yaml
 node_modules/
 applications/neuroscan/backend/public/files/
 applications/neuroscan/backend/.tmp/
-geppetto.js
+*.gltf
