@@ -7,8 +7,10 @@ ARG REACT_APP_BACKEND_URL=''
 # ARG REACT_APP_ASSET_URL=''
 
 # YARN REQUIRES GIT BINARY
+RUN apk update
 RUN apk add git
 RUN npm install -g typescript
+# install handbrake
 
 # INSTALL PACKAGES
 RUN mkdir -p /app
@@ -39,6 +41,8 @@ RUN yarn build
 
 # MAIN BUILD
 
+# FROM alpine:edge
+# RUN apk update && apk add --no-cache handbrake --repository="http://dl-cdn.alpinelinux.org/alpine/edge/community"
 # https://github.com/strapi/strapi-docker/blob/master/examples/custom/Dockerfile
 FROM strapi/base as base
 

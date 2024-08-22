@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Synapse struct {
@@ -22,6 +23,7 @@ type Synapse struct {
 	timepoint   int
 	filename    string
 	color       Color
+	publishedAt time.Time
 }
 
 type SynapseData struct {
@@ -45,7 +47,7 @@ func (n *Neuroscan) GetSynapse(uid string) (Synapse, error) {
 	log.Debug("Getting synapse", "uid", uid)
 	var synapse Synapse
 
-	err := n.connPool.QueryRow(n.context, "SELECT id, uid, type, section, position, \"neuronSite\", \"neuronPre\", timepoint, filename, color FROM synapses WHERE uid = $1", uid).Scan(&synapse.id, &synapse.uid, &synapse.synapseType, &synapse.section, &synapse.position, &synapse.neuronSite, &synapse.neuronPre, &synapse.timepoint, &synapse.filename, &synapse.color)
+	err := n.connPool.QueryRow(n.context, "SELECT id, uid, type, section, position, \"neuronSite\", \"neuronPre\", \"postNeuron\", timepoint, filename, color FROM synapses WHERE uid = $1", uid).Scan(&synapse.id, &synapse.uid, &synapse.synapseType, &synapse.section, &synapse.position, &synapse.neuronSite, &synapse.neuronPre, &synapse.postNeuron, &synapse.timepoint, &synapse.filename, &synapse.color)
 	if err != nil {
 		return synapse, err
 	}
@@ -84,7 +86,7 @@ func (synapse Synapse) writeToDB(n *Neuroscan) {
 	}
 
 	log.Debug("Synapse does not exist, creating record", "uid", synapse.uid)
-	err = n.CreateSynapse(synapse.uid, synapse.synapseType, synapse.section, synapse.position, synapse.neuronSite, synapse.neuronPre, synapse.postNeurons, synapse.timepoint, synapse.filename, synapse.color)
+	err = n.CreateSynapse(synapse.uid, synapse.synapseType, synapse.section, synapse.position, synapse.neuronSite, synapse.neuronPre, synapse.postNeuron, synapse.postNeurons, synapse.timepoint, synapse.filename, synapse.color)
 
 	if err != nil {
 		log.Error("Error creating synapse record", "err", err)
@@ -108,7 +110,7 @@ func (n *Neuroscan) SynapseExists(uid string, timepoint int) (bool, error) {
 }
 
 // CreateSynapse creates a new synapse and it's related postneurons
-func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite string, neuronPre sql.NullInt64, postNeurons []int, timepoint int, filename string, color Color) error {
+func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string, position string, neuronSite string, neuronPre sql.NullInt64, postNeuron sql.NullInt64, postNeurons []int, timepoint int, filename string, color Color) error {
 	exists, err := n.SynapseExists(uid, timepoint)
 
 	if err != nil {
@@ -119,7 +121,9 @@ func (n *Neuroscan) CreateSynapse(uid string, synapseType string, section string
 		return errors.New("synapse already exists")
 	}
 
-	_, err = n.connPool.Exec(n.context, "INSERT INTO synapses (uid, \"neuronPre\", type, section, position, \"neuronSite\", timepoint, filename, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", uid, neuronPre, synapseType, section, position, neuronSite, timepoint, filename, color)
+	now := GetTimeNow()
+
+	_, err = n.connPool.Exec(n.context, "INSERT INTO synapses (uid, \"neuronPre\", \"postNeuron\", type, section, position, \"neuronSite\", timepoint, filename, color, published_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)", uid, neuronPre, postNeuron, synapseType, section, position, neuronSite, timepoint, filename, color, now)
 
 	if err != nil {
 		return err
@@ -376,6 +380,7 @@ func getSynapseData(uid string) SynapseData {
 	}
 
 	// if the position string is empty, just make it ""
+	postNeuron := ""
 
 	synapsePosition := buildSynapsePosition(positionString)
 	log.Debug("Synapse position", "position", synapsePosition)
@@ -383,8 +388,13 @@ func getSynapseData(uid string) SynapseData {
 	postNeurons := strings.Split(strings.Split(neuronSections[1], "~")[0], "&")
 	log.Debug("Post neurons", "postNeurons", postNeurons)
 
+	if postNeurons[0] != "" {
+		postNeuron = postNeurons[0]
+	}
+
 	return SynapseData{
 		neuronPre:   neuronPre,
+		postNeuron:  postNeuron,
 		synapseType: synapseType,
 		section:     synapsePosition.section,
 		position:    synapsePosition.position,
@@ -419,10 +429,24 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 		Valid: true,
 	}
 
+	postNeuronGet, err := n.GetNeuron(synapseData.postNeuron, fileMeta.timepoint)
+
+	if err != nil {
+		log.Error("Error getting neuron", "err", err)
+		return Synapse{}, err
+	}
+
+	postNeuron := sql.NullInt64{
+		Int64: int64(postNeuronGet.id),
+		Valid: true,
+	}
+
+	log.Debug("Post neuron", "postNeuron", postNeuron)
+
 	var postNeuronIDs []int
 
-	for _, postNeuron := range synapseData.postNeurons {
-		neuron, err := n.GetNeuron(postNeuron, fileMeta.timepoint)
+	for _, pNeuron := range synapseData.postNeurons {
+		neuron, err := n.GetNeuron(pNeuron, fileMeta.timepoint)
 
 		if err != nil {
 			log.Error("Error getting neuron", "err", err)
@@ -439,6 +463,7 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 		position:    synapseData.position,
 		neuronSite:  synapseData.neuronSite,
 		neuronPre:   neuronPre,
+		postNeuron:  postNeuron,
 		postNeurons: postNeuronIDs,
 		timepoint:   fileMeta.timepoint,
 		filename:    fileMeta.filename,

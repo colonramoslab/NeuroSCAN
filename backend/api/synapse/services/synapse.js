@@ -13,8 +13,8 @@ const searchSynapseByTerms = (
   const terms = searchTerms.toUpperCase().split('|').map((term) => decodeURIComponent(term));
   const { timepoint } = where.find(t => 'timepoint' in t);
   const type = where.filter(t => 'type' in t).map(t => t.type) || {type: []};
-  const { neuronPre } = where.find(t => '"neuronPre"' in t) || {neuronPre: null};
-  const { postNeuron } = where.find(t => '"postNeuron"' in t) || {postNeuron: null};
+  const { neuronPre } = where.find(t => 'neuronPre' in t) || {neuronPre: null};
+  const { postNeuron } = where.find(t => 'postNeuron' in t) || {postNeuron: null};
   const termsPre = neuronPre ? [neuronPre.toUpperCase()] : terms;
 
   return termsPre.reduce((r, t, i) => {

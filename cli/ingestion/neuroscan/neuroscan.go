@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -322,6 +323,13 @@ func BuildUID(filename string) string {
 	uid = strings.Split(uid, "_")[1]
 
 	return uid
+}
+
+// GetTimeNow get the time in the format "2006-01-02 15:04:05.000000-07"
+func GetTimeNow() string {
+	now := time.Now()
+	timeFormat := "2006-01-02 15:04:05.000000-07"
+	return now.Format(timeFormat)
 }
 
 // FilePathParse takes a filepath and returns the various metadata relating to the context of the file
