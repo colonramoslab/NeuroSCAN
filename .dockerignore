@@ -4,4 +4,4 @@ frontend/geppetto-meta/
 .env
 backend/file_upload/
 *.db
-frontend/src/vender
+frontend/vendor
