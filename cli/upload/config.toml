@@ -1,0 +1,5 @@
+[bucket.neuroscan-files]
+  ROLE_ARN = "arn:aws:iam::534328216214:user/neuroscan"
+  ROLE_SESSION_NAME = "neuroscan-session"
+  REGION = "us-east-1"
+  PROFILE = "neuroscan"

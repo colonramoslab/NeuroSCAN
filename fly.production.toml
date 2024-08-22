@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for neuroscan on 2024-04-29T19:27:21-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'neuroscan'
+primary_region = 'bos'
+
+[http_service]
+  internal_port = 1337
+  force_https = true
+  auto_stop_machines=false
+  auto_start_machines=false
+  min_machines_running = 2
+  processes = ['app']
+
+[[vm]]
+  size = 'performance-1x'
+[mounts]
+  source = "neuroscan"
+  destination = "/my-path/backend/data"

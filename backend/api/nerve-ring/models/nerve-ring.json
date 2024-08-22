@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "nerve_rings",
+  "info": {
+    "name": "NerveRing",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uid": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "filename": {
+      "type": "string",
+      "required": true,
+      "unique": false
+    },
+    "timepoint": {
+      "type": "integer",
+      "required": true
+    },
+    "color": {
+      "type": "json"
+    }
+  }
+}
