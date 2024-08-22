@@ -3,7 +3,7 @@
 FROM alpine:3.10 AS ffmpeg-build
 
 RUN apk update
-RUN apk add --no-cache ffmpeg
+RUN apk add -u --no-cache ffmpeg
 
 FROM node:14.16.1-alpine3.10 AS fronend-build
 

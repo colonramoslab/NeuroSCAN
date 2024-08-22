@@ -2,7 +2,7 @@
 
 const uuid = require('uuid');
 const fs = require('fs');
-const hbjs = require('handbrake-js');
+const webmToMp4 = require('webm-to-mp4');
 
 module.exports = {
   webm2avi: async ctx => {
@@ -15,7 +15,7 @@ module.exports = {
     const buf = Buffer.from(data);
     fs.writeFileSync(inputFile, buf);
 
-    const output = await hbjs.run({ input: inputFile, output: outputFile });
+    await fs.writeFile(outputFile, Buffer.from(webmToMp4(await fs.readFil(inputFile))));
 
     const aviData = fs.readFileSync(outputFile);
 
