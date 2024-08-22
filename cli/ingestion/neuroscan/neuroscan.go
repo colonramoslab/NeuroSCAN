@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -506,14 +507,28 @@ func createIngestWaitGroups() *ingestWaitGroups {
 	}
 }
 
+// maxParallelism returns the maximum parallelism
+func maxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+
+	return numCPU
+}
+
 // ProcessEntities processes the entities in the directory in the proper order
 func (n *Neuroscan) ProcessEntities(path string) {
 
 	channels := createIngestChannels()
 	waitGroups := createIngestWaitGroups()
 
+	maxRoutines := maxParallelism()
+
 	// start the worker pool, we don't do multiple workers right now because sqlite3 does not handle concurrent writes
-	for w := 1; w <= 8; w++ {
+	for w := 1; w <= maxRoutines; w++ {
 		go func() {
 			for neuronPath := range channels.neurons {
 				ProcessNeuron(n, neuronPath)

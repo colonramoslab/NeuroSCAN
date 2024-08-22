@@ -1,9 +1,9 @@
 ####################################################################
 # FRONTEND BUILD
-FROM alpine:3.10 AS ffmpeg-build
+#FROM alpine:3.10 AS ffmpeg-build
 
-RUN apk update
-RUN apk add -u --no-cache ffmpeg
+#RUN apk update
+#RUN #apk add -u --no-cache ffmpeg
 
 FROM node:14.16.1-alpine3.10 AS fronend-build
 
@@ -65,7 +65,7 @@ RUN yarn build
 COPY --from=fronend-build /app/frontend/build ./public
 
 # copy ffmpeg from frontend build to backend
-COPY --from=ffmpeg-build /usr/bin/ffmpeg /usr/bin/ffmpeg
+#COPY --from=ffmpeg-build /usr/bin/ffmpeg /usr/bin/ffmpeg
 
 COPY ./scripts ./scripts
 

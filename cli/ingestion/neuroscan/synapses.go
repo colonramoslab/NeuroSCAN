@@ -416,6 +416,19 @@ func parseSynapse(n *Neuroscan, filePath string) (Synapse, error) {
 
 	synapseData := getSynapseData(fileMeta.uid)
 
+	// if the synapse exists, skip it here
+	exists, err := n.SynapseExists(fileMeta.uid, fileMeta.timepoint)
+
+	if err != nil {
+		log.Error("Error checking if synapse exists", "err", err)
+		return Synapse{}, err
+	}
+
+	if n.skipExisting && exists {
+		log.Debug("Synapse exists, skipping", "uid", fileMeta.uid)
+		return Synapse{}, nil
+	}
+
 	//if we have a neuronPre from the synapse data, we can get the neuron ID
 	neuronPreGet, err := n.GetNeuron(synapseData.neuronPre, fileMeta.timepoint)
 
@@ -478,6 +491,12 @@ func ProcessSynapse(n *Neuroscan, filePath string) {
 	synapse, err := parseSynapse(n, filePath)
 	if err != nil {
 		log.Error("Error parsing synapse", "err", err)
+		return
+	}
+
+	// if the synapse returned is empty, we skip it
+	if synapse.uid == "" {
+		log.Debug("Synapse is empty, skipping", "filePath", filePath)
 		return
 	}
 

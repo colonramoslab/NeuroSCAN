@@ -34,7 +34,7 @@ const RecordControlModal = (props) => {
   const downloadRecording = async () => {
     setShowDownload(false);
     const mp4 = Buffer.from(await webmToMp4(Buffer.from(await videoBlob.arrayBuffer())));
-    downloadBlob(new Blob([mp4]), `${widgetName}_${formatDate(new Date())}.mp4`);
+    downloadBlob(new Blob([mp4]), `${widgetName}_${formatDate(new Date())}.webm`);
     setShowDownload(true);
     handleClose();
   };

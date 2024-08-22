@@ -2,7 +2,7 @@
 
 const uuid = require('uuid');
 const fs = require('fs');
-const webmToMp4 = require('webm-to-mp4');
+// const webmToMp4 = require('webm-to-mp4');
 
 module.exports = {
   webm2avi: async ctx => {
@@ -13,15 +13,18 @@ module.exports = {
     const outputFile = `/tmp/${id}.mp4`;
     console.log(`Writing webm to: ${inputFile}`);
     const buf = Buffer.from(data);
-    fs.writeFileSync(inputFile, buf);
+    // fs.writeFileSync(inputFile, buf);
 
-    await fs.writeFile(outputFile, Buffer.from(webmToMp4(await fs.readFil(inputFile))));
+    // await fs.writeFile(outputFile, Buffer.from(webmToMp4(await fs.readFil(inputFile))));
 
-    const aviData = fs.readFileSync(outputFile);
+    // const aviData = fs.readFileSync(outputFile);
+    // just sending back the input file for now because this is so broken
+    // const aviData = fs.readFileSync(inputFile);
 
-    fs.unlinkSync(inputFile);
-    fs.unlinkSync(outputFile);
+    // fs.unlinkSync(inputFile);
+    // fs.unlinkSync(outputFile);
 
-    return {"result": aviData};
+    // return {"result": aviData};
+    return {"result": buf};
   },
 };
