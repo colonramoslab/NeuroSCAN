@@ -9,7 +9,7 @@ import {
 import { MuiThemeProvider } from '@material-ui/core';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Loader from '@metacell/geppetto-meta-ui/loader/Loader';
-import posthog from 'posthog-js'
+import posthog from 'posthog-js';
 import NeuroScan from './pages/NeuroScan';
 import PromoterDB from './pages/PromoterDB';
 import About from './pages/About';
