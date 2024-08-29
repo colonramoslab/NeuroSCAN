@@ -9,8 +9,8 @@ primary_region = 'bos'
 [http_service]
   internal_port = 1337
   force_https = true
-  auto_stop_machines=false
-  auto_start_machines=false
+  auto_stop_machines = false
+  auto_start_machines = false
   min_machines_running = 2
   processes = ['app']
 
