@@ -9,6 +9,7 @@ import {
 import { MuiThemeProvider } from '@material-ui/core';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Loader from '@metacell/geppetto-meta-ui/loader/Loader';
+import posthog from 'posthog-js';
 import NeuroScan from './pages/NeuroScan';
 import PromoterDB from './pages/PromoterDB';
 import About from './pages/About';
@@ -18,6 +19,10 @@ import { loadPromoters } from './redux/actions/promoters';
 import '@metacell/geppetto-meta-ui/flex-layout/style/dark.scss';
 import './flexLayout.css';
 import { CANVAS_STARTED } from './utilities/constants';
+
+posthog.init('phc_cuoRrQDAJFfkKureV66PysaW5hkbrmsuzC4A1SRDAtk', {
+  api_host: 'https://us.i.posthog.com',
+});
 
 const Manager = require('@metacell/geppetto-meta-client/common/Manager').default;
 
