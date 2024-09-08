@@ -22,7 +22,7 @@ export class NerveRingService {
     return qs.stringify({
       _where: [
         { timepoint: timePoint },
-        { _or: searchTerms.map((term) => ({ uid_contains: term })) },
+        // { _or: searchTerms.map((term) => ({ uid_contains: term })) },
       ],
       _sort: 'uid:ASC',
       _start: searchState?.limit ? searchState.start : results.items.length,
