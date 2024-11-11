@@ -19,7 +19,7 @@ have compiled segmented electron microscopy datasets to enable exploration throu
 neuron contact sites, synaptic sites and CPHATE contact profile visualizations.
 Learn more about how we developed the neuron-neuron contacts and a more in depth
 tutorial of the website at:`,
-'Koonce et al, 2024, https://www.biorxiv.org/content/10.1101/2024.08.27.609993v2https://www.biorxiv.org/content/10.1101/2024.08.27.609993v2',
+'Koonce et al, 2024, https://www.biorxiv.org/content/10.1101/2024.08.27.609993v2',
 
 'Also see these papers that discuss CPHATE:',
 
