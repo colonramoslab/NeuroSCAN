@@ -41,7 +41,7 @@ const AboutModal = (props) => {
             </Typography>
           ))}
           <Typography>
-            {`${title} has been developed with MetaCell, world-leader in software for neuroscience.`}
+            {`${title} was developed with MetaCell and is currently maintained by Bilte Co.`}
           </Typography>
         </Box>
         <Box className="modal-footer">
