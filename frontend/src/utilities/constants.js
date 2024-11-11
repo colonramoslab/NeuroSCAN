@@ -11,7 +11,7 @@ export const VIEWERS = Object.freeze({
 });
 
 export const ABOUT_CONTENT = [`is an initiative from the Yale University for Neurosciences, in partnership
-with MetaCell.`];
+with MetaCell and Bilte Co.`];
 
 export const NEUROSCAN_ABOUT = [`NeuroSCAN is a resource for exploring the structure of the C. elegans nerve ring. We
 have compiled segmented electron microscopy datasets to enable exploration through
