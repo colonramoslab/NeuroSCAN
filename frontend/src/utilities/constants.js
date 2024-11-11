@@ -11,7 +11,7 @@ export const VIEWERS = Object.freeze({
 });
 
 export const ABOUT_CONTENT = [`is an initiative from the Yale University for Neurosciences, in partnership
-with MetaCell.`];
+with MetaCell and Bilte Co.`];
 
 export const NEUROSCAN_ABOUT = [`NeuroSCAN is a resource for exploring the structure of the C. elegans nerve ring. We
 have compiled segmented electron microscopy datasets to enable exploration through
@@ -19,7 +19,7 @@ have compiled segmented electron microscopy datasets to enable exploration throu
 neuron contact sites, synaptic sites and CPHATE contact profile visualizations.
 Learn more about how we developed the neuron-neuron contacts and a more in depth
 tutorial of the website at:`,
-'Koonce et al, 2024, https://www.biorxiv.org/content/10.1101/2024.08.27.609993v2',
+'Koonce, Noelle L., Sarah E. Emerson, Dhananjay Bhaskar, Manik Kuchroo, Mark W. Moyle, Pura Arroyo-Morales, Nabor Vázquez Martínez, Smita Krishnaswamy, William Mohler, and Daniel Colón-Ramos. 2024. “NeuroSCAN: Exploring Neurodevelopment via Spatiotemporal Collation of Anatomical Networks.” bioRxiv. https://doi.org/10.1101/2024.08.27.609993.',
 
 'Also see these papers that discuss CPHATE:',
 
