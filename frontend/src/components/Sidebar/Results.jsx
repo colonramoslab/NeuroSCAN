@@ -14,7 +14,7 @@ import * as search from '../../redux/actions/search';
 
 const list = [
   {
-    title: 'Neurons',
+    title: 'Cells',
     resultItem: 'neurons',
     image: NEURON,
   },
