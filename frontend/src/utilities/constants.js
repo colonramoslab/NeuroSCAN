@@ -21,6 +21,7 @@ Learn more about how we developed the neuron-neuron contacts and a more in depth
 tutorial of the website at:`,
 'Koonce, Noelle L., Sarah E. Emerson, Dhananjay Bhaskar, Manik Kuchroo, Mark W. Moyle, Pura Arroyo-Morales, Nabor Vázquez Martínez, Smita Krishnaswamy, William Mohler, and Daniel Colón-Ramos. 2024. “NeuroSCAN: Exploring Neurodevelopment via Spatiotemporal Collation of Anatomical Networks.” bioRxiv. https://doi.org/10.1101/2024.08.27.609993.',
 
+
 'Also see these papers that discuss CPHATE:',
 
 `Moyle MW, Barnes KM, Kuchroo M, Gonopolskiy A, Duncan LH, Sengupta T, Shao L,
