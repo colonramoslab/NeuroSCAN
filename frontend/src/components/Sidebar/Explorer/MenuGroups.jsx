@@ -53,6 +53,8 @@ const MenuGroup = (props) => {
   const classes = useStyles();
   const [modalOpen, setModalOpen] = React.useState(false);
 
+  console.log(viewerId);
+
   const handleShowModal = () => {
     setModalOpen(true);
   };
@@ -62,7 +64,10 @@ const MenuGroup = (props) => {
   };
 
   const handleAddToGroup = (group = null) => {
+    console.log(group);
     if (viewerId) {
+      console.log(viewerId);
+      console.log(instance);
       store.dispatch(addInstancesToGroup(viewerId, [instance], group));
       handleCloseModal();
     }

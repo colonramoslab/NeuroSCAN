@@ -36,7 +36,7 @@ const MenuControl = ({
 
   const layersList = ['Worm Body', 'Pharynx', 'NerveRing'];
   const downloadFiles = (option) => {
-    console.log(`selected option: ${option}`);
+    // console.log(`selected option: ${option}`);
     handleClose();
   };
   let instances = [];
@@ -74,10 +74,10 @@ const MenuControl = ({
     if (currentWidget
       && timePoint !== currentWidget?.timePoint
       && lostInstances.length !== 0) {
-      const delay = setTimeout(() => {
-        setOpenWarningModal(true);
-        clearTimeout(delay);
-      }, 1000);
+      // const delay = setTimeout(() => {
+      setOpenWarningModal(true);
+      // clearTimeout(delay);
+      // }, 1000);
     } else {
       setOpenWarningModal(false);
     }

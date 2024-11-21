@@ -117,7 +117,7 @@ class Viewer extends React.Component {
 
   onMount(scene) {
     // eslint-disable-next-line no-console
-    console.log(scene);
+    // console.log(scene);
   }
 
   onSelection(selectedInstances, event) {
