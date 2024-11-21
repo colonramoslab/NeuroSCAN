@@ -188,7 +188,7 @@ class Viewer extends React.Component {
 
   emptyHoverListener() {
     throttle(() => {
-      if (this.tooltipRef?.current.getIntersected()) {
+      if (this.tooltipRef?.current) {
         this.tooltipRef?.current?.updateIntersected(null);
       }
     }, 240);
