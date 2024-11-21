@@ -22,6 +22,7 @@
     "cross-env": "^7.0.3",
     "intro.js": "^7.0.1",
     "jszip": "^3.7.1",
+    "lodash": "^4.17.21",
     "material-ui-chip-input": "^1.1.0",
     "posthog-js": "^1.158.3",
     "qs": "^6.10.1",

@@ -1,6 +1,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable import/no-cycle */
 import React, { forwardRef, useState } from 'react';
+import throttle from 'lodash/throttle';
 import Canvas from '@metacell/geppetto-meta-ui/3d-canvas/Canvas';
 import { withStyles } from '@material-ui/core/styles';
 import './cameraControls.css';
@@ -186,9 +187,11 @@ class Viewer extends React.Component {
   }
 
   emptyHoverListener() {
-    if (this.tooltipRef?.current.getIntersected()) {
-      this.tooltipRef?.current?.updateIntersected(null);
-    }
+    throttle(() => {
+      if (this.tooltipRef?.current.getIntersected()) {
+        this.tooltipRef?.current?.updateIntersected(null);
+      }
+    }, 240);
   }
 
   findInstanceUidForObj(obj) {
