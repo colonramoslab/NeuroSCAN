@@ -26,7 +26,7 @@ export class NeuronService {
   }
 
   async getByUID(timePoint, uids = []) {
-    const query = `timepoint=${timePoint}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    const query = `timepoint=${timePoint}&_limit=${uids.length + 1}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
     const response = await backendClient.get(`${neuronsBackendUrl}?${query}`);
     return response.data.map((neuron) => ({
       instanceType: NEURON_TYPE,

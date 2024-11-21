@@ -19,26 +19,14 @@ RUN npm install -g typescript
 RUN mkdir -p /app
 WORKDIR /app/frontend
 
-COPY ./frontend/package.json ./
-COPY ./frontend/yarn.lock ./
-
-
-
-### START GEPPETTO META DEVELOP
-#
-# for now we will use geppetto-meta development branch (clone it local)
-# when geppetto meta v > 0.05 is released comment the lines below
-# COPY ./frontend/development_package ./development_package
-# COPY ./frontend/geppetto-setup.sh ./geppetto-setup.sh
-# RUN chmod +x geppetto-setup.sh
-# RUN sh -c ./geppetto-setup.sh
-#
-### END GEPPETTO META DEVELOP
+# COPY SOURCE CODE
+COPY ./frontend .
 
 RUN yarn
 
-# COPY SOURCE CODE
-COPY ./frontend .
+# Overwrite files in node_modules
+COPY ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/
+COPY ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
 
 # BUILD
 RUN yarn build

@@ -1,6 +1,7 @@
 build
 *.py[cod]
 .env
+.envrc
 .venv
 rclone.conf
 ingress-promoterdb.yaml

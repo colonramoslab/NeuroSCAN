@@ -97,6 +97,7 @@ class Viewer extends React.Component {
     this.onMount = this.onMount.bind(this);
     this.onSelection = this.onSelection.bind(this);
     this.hoverListener = this.hoverListener.bind(this);
+    this.emptyHoverListener = this.emptyHoverListener.bind(this);
     this.initCanvasData = this.initCanvasData.bind(this);
   }
 
@@ -181,13 +182,12 @@ class Viewer extends React.Component {
         x: canvasX + 10, // move it 10 px so the onselect (onclick) will fire on the instance
         y: canvasY + 10, // and not on the tooltip ;-)
       });
+    }
+  }
 
-      if (this.timeoutRef.current) {
-        clearTimeout(this.timeoutRef.current);
-      }
-      this.timeoutRef.current = setTimeout(() => {
-        this.tooltipRef?.current?.updateIntersected(null);
-      }, 1000);
+  emptyHoverListener() {
+    if (this.tooltipRef?.current.getIntersected()) {
+      this.tooltipRef?.current?.updateIntersected(null);
     }
   }
 
@@ -251,6 +251,7 @@ class Viewer extends React.Component {
           cameraOptions={cameraOptions}
           captureOptions={captureOptions}
           hoverListeners={[this.hoverListener]}
+          emptyHoverListener={this.emptyHoverListener}
           backgroundColor={backgroundColor}
           onSelection={this.onSelection}
           onMount={this.onMount}
