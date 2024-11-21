@@ -54,7 +54,7 @@ export const addToWidget = (
       cameraOptions: {
         angle: 50,
         near: 0.01,
-        far: 1000,
+        far: 10000,
         baseZoom: 1,
         cameraControls: {
           instance: CameraControls,
