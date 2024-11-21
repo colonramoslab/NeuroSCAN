@@ -12,7 +12,7 @@ import {
 const NewGroupModal = ({
   modalOpen, handleCloseModal, handleAddToGroup,
 }) => {
-  const [newGroupName, setNewGroupName] = React.useState();
+  const [newGroupName, setNewGroupName] = React.useState('');
 
   const handleNewGroupNameChange = (event) => {
     setNewGroupName(event.target.value);
