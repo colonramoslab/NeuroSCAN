@@ -310,7 +310,6 @@ export const mapToInstance = (item) => {
   // }
 
   if (item.color && item.color.length === 4) {
-    console.debug('item.color', item.color);
     color = buildColor(item.color);
   }
 

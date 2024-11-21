@@ -113,6 +113,8 @@ const ExplorerMenu = ({
             </Typography>
           </ListItemText>
           <MenuGroups
+            instance={instance}
+            viewerId={viewerId}
             {...other}
           />
         </ListItem>
