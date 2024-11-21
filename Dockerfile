@@ -25,8 +25,8 @@ COPY ./frontend .
 RUN yarn
 
 # Overwrite files in node_modules
-COPY ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/
-COPY ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
+COPY ./frontend/overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/
+COPY ./frontend/overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
 
 # BUILD
 RUN yarn build
