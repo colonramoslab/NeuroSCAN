@@ -28,15 +28,9 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
-  {
-    title: 'Nerve Ring (add last)',
-    resultItem: 'nerverings',
-    image: NEURON,
-  },
 ];
 
 const initialSelectedItems = {
-  nerverings: [],
   neurons: [],
   contacts: [],
   synapses: [],

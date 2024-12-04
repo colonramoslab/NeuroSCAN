@@ -29,6 +29,8 @@ import contactService from '../services/ContactService';
 import synapseService from '../services/SynapseService';
 // eslint-disable-next-line import/no-cycle
 import cphateService from '../services/CphateService';
+// eslint-disable-next-line import/no-cycle
+import nerveRingService from '../services/NerveRingService';
 import {
   CONTACT_TYPE,
   NEURON_TYPE,
@@ -234,6 +236,31 @@ const middleware = (store) => (next) => async (action) => {
                         addToWidget(
                           widget,
                           cphateInstances,
+                          true,
+                        ),
+                      );
+                    next(loadingSuccess(msg, action.type));
+                  });
+              }
+            }, (e) => {
+              next(raiseError(msg));
+            });
+        } else if (widget.component === VIEWERS.NerveRingViewer) {
+          const msg = 'Updating nervering';
+          next(loading(msg, action.type));
+          nerveRingService
+            .getNerveRingByTimepoint(timePoint)
+            .then((ring) => {
+              if (ring) {
+                const ringInstances = nerveRingService.getInstances(ring);
+                createSimpleInstancesFromInstances(ringInstances)
+                  .then(() => {
+                    widget.config.timePoint = timePoint;
+                    store
+                      .dispatch(
+                        addToWidget(
+                          widget,
+                          ringInstances,
                           true,
                         ),
                       );

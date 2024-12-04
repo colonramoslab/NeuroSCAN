@@ -2,8 +2,10 @@ import * as search from './actions/search';
 import doSearch from '../services/helpers';
 import doGetAll from '../services/getAllHelper';
 // eslint-disable-next-line import/no-cycle
+import nerveRingService from '../services/NerveRingService';
+// eslint-disable-next-line import/no-cycle
 import cphateService from '../services/CphateService';
-import { ADD_CPHATE, addInstances } from './actions/widget';
+import { ADD_CPHATE, ADD_NERVE_RING, addInstances } from './actions/widget';
 import { raiseError, loading, loadingSuccess } from './actions/misc';
 import { VIEWERS } from '../utilities/constants';
 
@@ -47,6 +49,27 @@ const searchMiddleware = (store) => (next) => (action) => {
           }
           next(loadingSuccess(msg, action.type));
         }, (e) => {
+          next(raiseError(msg));
+        });
+      break;
+    }
+
+    case ADD_NERVE_RING: {
+      const { timePoint } = action;
+      const msg = 'Add nerve ring';
+      next(loading(msg, action.type));
+      nerveRingService
+        .getNerveRingByTimepoint(timePoint)
+        .then((ring) => {
+          console.log('ring', ring);
+          if (ring) {
+            const ringInstances = nerveRingService.getInstances(ring);
+            store.dispatch(addInstances(null, ringInstances, VIEWERS.NerveRingViewer));
+          }
+          next(loadingSuccess(msg, action.type));
+        },
+        (e) => {
+          console.error(e);
           next(raiseError(msg));
         });
       break;
