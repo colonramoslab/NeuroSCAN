@@ -274,7 +274,7 @@ export const getLocationPrefixFromType = (item) => {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/cphate/`;
     }
     case NERVE_RING_TYPE: {
-      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/${item.filename}`;
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/`;
     }
     default: {
       return '';

@@ -1,61 +1,48 @@
-import qs from 'qs';
-import { NERVE_RING_TYPE, backendClient, maxRecordsPerFetch } from '../utilities/constants';
+import { NERVE_RING_TYPE, backendClient } from '../utilities/constants';
+// eslint-disable-next-line import/no-cycle
+import { getLocationPrefixFromType, buildColor } from './instanceHelpers';
 
 const nerveRingsBackendUrl = '/nerve-rings';
 
 /* eslint class-methods-use-this:
-    ["error", { "exceptMethods": ["getById", "search", "constructQuery", "getByUID"] }]
+    ["error", { "exceptMethods": ["getInstances", "getNerveRingByTimepoint"] }]
 */
 export class NerveRingService {
-  async getByUID(timePoint, uids = []) {
-    const query = `timepoint=${timePoint}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
-    const response = await backendClient.get(`${nerveRingsBackendUrl}?${query}`);
-    return response.data.map((nerveRing) => ({
+  mapNerveRingInstance(ring, fileUrl, fileType) {
+    return {
+      id: ring.id,
+      uid: ring.uid,
+      uidFromDb: ring.uid,
+      name: `Nerve Ring ${ring.timepoint}`,
+      selected: false,
       instanceType: NERVE_RING_TYPE,
-      ...nerveRing,
-    }));
+      group: null,
+      color: buildColor(ring.color),
+      content: {
+        type: fileType,
+        location: `${fileUrl}${ring.filename}`,
+        fileName: ring.filename,
+      },
+      getId: () => this.id,
+    };
   }
 
-  constructQuery(searchState) {
-    const { searchTerms, timePoint } = searchState.filters;
-    const results = searchState.results.nerverings;
-    return qs.stringify({
-      _where: [
-        { timepoint: timePoint },
-        // { _or: searchTerms.map((term) => ({ uid_contains: term })) },
-      ],
-      _sort: 'uid:ASC',
-      _start: searchState?.limit ? searchState.start : results.items.length,
-      _limit: searchState?.limit || maxRecordsPerFetch,
+  getInstances(nerveRing) {
+    const nerveRingFile = getLocationPrefixFromType({
+      timepoint: nerveRing.timepoint,
+      instanceType: NERVE_RING_TYPE,
     });
+    return [this.mapNerveRingInstance(nerveRing, nerveRingFile, 'url')];
   }
 
-  async search(searchState) {
-    const query = this.constructQuery(searchState);
-    const response = await backendClient.get(`${nerveRingsBackendUrl}?${query}`);
-    return response.data.map((nerveRing) => ({
-      instanceType: NERVE_RING_TYPE,
-      ...nerveRing,
-    }));
-  }
-
-  async getAll(searchState) {
-    const query = this.constructQuery({
-      ...searchState,
-      start: searchState.start,
-      limit: searchState.limit,
-    });
-    const response = await backendClient.get(`${nerveRingsBackendUrl}?${query}`);
-    return response.data.map((nerveRing) => ({
-      instanceType: NERVE_RING_TYPE,
-      ...nerveRing,
-    }));
-  }
-
-  async totalCount(searchState) {
-    const query = this.constructQuery(searchState);
-    const response = await backendClient.get(`${nerveRingsBackendUrl}/count?${query}`);
-    return response.data;
+  async getNerveRingByTimepoint(timepoint) {
+    return backendClient
+      .get(nerveRingsBackendUrl, {
+        params: {
+          timepoint,
+        },
+      })
+      .then((response) => response.data[0]);
   }
 }
 

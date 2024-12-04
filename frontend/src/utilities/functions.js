@@ -20,7 +20,8 @@ export const getViewersFromWidgets = (widgets) => {
   const viewers = [];
   Object.values(widgets).forEach((item) => {
     if ((item.component === VIEWERS.InstanceViewer)
-     || (item.component === VIEWERS.CphateViewer)) {
+     || (item.component === VIEWERS.CphateViewer)
+     || (item.component === VIEWERS.NerveRingViewer)) {
       viewers.push(item);
     }
   });

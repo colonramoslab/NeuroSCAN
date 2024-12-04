@@ -8,6 +8,7 @@ export const VIEWS = {
 export const VIEWERS = Object.freeze({
   InstanceViewer: 'Viewer',
   CphateViewer: 'Cphate',
+  NerveRingViewer: 'NerveRing',
 });
 
 export const ABOUT_CONTENT = [`is an initiative from the Yale University for Neurosciences, in partnership
