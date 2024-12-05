@@ -197,7 +197,7 @@ const SearchResult = (props) => {
                     <HTMLViewer
                       content={item.name}
                       style={{
-                        width: '100%', height: '100%', float: 'center',
+                        width: '100%', height: '100%', float: 'center', wordWrap: 'break-word',
                       }}
                     />
                   )}

@@ -17,17 +17,22 @@
      }
 
      entities = entities.map(entity => {
-      const postNeuronPart = entity.postNeuron ? `-${entity.postNeuron?.uid}` : '';
-      const synapseSection = entity.section ? `, section ${entity.section}` : '';
-      const neuronsPostPart = entity.neuronPost.length > 0 ? entity.neuronPost.reduce((r, n, i) => {
-        let s = (i != 0 ? ', ' : '');
-        let e = (i == entity.neuronPost.length - 1 ? ')' : '');
-        return `${r}${s}${n.uid}${e}`
-      }, ' (') : '';
+      // const postNeuronPart = entity.postNeuron ? `-${entity.postNeuron?.uid}` : '';
+      // const synapseSection = entity.section ? `, section ${entity.section}` : '';
+      // const neuronsPostPart = entity.neuronPost.length > 0 ? entity.neuronPost.reduce((r, n, i) => {
+      //   let s = (i != 0 ? ', ' : '');
+      //   let e = (i == entity.neuronPost.length - 1 ? ')' : '');
+      //   return `${r}${s}${n.uid}${e}`
+      // }, ' (') : '';
+      // return ({
+      //    ...entity,
+      //    name: entity.position === 'pre' ? `<b>pre-${entity.neuronPre?.uid}</b>-${entity.type}-post${postNeuronPart}${neuronsPostPart}${synapseSection}` : `pre-${entity.neuronPre?.uid}-${entity.type}-<b>post${postNeuronPart}</b>${neuronsPostPart}${synapseSection}`,
+      //  });
       return ({
-         ...entity,
-         name: entity.position === 'pre' ? `<b>pre-${entity.neuronPre?.uid}</b>-${entity.type}-post${postNeuronPart}${neuronsPostPart}${synapseSection}` : `pre-${entity.neuronPre?.uid}-${entity.type}-<b>post${postNeuronPart}</b>${neuronsPostPart}${synapseSection}`,
-       })});
+        ...entity,
+        name: entity.uid,
+      });
+      });
 
      return entities.map(entity => {
        return sanitizeEntity(entity, {

@@ -55,16 +55,18 @@ const searchMiddleware = (store) => (next) => (action) => {
     }
 
     case ADD_NERVE_RING: {
-      const { timePoint } = action;
+      const { timePoint, viewer } = action;
+      const viewerId = viewer.id || null;
+      // console.log(action);
       const msg = 'Add nerve ring';
       next(loading(msg, action.type));
       nerveRingService
         .getNerveRingByTimepoint(timePoint)
         .then((ring) => {
-          console.log('ring', ring);
+          // console.log('ring', ring);
           if (ring) {
             const ringInstances = nerveRingService.getInstances(ring);
-            store.dispatch(addInstances(null, ringInstances, VIEWERS.NerveRingViewer));
+            store.dispatch(addInstances(viewerId, ringInstances, VIEWERS.InstanceViewer));
           }
           next(loadingSuccess(msg, action.type));
         },

@@ -32,13 +32,13 @@ export const invertColor = ({
 export const darkenColor = ({
   r, g, b, a,
 }) => ({
-  r, g, b, a: a - 0.2,
+  r, g, b, a: a - 0.7,
 });
 
 export const lightenColor = ({
   r, g, b, a,
 }) => ({
-  r, g, b, a: a + 0.2,
+  r, g, b, a: a + 0.7,
 });
 
 export const invertColorSelectedInstances = (instances, selectedUids) => (
