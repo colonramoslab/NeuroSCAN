@@ -22,10 +22,15 @@ const searchSynapseByTerms = (params, count = false) => {
     .split("|")
     .map((term) => decodeURIComponent(term));
   const { timepoint } = where.find((t) => "timepoint" in t);
+  let typesToSearch = ['undefined', 'chemical', 'electrical'];
 
   const type = where.filter((t) => "type" in t).map((t) => t.type) || {
     type: [],
   };
+
+  if (type.length > 0) {
+    typesToSearch = type;
+  }
 
   const { neuronPre } = where.find((t) => "neuronPre" in t) || {
     neuronPre: null,
@@ -82,7 +87,7 @@ const searchSynapseByTerms = (params, count = false) => {
   // This could be a little redundant with the searchTerms, but it's here for now
   if (postNeuron) {
     query += `
-      AND (lower(uid) LIKE '%${postNeuron.toLowerCase()}%')
+      AND (lower(uid) SIMILAR TO '%(${typesToSearch.join('|')}%${postNeuron.toLowerCase()})%')
     `;
   }
 
