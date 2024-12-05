@@ -245,31 +245,6 @@ const middleware = (store) => (next) => async (action) => {
             }, (e) => {
               next(raiseError(msg));
             });
-        } else if (widget.component === VIEWERS.NerveRingViewer) {
-          const msg = 'Updating nervering';
-          next(loading(msg, action.type));
-          nerveRingService
-            .getNerveRingByTimepoint(timePoint)
-            .then((ring) => {
-              if (ring) {
-                const ringInstances = nerveRingService.getInstances(ring);
-                createSimpleInstancesFromInstances(ringInstances)
-                  .then(() => {
-                    widget.config.timePoint = timePoint;
-                    store
-                      .dispatch(
-                        addToWidget(
-                          widget,
-                          ringInstances,
-                          true,
-                        ),
-                      );
-                    next(loadingSuccess(msg, action.type));
-                  });
-              }
-            }, (e) => {
-              next(raiseError(msg));
-            });
         } else {
           const msg = 'Updating viewer timepoint';
           next(loading(msg, action.type));

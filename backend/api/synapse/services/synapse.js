@@ -14,7 +14,7 @@
  * a uid that starts with the pre neuron. If we are looking for a post neuron, we just look for a uid
  * that contains the post neuron.
  */
-const searchSynapseByTerms = (params) => {
+const searchSynapseByTerms = (params, count = false) => {
   const where = params._where || [];
   const { searchTerms } = where.find((t) => "searchTerms" in t);
   const terms = searchTerms
@@ -22,10 +22,15 @@ const searchSynapseByTerms = (params) => {
     .split("|")
     .map((term) => decodeURIComponent(term));
   const { timepoint } = where.find((t) => "timepoint" in t);
+  let typesToSearch = ['undefined', 'chemical', 'electrical'];
 
   const type = where.filter((t) => "type" in t).map((t) => t.type) || {
     type: [],
   };
+
+  if (type.length > 0) {
+    typesToSearch = type;
+  }
 
   const { neuronPre } = where.find((t) => "neuronPre" in t) || {
     neuronPre: null,
@@ -46,18 +51,18 @@ const searchSynapseByTerms = (params) => {
   `
 
   // If we have search terms, see if the uid contains any of them
-  if (terms.length > 0) {
+  if (termsFiltered.length > 0) {
     query += `
       AND (
     `;
 
     const termOrs = [];
 
-    terms.forEach((term) => {
-      termOrs.push(`( lower(uid) LIKE '%${term}%')`);
+    termsFiltered.forEach((term) => {
+      termOrs.push(`( lower(uid) LIKE '%${term.toLowerCase()}%')`);
     });
 
-    query += termOrs.join(' OR ');
+    query += termOrs.join(" OR ");
 
     query += `
       )
@@ -74,7 +79,7 @@ const searchSynapseByTerms = (params) => {
   // If a neuronPre is present, filter by uid that starts with the neuronPre
   if (neuronPre) {
     query += `
-      AND (lower(uid) LIKE '${neuronPre}%')
+      AND (lower(uid) LIKE '${neuronPre.toLowerCase()}%')
     `;
   }
 
@@ -82,7 +87,7 @@ const searchSynapseByTerms = (params) => {
   // This could be a little redundant with the searchTerms, but it's here for now
   if (postNeuron) {
     query += `
-      AND (lower(uid) LIKE '%${postNeuron}%')
+      AND (lower(uid) SIMILAR TO '%(${typesToSearch.join('|')}%${postNeuron.toLowerCase()})%')
     `;
   }
 

@@ -35,9 +35,10 @@ export const addCphate = ((timePoint) => ({
   timePoint,
 }));
 
-export const addNerveRing = (timePoint) => ({
+export const addNerveRing = (timePoint, viewer) => ({
   type: ADD_NERVE_RING,
   timePoint,
+  viewer,
 });
 
 export const addInstancesToGroup = ((viewerId, instances, group) => ({
