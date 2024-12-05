@@ -87,7 +87,7 @@ const searchSynapseByTerms = (params, count = false) => {
   // This could be a little redundant with the searchTerms, but it's here for now
   if (postNeuron) {
     query += `
-      AND (lower(uid) SIMILAR TO '%(${typesToSearch.join('|')}%${postNeuron.toLowerCase()})%')
+      AND (lower(uid) SIMILAR TO '%(${typesToSearch.join('|')}%${postNeuron.toLowerCase()})%\~%')
     `;
   }
 
