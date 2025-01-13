@@ -9,6 +9,7 @@ import (
 	"neuroscan/internal/gltf"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,16 +18,35 @@ import (
 )
 
 type NeuroscanFilepathData struct {
-	UID                *string
-	Filename           *string
-	Filehash           *string
-	Timepoint          *int
-	DevelopmentalStage *string
+	UID                string
+	Filename           string
+	Filehash           string
+	Timepoint          int
+	DevelopmentalStage string
+	Color              Color
 }
 
-// ValidExtension checks if the file has a valid extension, currently that's just .gltf
-func ValidExtension(fileName string) bool {
-	return filepath.Ext(fileName) == ".gltf"
+type Color [4]float64
+
+func ValidExtension(fileName string, extensions []string) bool {
+	// get the file extension
+	ext := filepath.Ext(fileName)
+
+	// check if the extension is in the slice
+	for _, validExt := range extensions {
+		// make sure the extension is lowercase and with the dot if it does not have it
+		if strings.HasPrefix(validExt, ".") {
+			validExt = strings.ToLower(validExt)
+		} else {
+			validExt = "." + strings.ToLower(validExt)
+		}
+
+		if ext == validExt {
+			return true
+		}
+	}
+
+	return false
 }
 
 // HashFile returns the SHA256 hash of a file
@@ -124,6 +144,13 @@ func BuildUID(filename string) string {
 	return uid
 }
 
+// GetTimeNow get the time in the format "2006-01-02 15:04:05.000000-07"
+func GetTimeNow() string {
+	now := time.Now()
+	timeFormat := "2006-01-02 15:04:05.000000-07"
+	return now.Format(timeFormat)
+}
+
 // FilePathParse takes a filepath and returns the various metadata relating to the context of the file
 func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 	filename := filepath.Base(filePath)
@@ -156,15 +183,18 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 		return []NeuroscanFilepathData{}, err
 	}
 
+	color := doc.Materials[0].PBRMetallicRoughness.BaseColorFactor
+
 	for _, node := range doc.Nodes {
 		uid := node.Name
 
 		parsedFile := NeuroscanFilepathData{
-			UID:                &uid,
-			Filename:           &filename,
-			Filehash:           &filehash,
-			Timepoint:          &timepoint,
-			DevelopmentalStage: &devStageUID,
+			UID:                uid,
+			Filename:           filename,
+			Filehash:           filehash,
+			Timepoint:          timepoint,
+			DevelopmentalStage: devStageUID,
+			Color:              *color,
 		}
 
 		parsedFiles = append(parsedFiles, parsedFile)
@@ -283,4 +313,15 @@ func GzipFile(input string, output string) error {
 
 func RemoveExtension(str string) string {
 	return strings.Split(str, ".")[0]
+}
+
+func MaxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+
+	return numCPU
 }

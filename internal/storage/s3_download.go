@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -100,13 +101,14 @@ func processDownloadBucketPrefix(bucket string, destination string, prefix strin
 }
 
 
-func processDownloadBucketFile(bucket string, destination string, key string) {
+func processDownloadBucketFile(bucket string, destination string, key string) error {
 	ctx := context.Background()
 
 	client, err := InitClient(ctx)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to setup client")
+		return err
 	}
 
 	// ensure destination ends with a slash
@@ -121,6 +123,7 @@ func processDownloadBucketFile(bucket string, destination string, key string) {
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to get object")
+		return err
 	}
 
 	defer file.Body.Close()
@@ -130,6 +133,7 @@ func processDownloadBucketFile(bucket string, destination string, key string) {
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to create file")
+		return err
 	}
 
 	defer newFile.Close()
@@ -138,7 +142,24 @@ func processDownloadBucketFile(bucket string, destination string, key string) {
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("unable to open file")
+		return err
 	}
 
 	defer f.Close()
+
+	body, err := io.ReadAll(file.Body)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to read body")
+		return err
+	}
+
+	_, err = f.Write(body)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to write to file")
+		return err
+	}
+
+	return nil
 }

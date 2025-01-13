@@ -12,6 +12,8 @@ import (
 
 type Cli struct {
 	Download cli.DownloadCmd `cmd:"" help:"Download files from the specified S3 bucket."`
+	Web      cli.WebCmd      `cmd:"" help:"Start the web server."`
+	Ingest   cli.IngestCmd   `cmd:"" help:"Ingest files into the database."`
 }
 
 func main() {
