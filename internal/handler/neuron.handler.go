@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"neuroscan/internal/domain"
 	"neuroscan/internal/service"
 
 	"github.com/labstack/echo/v4"
@@ -16,15 +17,15 @@ func NewNeuronHandler(neuronService service.NeuronService) *NeuronHandler {
 	return &NeuronHandler{neuronService: neuronService}
 }
 
-// GetNeurons returns all neurons
-func (h *NeuronHandler) GetAllNeurons(c echo.Context) error {
-	var req APIRequest
+func (h *NeuronHandler) SearchNeurons(c echo.Context) error {
+	var req domain.APIV1Request
+
 	if err := c.Bind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, err)
 		return err
 	}
 
-	neurons, err := h.neuronService.GetAllNeurons(c.Request().Context(), req.Timepoint)
+	neurons, err := h.neuronService.SearchNeurons(c.Request().Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return err
@@ -34,3 +35,19 @@ func (h *NeuronHandler) GetAllNeurons(c echo.Context) error {
 	return nil
 }
 
+func (h *NeuronHandler) CountNeurons(c echo.Context) error {
+	var req domain.APIV1Request
+
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	count, err := h.neuronService.CountNeurons(c.Request().Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+	c.JSON(http.StatusOK, count)
+	return nil
+}

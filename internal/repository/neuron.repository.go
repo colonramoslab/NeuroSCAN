@@ -12,20 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type NeuronQuery struct {
-	IDs			 []string
-	UIDs		 []string
-	Timepoint	 *int
-	Limit 		 *int
-	Offset 		 *int
-}
-
 type NeuronRepository interface {
-	GetAllNeurons(ctx context.Context, timepoint int) ([]domain.Neuron, error)
 	GetNeuronByID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error)
-	SearchNeurons(ctx context.Context, query NeuronQuery) ([]domain.Neuron, error)
+	SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error)
+	CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateNeuron(ctx context.Context, uid string, filename string, timepoint int, color toolshed.Color) error
 	DeleteNeuron(ctx context.Context, uid string, timepoint int) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
@@ -39,23 +31,6 @@ func NewPostgresNeuronRepository(db *pgxpool.Pool) *PostgresNeuronRepository {
 	return &PostgresNeuronRepository{
 		DB: db,
 	}
-}
-
-func (r *PostgresNeuronRepository) GetAllNeurons(ctx context.Context, timepoint int) ([]domain.Neuron, error) {
-	query := "SELECT id, uid, timepoint, filename, color FROM neurons WHERE timepoint = $1"
-
-	rows, _ := r.DB.Query(ctx, query, timepoint)
-
-	neurons, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Neuron])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return []domain.Neuron{}, nil
-		}
-
-		return nil, err
-	}
-
-	return neurons, nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
@@ -106,34 +81,12 @@ func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string,
 	return exists, nil
 }
 
-func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query NeuronQuery) ([]domain.Neuron, error) {
-	q := "SELECT id, uid, timepoint, filename, color FROM neurons WHERE 1=1"
-	args := []interface{}{}
+func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error) {
+	q := "SELECT id, uid, timepoint, filename, color FROM neurons "
 
-	if query.Timepoint != nil {
-		q += fmt.Sprintf(" AND timepoint = $%d", len(args)+1)
-		args = append(args, query.Timepoint)
-	}
+	parsedQuery, args := query.ToPostgresQuery()
 
-	if len(query.IDs) > 0 {
-		q += fmt.Sprintf(" AND id = ANY($%d)", len(args)+1)
-		args = append(args, query.IDs)
-	}
-
-	if len(query.UIDs) > 0 {
-		q += fmt.Sprintf(" AND uid = ANY($%d)", len(args)+1)
-		args = append(args, query.UIDs)
-	}
-
-	if query.Limit != nil {
-		q += fmt.Sprintf(" LIMIT $%d", len(args)+1)
-		args = append(args, query.Limit)
-	}
-
-	if query.Offset != nil {
-		q += fmt.Sprintf(" OFFSET $%d", len(args)+1)
-		args = append(args, query.Offset)
-	}
+	q += parsedQuery
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
@@ -147,6 +100,23 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query Neur
 	}
 
 	return neurons, err
+}
+
+func (r *PostgresNeuronRepository) CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error) {
+	var count int
+
+	q := "SELECT COUNT(*) FROM neurons "
+
+	parsedQuery, args := query.ToPostgresQuery()
+
+	q += parsedQuery
+
+	err := r.DB.QueryRow(ctx, q, args...).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (r *PostgresNeuronRepository) CreateNeuron(ctx context.Context, uid string, filename string, timepoint int, color toolshed.Color) error {

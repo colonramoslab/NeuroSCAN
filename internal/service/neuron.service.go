@@ -9,11 +9,11 @@ import (
 )
 
 type NeuronService interface {
-	GetAllNeurons(ctx context.Context, timepoint int) ([]domain.Neuron, error)
 	GetNeuronByID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error)
-	SearchNeurons(ctx context.Context, query repository.NeuronQuery) ([]domain.Neuron, error)
+	SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error)
+	CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateNeuron(ctx context.Context, uid string, filename string, timepoint int, color toolshed.Color) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
 }
@@ -28,10 +28,6 @@ func NewNeuronService(repo repository.NeuronRepository) NeuronService {
 	}
 }
 
-func (s *neuronService) GetAllNeurons(ctx context.Context, timepoint int) ([]domain.Neuron, error) {
-	return s.repo.GetAllNeurons(ctx, timepoint)
-}
-
 func (s *neuronService) GetNeuronByID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
 	return s.repo.GetNeuronByID(ctx, uid, timepoint)
 }
@@ -44,8 +40,12 @@ func (s *neuronService) NeuronExists(ctx context.Context, uid string, timepoint 
 	return s.repo.NeuronExists(ctx, uid, timepoint)
 }
 
-func (s *neuronService) SearchNeurons(ctx context.Context, query repository.NeuronQuery) ([]domain.Neuron, error) {
+func (s *neuronService) SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error) {
 	return s.repo.SearchNeurons(ctx, query)
+}
+
+func (s *neuronService) CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error) {
+	return s.repo.CountNeurons(ctx, query)
 }
 
 func (s *neuronService) CreateNeuron(ctx context.Context, uid string, filename string, timepoint int, color toolshed.Color) error {

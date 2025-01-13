@@ -7,6 +7,8 @@ import (
 )
 
 func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler) *echo.Echo {
-	e.GET("/neurons", neuronHandler.GetAllNeurons)
+	e.GET("/neurons", neuronHandler.SearchNeurons)
+	e.GET("/neurons/count", neuronHandler.CountNeurons)
+	
 	return e
 }
