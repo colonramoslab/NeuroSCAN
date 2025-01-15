@@ -9,15 +9,15 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type NeuronHandler struct {
-	neuronService service.NeuronService
+type ContactHandler struct {
+	contactService service.ContactService
 }
 
-func NewNeuronHandler(neuronService service.NeuronService) *NeuronHandler {
-	return &NeuronHandler{neuronService: neuronService}
+func NewContactHandler(contactService service.ContactService) *ContactHandler {
+	return &ContactHandler{contactService: contactService}
 }
 
-func (h *NeuronHandler) SearchNeurons(c echo.Context) error {
+func (h *ContactHandler) SearchContacts(c echo.Context) error {
 	var req domain.APIV1Request
 
 	if err := c.Bind(&req); err != nil {
@@ -25,17 +25,17 @@ func (h *NeuronHandler) SearchNeurons(c echo.Context) error {
 		return err
 	}
 
-	neurons, err := h.neuronService.SearchNeurons(c.Request().Context(), req)
+	contacts, err := h.contactService.SearchContacts(c.Request().Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return err
 	}
 
-	c.JSON(http.StatusOK, neurons)
+	c.JSON(http.StatusOK, contacts)
 	return nil
 }
 
-func (h *NeuronHandler) CountNeurons(c echo.Context) error {
+func (h *ContactHandler) CountContacts(c echo.Context) error {
 	var req domain.APIV1Request
 
 	if err := c.Bind(&req); err != nil {
@@ -45,7 +45,7 @@ func (h *NeuronHandler) CountNeurons(c echo.Context) error {
 
 	req.Count = true
 
-	count, err := h.neuronService.CountNeurons(c.Request().Context(), req)
+	count, err := h.contactService.CountContacts(c.Request().Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return err

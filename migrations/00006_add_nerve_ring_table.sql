@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-create table neurons (
+create table nerve_rings (
   id int generated always as identity primary key,
   uid varchar(255) not null,
   timepoint int not null,
@@ -8,11 +8,9 @@ create table neurons (
   color jsonb not null,
   unique (uid, timepoint)
 );
-
-create index neurons_timepoint_idx on neurons(timepoint);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-drop table neurons;
+drop table nerve_rings;
 -- +goose StatementEnd

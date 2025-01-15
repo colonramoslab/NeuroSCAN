@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-create table neurons (
+create table contacts (
   id int generated always as identity primary key,
   uid varchar(255) not null,
   timepoint int not null,
@@ -9,10 +9,10 @@ create table neurons (
   unique (uid, timepoint)
 );
 
-create index neurons_timepoint_idx on neurons(timepoint);
+create index contacts_timepoint_idx on contacts(timepoint);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-drop table neurons;
+drop table contacts;
 -- +goose StatementEnd

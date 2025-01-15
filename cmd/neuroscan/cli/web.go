@@ -100,8 +100,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	neuronService := service.NewNeuronService(neuronRepo)
 	neuronHandler := handler.NewNeuronHandler(neuronService)
 
+	contactRepo := repository.NewPostgresContactRepository(db.Pool)
+	contactService := service.NewContactService(contactRepo)
+	contactHandler := handler.NewContactHandler(contactService)
 
-	e = router.NewRouter(e, neuronHandler)
+	e = router.NewRouter(e, neuronHandler, contactHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 

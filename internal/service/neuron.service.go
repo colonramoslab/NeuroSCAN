@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -16,6 +17,7 @@ type NeuronService interface {
 	CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateNeuron(ctx context.Context, uid string, filename string, timepoint int, color toolshed.Color) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
+	ParseNeuron(ctx context.Context, filePath string) (domain.Neuron, error)
 }
 
 type neuronService struct {
@@ -54,4 +56,23 @@ func (s *neuronService) CreateNeuron(ctx context.Context, uid string, filename s
 
 func (s *neuronService) IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error) {
 	return s.repo.IngestNeuron(ctx, neuron, skipExisting, force)
+}
+
+func (s *neuronService) ParseNeuron(ctx context.Context, filePath string) (domain.Neuron, error) {
+	fileMetas, err := toolshed.FilePathParse(filePath)
+
+	if err != nil {
+		return domain.Neuron{}, errors.New("error parsing neuron file path: " + err.Error())
+	}
+
+	fileMeta := fileMetas[0]
+
+	neuron := domain.Neuron{
+		UID:       fileMeta.UID,
+		Filename:  fileMeta.Filename,
+		Timepoint: fileMeta.Timepoint,
+		Color:     fileMeta.Color,
+	}
+
+	return neuron, nil
 }

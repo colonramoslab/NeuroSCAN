@@ -1,18 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
-create table neurons (
+create table cphates (
   id int generated always as identity primary key,
   uid varchar(255) not null,
   timepoint int not null,
+  structure jsonb not null,
   filename varchar(255) not null,
-  color jsonb not null,
   unique (uid, timepoint)
 );
-
-create index neurons_timepoint_idx on neurons(timepoint);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-drop table neurons;
+drop table cphates;
 -- +goose StatementEnd

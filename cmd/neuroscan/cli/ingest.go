@@ -124,10 +124,13 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
 	neuronService := service.NewNeuronService(neuronRepo)
 
+	contactRepo := repository.NewPostgresContactRepository(db.Pool)
+	contactService := service.NewContactService(contactRepo)
+
 	for w := 1; w <= maxRoutines; w++ {
 		go func() {
 			for neuronPath := range channels.neurons {
-				neuron, err := domain.ParseNeuron(cntx, neuronPath)
+				neuron, err := neuronService.ParseNeuron(cntx, neuronPath)
 				if err != nil {
 					logger.Error().Err(err).Str("path", neuronPath).Msg("Error parsing neuron")
 					continue
@@ -146,10 +149,25 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 				waitGroups.neurons.Done()
 			}
 
-			// for contactPath := range channels.contacts {
-			// 	ProcessContact(n, contactPath)
-			// 	waitGroups.contacts.Done()
-			// }
+			for contactPath := range channels.contacts {
+				contact, err := contactService.ParseContact(cntx, contactPath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", contactPath).Msg("Error parsing contact")
+					continue
+				}
+
+				success, err := contactService.IngestContact(cntx, contact, n.skipExisting, n.debug)
+				if err != nil {
+					logger.Error().Err(err).Str("path", contactPath).Msg("Error ingesting contact")
+					continue
+				}
+
+				if success {
+					atomic.AddInt64(&n.contacts, 1)
+				}
+
+				waitGroups.contacts.Done()
+			}
 
 			// for synapsePath := range channels.synapses {
 			// 	ProcessSynapse(n, synapsePath)
@@ -181,8 +199,8 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	waitGroups.neurons.Wait()
 	close(channels.neurons)
 
-	// waitGroups.contacts.Wait()
-	// close(channels.contacts)
+	waitGroups.contacts.Wait()
+	close(channels.contacts)
 
 	// waitGroups.synapses.Wait()
 	// close(channels.synapses)
@@ -198,7 +216,7 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 
 	logger.Info().Msg("Done processing entities")
 	logger.Info().Int64("count", n.neurons).Msg("Neurons ingested")
-	// logger.Info().Int64("count", n.contacts).Msg("Contacts ingested")
+	logger.Info().Int64("count", n.contacts).Msg("Contacts ingested")
 	// logger.Info().Int64("count", n.synapses).Msg("Synapses ingested")
 	// logger.Info().Int64("count", n.cphates).Msg("Cphates ingested")
 	// logger.Info().Int64("count", n.nerveRings).Msg("NerveRings ingested")
@@ -250,10 +268,10 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 			logger.Debug().Str("path", path).Msg("Adding neuron to channel")
 			waitGroups.neurons.Add(1)
 			channels.neurons <- path
-		// case "contacts":
-		// 	logger.Debug().Str("path", path).Msg("Adding contact to channel")
-		// 	waitGroups.contacts.Add(1)
-		// 	channels.contacts <- path
+		case "contacts":
+			logger.Debug().Str("path", path).Msg("Adding contact to channel")
+			waitGroups.contacts.Add(1)
+			channels.contacts <- path
 		// case "synapses":
 		// 	logger.Debug().Str("path", path).Msg("Adding synapse to channel")
 		// 	waitGroups.synapses.Add(1)

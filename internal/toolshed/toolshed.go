@@ -129,6 +129,16 @@ func GetEntityType(filePath string) (string, error) {
 	return "", errors.New("entity type not found in path")
 }
 
+func GetContactUIDNeurons(filename string) (string, string) {
+	// if the filename does not contain "by" then return empty strings
+	if !strings.Contains(strings.ToLower(filename), "by") {
+		return "", ""
+	}
+
+	neurons := strings.Split(strings.ToLower(filename), "by")
+	return neurons[0], neurons[1]
+}
+
 // CleanFilename cleans the filename by removing the path and extension
 func CleanFilename(fileName string) string {
 	return strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
