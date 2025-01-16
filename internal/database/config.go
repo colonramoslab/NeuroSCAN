@@ -59,7 +59,6 @@ func NewConfigFromEnv() *Config {
 	config.PoolMinConnections = os.Getenv("DB_POOL_MIN_CONNS")
 	config.PoolMaxConnections = os.Getenv("DB_POOL_MAX_CONNS")
 
-
 	timeout, err := strconv.Atoi(os.Getenv("DB_CONNECT_TIMEOUT"))
 	if err != nil {
 		config.ConnectionTimeout = 0

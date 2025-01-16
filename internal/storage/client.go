@@ -13,7 +13,7 @@ import (
 )
 
 type S3ClientConfig struct {
-	Bucket 					string
+	Bucket          string
 	RoleArn         string
 	RoleSessionName string
 	Region          string
@@ -50,11 +50,11 @@ func GetClientConfig(ctx context.Context) (S3ClientConfig, error) {
 		return config, err
 	}
 
-	bucket := os.Getenv( "S3_BUCKET")
-	roleArn := os.Getenv( "S3_ROLE_ARN")
-	roleSessionName := os.Getenv( "S3_ROLE_SESSION_NAME")
-	region := os.Getenv( "S3_REGION")
-	profile := os.Getenv( "S3_PROFILE")
+	bucket := os.Getenv("S3_BUCKET")
+	roleArn := os.Getenv("S3_ROLE_ARN")
+	roleSessionName := os.Getenv("S3_ROLE_SESSION_NAME")
+	region := os.Getenv("S3_REGION")
+	profile := os.Getenv("S3_PROFILE")
 
 	config.Bucket = bucket
 	config.RoleArn = roleArn

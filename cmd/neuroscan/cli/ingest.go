@@ -35,7 +35,7 @@ type Ingestor struct {
 	skipExisting bool
 	debug        bool
 	processTypes []string
-	DevStages    []domain.DevStage
+	DevStages    []domain.DevelopmentalStage
 	threadCount  int
 }
 

@@ -100,7 +100,6 @@ func processDownloadBucketPrefix(bucket string, destination string, prefix strin
 	log.Info().Msg("Downloaded " + strconv.FormatInt(totalItems, 10) + " files in: " + time.Since(startTime).String())
 }
 
-
 func processDownloadBucketFile(bucket string, destination string, key string) error {
 	ctx := context.Background()
 

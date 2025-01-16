@@ -15,6 +15,7 @@ import (
 	"neuroscan/internal/service"
 
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -23,7 +24,14 @@ import (
 type WebCmd struct {}
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
+
 	logger := logging.NewLoggerFromEnv()
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
+		return err
+	}
 
 	cntx := logging.WithLogger(*ctx, logger)
 
@@ -95,6 +103,8 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		Timeout: 30 * time.Second,
 	}))
 
+	e.Static("/models", os.Getenv("APP_GLTF_DIR"))
+	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
 	neuronService := service.NewNeuronService(neuronRepo)
@@ -104,7 +114,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	contactService := service.NewContactService(contactRepo)
 	contactHandler := handler.NewContactHandler(contactService)
 
-	e = router.NewRouter(e, neuronHandler, contactHandler)
+	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
+	devStageService := service.NewDevelopmentalStageService(devStageRepo)
+	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
+
+	e = router.NewRouter(e, neuronHandler, contactHandler, devStageHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 
