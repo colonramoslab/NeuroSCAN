@@ -98,10 +98,15 @@ func NewFromDSN(dsn string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse connection string: %w", err)
 	}
 
+	port := vals.Config.Port
+	// convert to string
+	portStr := strconv.FormatUint(uint64(port), 10)
+
 	cfg.Name = vals.Config.Database
 	cfg.User = vals.Config.User
 	cfg.Host = vals.Config.Host
 	cfg.Password = vals.Config.Password
+	cfg.Port = portStr
 
 	return cfg, nil
 }
