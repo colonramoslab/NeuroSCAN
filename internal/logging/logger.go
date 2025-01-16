@@ -35,6 +35,8 @@ func NewLogger(level string, development bool) *zerolog.Logger {
 
 	if development {
 		l = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	} else {
+		l = log.Output(os.Stderr)
 	}
 
 	switch level {
