@@ -37,37 +37,28 @@ export class SynapseService {
     const { filters } = searchState;
     const { searchTerms, timePoint } = filters;
     const results = searchState.results.synapses;
-    const andPart = [];
-    andPart.push({ timepoint: timePoint });
+    const query = {
+      sort: 'uid:ASC',
+      timepoint: timePoint,
+      start: searchState?.limit ? searchState?.start : results.items.length,
+      limit: searchState?.limit || maxRecordsPerFetch,
+    };
     if (searchTerms.length > 0) {
-      andPart.push({ searchTerms: searchTerms.join('|') });
+      query.uid = searchTerms;
     }
     if (filters.synapsesFilter.chemical) {
-      andPart.push({
-        type: 'chemical',
-      });
+      query.type = 'chemical';
     }
     if (filters.synapsesFilter.electrical) {
-      andPart.push({
-        type: 'electrical',
-      });
+      query.type = 'electrical';
     }
     if (filters.synapsesFilter.preNeuron) {
-      andPart.push({
-        neuronPre: filters.synapsesFilter.preNeuron,
-      });
+      query.pre_neuron = filters.synapsesFilter.preNeuron;
     }
     if (filters.synapsesFilter.postNeuron) {
-      andPart.push({
-        postNeuron: filters.synapsesFilter.postNeuron,
-      });
+      query.post_neuron = filters.synapsesFilter.postNeuron;
     }
-    return qs.stringify({
-      _where: andPart,
-      _sort: 'uid:ASC',
-      _start: searchState?.limit ? searchState?.start : results.items.length,
-      _limit: searchState?.limit || maxRecordsPerFetch,
-    });
+    return qs.stringify(query);
   }
 
   async search(searchState) {

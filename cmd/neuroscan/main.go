@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"neuroscan/cmd/neuroscan/cli"
-	"neuroscan/internal/logging"
+	"neuroscan/pkg/logging"
 
 	"github.com/alecthomas/kong"
 )

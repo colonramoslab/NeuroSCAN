@@ -4,8 +4,8 @@ import (
 	"context"
 	"runtime"
 
-	"neuroscan/internal/logging"
-	"neuroscan/internal/storage"
+	"neuroscan/pkg/logging"
+	"neuroscan/pkg/storage"
 )
 
 type DownloadCmd struct {

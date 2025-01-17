@@ -9,10 +9,10 @@ import (
 
 	"neuroscan/internal/database"
 	"neuroscan/internal/handler"
-	"neuroscan/internal/logging"
 	"neuroscan/internal/repository"
 	"neuroscan/internal/router"
 	"neuroscan/internal/service"
+	"neuroscan/pkg/logging"
 
 
 	"github.com/joho/godotenv"

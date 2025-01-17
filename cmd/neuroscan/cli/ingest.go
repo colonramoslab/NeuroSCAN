@@ -10,10 +10,10 @@ import (
 
 	"neuroscan/internal/database"
 	"neuroscan/internal/domain"
-	"neuroscan/internal/logging"
 	"neuroscan/internal/repository"
 	"neuroscan/internal/service"
 	"neuroscan/internal/toolshed"
+	"neuroscan/pkg/logging"
 )
 
 type IngestCmd struct {

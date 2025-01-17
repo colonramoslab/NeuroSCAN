@@ -8,16 +8,14 @@ const promotersUrl = '/promoters';
 */
 export class PromoterService {
   async getByUID(uids = []) {
-    const query = `${uids.map((uid, i) => `${(i === 0) ? '&' : ''}uid_in=${uid}`)}`;
+    const query = `${uids.map((uid, i) => `${(i === 0) ? '&' : ''}uid=${uid}`)}`;
     const response = await backendClient.get(`${promotersUrl}?${query}`);
     return response.data;
   }
 
   constructQuery(state) {
-    const andPart = [];
     return qs.stringify({
-      _where: andPart,
-      _sort: 'uid',
+      sort: 'uid',
     });
   }
 

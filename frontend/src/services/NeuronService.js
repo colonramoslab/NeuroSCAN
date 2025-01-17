@@ -26,7 +26,7 @@ export class NeuronService {
   }
 
   async getByUID(timePoint, uids = []) {
-    const query = `timepoint=${timePoint}&_limit=${uids.length + 1}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    const query = `timepoint=${timePoint}&limit=${uids.length + 1}${uids.map((uid) => `&uid=${uid}`).join('')}`;
     const response = await backendClient.get(`${neuronsBackendUrl}?${query}`);
     return response.data.map((neuron) => ({
       instanceType: NEURON_TYPE,
@@ -42,9 +42,9 @@ export class NeuronService {
         { timepoint: timePoint },
         { _or: searchTerms.map((term) => ({ uid_contains: term })) },
       ],
-      _sort: 'uid:ASC',
-      _start: searchState?.limit ? searchState.start : results.items.length,
-      _limit: searchState?.limit || maxRecordsPerFetch,
+      sort: 'uid:ASC',
+      start: searchState?.limit ? searchState.start : results.items.length,
+      limit: searchState?.limit || maxRecordsPerFetch,
     });
   }
 
