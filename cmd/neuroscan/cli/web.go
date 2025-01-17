@@ -114,11 +114,31 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	contactService := service.NewContactService(contactRepo)
 	contactHandler := handler.NewContactHandler(contactService)
 
+	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool)
+	synapseService := service.NewSynapseService(synapseRepo)
+	synapseHandler := handler.NewSynapseHandler(synapseService)
+
+	cphateRepo := repository.NewPostgresCphateRepository(db.Pool)
+	cphateService := service.NewCphateService(cphateRepo)
+	cphateHandler := handler.NewCphateHandler(cphateService)
+
+	nerveringRepo := repository.NewPostgresNerveRingRepository(db.Pool)
+	nerveringService := service.NewNerveRingService(nerveringRepo)
+	nerveringHandler := handler.NewNerveRingHandler(nerveringService)
+
+	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
+	scaleService := service.NewScaleService(scaleRepo)
+	scaleHandler := handler.NewScaleHandler(scaleService)
+
+	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool)
+	promoterService := service.NewPromoterService(promoterRepo)
+	promoterHandler := handler.NewPromoterHandler(promoterService)
+
 	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
 
-	e = router.NewRouter(e, neuronHandler, contactHandler, devStageHandler)
+	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 

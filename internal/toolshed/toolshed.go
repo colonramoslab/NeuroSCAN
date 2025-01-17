@@ -119,7 +119,7 @@ func GetEntityType(filePath string) (string, error) {
 	// iterate over the parts
 	for _, part := range parts {
 		// if the part is one of the entity types, return it
-		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" {
+		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" || part == "scale" {
 			log.Debug().Str("type", part).Msg("Getting entity type")
 			return part, nil
 		}

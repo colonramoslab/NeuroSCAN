@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"neuroscan/internal/domain"
 
@@ -14,6 +16,7 @@ type DevelopmentalStageRepository interface {
 	SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error)
 	CountDevelopmentalStages(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error
+	TruncateDevelopmentalStages(ctx context.Context) error
 }
 
 type PostgresDevelopmentalStageRepository struct {
@@ -39,7 +42,7 @@ func (r *PostgresDevelopmentalStageRepository) DevelopmentalStageExists(ctx cont
 func (r *PostgresDevelopmentalStageRepository) SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error) {
 	q := "SELECT id, uid, begin, end, order, promoter_db, timepoints FROM developmental_stages "
 
-	parsedQuery, args := query.ToPostgresQuery()
+	parsedQuery, args := r.ParseDevelopmentalStageAPIV1Request(ctx, query)
 
 	q += parsedQuery
 
@@ -58,7 +61,7 @@ func (r *PostgresDevelopmentalStageRepository) CountDevelopmentalStages(ctx cont
 
 	q := "SELECT COUNT(*) FROM developmental_stages"
 
-	parsedQuery, args := query.ToPostgresQuery()
+	parsedQuery, args := r.ParseDevelopmentalStageAPIV1Request(ctx, query)
 
 	q += parsedQuery
 
@@ -79,4 +82,40 @@ func (r *PostgresDevelopmentalStageRepository) CreateDevelopmentalStage(ctx cont
 	}
 
 	return nil
+}
+
+func (r *PostgresDevelopmentalStageRepository) TruncateDevelopmentalStages(ctx context.Context) error {
+	query := "TRUNCATE TABLE developmental_stages RESTART IDENTITY CASCADE"
+
+	_, err := r.DB.Exec(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresDevelopmentalStageRepository) ParseDevelopmentalStageAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+
+	queryParts := []string{"where 1=1"}
+	args := []interface{}{}
+
+	if req.Timepoint != nil {
+		args = append(args, req.Timepoint)
+		queryParts = append(queryParts, fmt.Sprintf("timepoint = $%d", len(args)))
+	}
+
+	if len(req.UIDs) > 0 {
+		// we need to build a query where UID is like or, looping over the UIDs, wrapping them in % and adding them to the array[]
+		uidArray := []string{}
+		for _, uid := range req.UIDs {
+			uidArray = append(uidArray, fmt.Sprintf("%%%s%%", strings.ToLower(uid)))
+		}
+		args = append(args, uidArray)
+		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) ILIKE ANY($%d)", len(args)))
+	}
+
+	query := strings.Join(queryParts, " AND ")
+
+	return query, args
 }

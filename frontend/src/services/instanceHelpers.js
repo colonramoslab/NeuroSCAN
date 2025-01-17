@@ -11,7 +11,7 @@ import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
 import {
-  CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE,
+  CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE, SCALE_TYPE,
 } from '../utilities/constants';
 // import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
@@ -275,6 +275,9 @@ export const getLocationPrefixFromType = (item) => {
     }
     case NERVE_RING_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/`;
+    }
+    case SCALE_TYPE: {
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/scale/`;
     }
     default: {
       return '';

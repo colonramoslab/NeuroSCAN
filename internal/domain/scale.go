@@ -1,6 +1,10 @@
 package domain
 
-import "neuroscan/internal/toolshed"
+import (
+	"errors"
+
+	"neuroscan/internal/toolshed"
+)
 
 type Scale struct {
 	ID        int            `json:"id"`
@@ -9,3 +13,37 @@ type Scale struct {
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
 }
+
+func (s *Scale) Parse(filePath string) error {
+	fileMetas, err := toolshed.FilePathParse(filePath)
+
+	if err != nil {
+		return errors.New("error parsing scale file path: " + err.Error())
+	}
+
+	fileMeta := fileMetas[0]
+
+	s.UID = fileMeta.UID
+	s.Filename = fileMeta.Filename
+	s.Timepoint = fileMeta.Timepoint
+	s.Color = fileMeta.Color
+
+	return nil
+}
+
+func (s *Scale) Validate() error {
+	if s.ID == 0 {
+		return errors.New("id is invalid")
+	}
+
+	if s.UID == "" {
+		return errors.New("uid is required")
+	}
+
+	if s.Filename == "" {
+		return errors.New("filename is required")
+	}
+
+	return nil
+}
+

@@ -34,6 +34,7 @@ type Ingestor struct {
 	scales       int64
 	skipExisting bool
 	debug        bool
+	clean        bool
 	processTypes []string
 	DevStages    []domain.DevelopmentalStage
 	threadCount  int
@@ -107,6 +108,7 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 		scales: 0,
 		skipExisting: cmd.SkipExisting,
 		debug:        cmd.Verbose,
+		clean:        cmd.Clean,
 		processTypes: cmd.ProcessTypes,
 		threadCount:  cmd.ThreadCount,
 	}
@@ -127,18 +129,70 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	contactRepo := repository.NewPostgresContactRepository(db.Pool)
 	contactService := service.NewContactService(contactRepo)
 
+	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool)
+	synapseService := service.NewSynapseService(synapseRepo)
+
+	cphateRepo := repository.NewPostgresCphateRepository(db.Pool)
+	cphateService := service.NewCphateService(cphateRepo)
+
+	nerveRingRepo := repository.NewPostgresNerveRingRepository(db.Pool)
+	nerveRingService := service.NewNerveRingService(nerveRingRepo)
+
+	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
+	scaleService := service.NewScaleService(scaleRepo)
+
+	if n.clean {
+		for _, processType := range n.processTypes {
+			switch processType {
+			case "neurons":
+				err := neuronService.TruncateNeurons(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating neurons")
+				}
+			case "contacts":
+				err := contactService.TruncateContacts(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating contacts")
+				}
+			case "synapses":
+				err := synapseService.TruncateSynapses(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating synapses")
+				}
+			case "cphate":
+				err := cphateService.TruncateCphates(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating cphates")
+				}
+			case "nerveRing":
+				err := nerveRingService.TruncateNerveRings(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating nerveRings")
+				}
+			case "scale":
+				err := scaleService.TruncateScales(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating scales")
+				}
+			}
+		}
+	}
+
 	for w := 1; w <= maxRoutines; w++ {
 		go func() {
 			for neuronPath := range channels.neurons {
-				neuron, err := neuronService.ParseNeuron(cntx, neuronPath)
+				neuron := domain.Neuron{}
+				err := neuron.Parse(neuronPath)
 				if err != nil {
 					logger.Error().Err(err).Str("path", neuronPath).Msg("Error parsing neuron")
+					waitGroups.neurons.Done()
 					continue
 				}
 
 				success, err := neuronService.IngestNeuron(cntx, neuron, n.skipExisting, n.debug)
 				if err != nil {
 					logger.Error().Err(err).Str("path", neuronPath).Msg("Error ingesting neuron")
+					waitGroups.neurons.Done()
 					continue
 				}
 
@@ -150,15 +204,18 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 			}
 
 			for contactPath := range channels.contacts {
-				contact, err := contactService.ParseContact(cntx, contactPath)
+				contact := domain.Contact{}
+				err := contact.Parse(contactPath)
 				if err != nil {
 					logger.Error().Err(err).Str("path", contactPath).Msg("Error parsing contact")
+					waitGroups.contacts.Done()
 					continue
 				}
 
 				success, err := contactService.IngestContact(cntx, contact, n.skipExisting, n.debug)
 				if err != nil {
 					logger.Error().Err(err).Str("path", contactPath).Msg("Error ingesting contact")
+					waitGroups.contacts.Done()
 					continue
 				}
 
@@ -169,29 +226,101 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 				waitGroups.contacts.Done()
 			}
 
-			// for synapsePath := range channels.synapses {
-			// 	ProcessSynapse(n, synapsePath)
-			// 	waitGroups.synapses.Done()
-			// }
+			for synapsePath := range channels.synapses {
+				synapse := domain.Synapse{}
+				err := synapse.Parse(synapsePath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", synapsePath).Msg("Error parsing synapse")
+					waitGroups.synapses.Done()
+					continue
+				}
 
-			// for cphateDir := range channels.cphates {
-			// 	ProcessCphate(n, cphateDir)
-			// 	waitGroups.cphates.Done()
-			// }
+				success, err := synapseService.IngestSynapse(cntx, synapse, n.skipExisting, n.debug)
+				if err != nil {
+					logger.Error().Err(err).Str("path", synapsePath).Msg("Error ingesting synapse")
+					waitGroups.synapses.Done()
+					continue
+				}
 
-			// for nerveRingPath := range channels.nerveRings {
-			// 	ProcessNerveRing(n, nerveRingPath)
-			// 	waitGroups.nerveRings.Done()
-			// }
+				if success {
+					atomic.AddInt64(&n.synapses, 1)
+				}
 
-			// for scalePath := range channels.scales {
-			// 	ProcessScale(n, scalePath)
-			// 	waitGroups.scales.Done()
-			// }
+				waitGroups.synapses.Done()
+			}
+
+			for cphateDir := range channels.cphates {
+				cphate := domain.Cphate{}
+				err := cphate.Parse(cphateDir)
+				if err != nil {
+					logger.Error().Err(err).Str("path", cphateDir).Msg("Error parsing cphate")
+					waitGroups.cphates.Done()
+					continue
+				}
+
+				success, err := cphateService.IngestCphate(cntx, cphate, n.skipExisting, n.debug)
+				if err != nil {
+					logger.Error().Err(err).Str("path", cphateDir).Msg("Error ingesting cphate")
+					waitGroups.cphates.Done()
+					continue
+				}
+
+				if success {
+					atomic.AddInt64(&n.cphates, 1)
+				}
+
+				waitGroups.cphates.Done()
+			}
+
+			for nerveRingPath := range channels.nerveRings {
+				nerveRing := domain.NerveRing{}
+				err := nerveRing.Parse(nerveRingPath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", nerveRingPath).Msg("Error parsing nerveRing")
+					waitGroups.nerveRings.Done()
+					continue
+				}
+
+				success, err := nerveRingService.IngestNerveRing(cntx, nerveRing, n.skipExisting, n.debug)
+				if err != nil {
+					logger.Error().Err(err).Str("path", nerveRingPath).Msg("Error ingesting nerveRing")
+					waitGroups.nerveRings.Done()
+					continue
+				}
+
+				if success {
+					atomic.AddInt64(&n.nerveRings, 1)
+				}
+
+				waitGroups.nerveRings.Done()
+			}
+
+			for scalePath := range channels.scales {
+				scale := domain.Scale{}
+				err := scale.Parse(scalePath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", scalePath).Msg("Error parsing scale")
+					waitGroups.scales.Done()
+					continue
+				}
+
+				success, err := scaleService.IngestScale(cntx, scale, n.skipExisting, n.debug)
+				if err != nil {
+					logger.Error().Err(err).Str("path", scalePath).Msg("Error ingesting scale")
+					waitGroups.scales.Done()
+					continue
+				}
+
+				if success {
+					atomic.AddInt64(&n.scales, 1)
+				}
+
+				waitGroups.scales.Done()
+			}
 		}()
 	}
 
-		err = n.walkDirFolder(cntx, cmd.DirPath, channels, waitGroups)
+	err = n.walkDirFolder(cntx, cmd.DirPath, channels, waitGroups)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error processing entities")
 	}
@@ -202,25 +331,25 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	waitGroups.contacts.Wait()
 	close(channels.contacts)
 
-	// waitGroups.synapses.Wait()
-	// close(channels.synapses)
+	waitGroups.synapses.Wait()
+	close(channels.synapses)
 
-	// waitGroups.cphates.Wait()
-	// close(channels.cphates)
+	waitGroups.cphates.Wait()
+	close(channels.cphates)
 
-	// waitGroups.nerveRings.Wait()
-	// close(channels.nerveRings)
+	waitGroups.nerveRings.Wait()
+	close(channels.nerveRings)
 
-	// waitGroups.scales.Wait()
-	// close(channels.scales)
+	waitGroups.scales.Wait()
+	close(channels.scales)
 
 	logger.Info().Msg("Done processing entities")
 	logger.Info().Int64("count", n.neurons).Msg("Neurons ingested")
 	logger.Info().Int64("count", n.contacts).Msg("Contacts ingested")
-	// logger.Info().Int64("count", n.synapses).Msg("Synapses ingested")
-	// logger.Info().Int64("count", n.cphates).Msg("Cphates ingested")
-	// logger.Info().Int64("count", n.nerveRings).Msg("NerveRings ingested")
-	// logger.Info().Int64("count", n.scales).Msg("Scales ingested")
+	logger.Info().Int64("count", n.synapses).Msg("Synapses ingested")
+	logger.Info().Int64("count", n.cphates).Msg("Cphates ingested")
+	logger.Info().Int64("count", n.nerveRings).Msg("NerveRings ingested")
+	logger.Info().Int64("count", n.scales).Msg("Scales ingested")
 
 	return nil
 }
@@ -239,7 +368,7 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 		currentEntity, err := toolshed.GetEntityType(path)
 
 		if err != nil {
-			logger.Error().Err(err).Str("path", path).Msg("Error getting entity type")
+			logger.Error().Err(err).Str("path", path).Msg("Error getting entity type, skipping")
 		}
 
 		// we want to skip directories
@@ -272,20 +401,20 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 			logger.Debug().Str("path", path).Msg("Adding contact to channel")
 			waitGroups.contacts.Add(1)
 			channels.contacts <- path
-		// case "synapses":
-		// 	logger.Debug().Str("path", path).Msg("Adding synapse to channel")
-		// 	waitGroups.synapses.Add(1)
-		// 	channels.synapses <- path
-		// case "nerveRing":
-		// 	logger.Debug().Str("path", path).Msg("Adding nerveRing to channel")
-		// 	waitGroups.nerveRings.Add(1)
-		// 	channels.nerveRings <- path
-		// case "cphate":
-		// 	logger.Debug().Str("path", path).Msg("Skipping cphate")
-		// case "scale":
-		// 	logger.Debug().Str("path", path).Msg("Adding scale to channel")
-		// 	waitGroups.scales.Add(1)
-		// 	channels.scales <- path
+		case "synapses":
+			logger.Debug().Str("path", path).Msg("Adding synapse to channel")
+			waitGroups.synapses.Add(1)
+			channels.synapses <- path
+		case "nerveRing":
+			logger.Debug().Str("path", path).Msg("Adding nerveRing to channel")
+			waitGroups.nerveRings.Add(1)
+			channels.nerveRings <- path
+		case "cphate":
+			logger.Debug().Str("path", path).Msg("Skipping cphate")
+		case "scale":
+			logger.Debug().Str("path", path).Msg("Adding scale to channel")
+			waitGroups.scales.Add(1)
+			channels.scales <- path
 		default:
 			logger.Error().Str("type", currentEntity).Msg("Unknown entity type")
 		}

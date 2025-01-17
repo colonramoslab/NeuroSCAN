@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/inghamemerson/code/NeuroSCAN || exit 1
+cd /home/inghamemerson/code/neuroscan || exit 1
 
 echo "Pulling latest changes"
 git fetch --all
@@ -20,7 +20,7 @@ echo "Frontend build complete"
 
 echo "Starting backend build"
 
-cd /home/inghamemerson/code/NeuroSCAN || exit 1
+cd /home/inghamemerson/code/neuroscan || exit 1
 
 go build -o ./neuroscan -ldflags="-w -s" cmd/neuroscan/main.go
 
