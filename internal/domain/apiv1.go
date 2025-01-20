@@ -2,9 +2,9 @@ package domain
 
 type APIV1Request struct {
 	Count      bool     `query:"count"`
-	Timepoint  *int      `query:"timepoint"`
-	UIDs       []string `query:"uids"`
-	Types      []string `query:"types"`
+	Timepoint  *int     `query:"timepoint"`
+	UIDs       []string `query:"uid"`
+	Types      []string `query:"type"`
 	Sort       string   `query:"sort"`
 	Limit      int      `query:"limit"`
 	Offset     int      `query:"offset"`

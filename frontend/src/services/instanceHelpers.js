@@ -255,7 +255,7 @@ const getDevStageFromTimepoint = (timepoint) => {
   const devStage = state.devStages.neuroSCAN
     .find((stage) => stage.timepoints !== null
       && stage.timepoints.includes(`${timepoint}`));
-  return devStage.name;
+  return devStage.uid;
 };
 
 export const getLocationPrefixFromType = (item) => {
@@ -320,7 +320,7 @@ export const mapToInstance = (item) => {
     id: item.id,
     uid: `i_${item.uid.replace(/[-&~]/g, '_')}_${item.timepoint}`,
     uidFromDb: item.uid,
-    name: item.name,
+    name: item.uid,
     selected: false,
     color,
     instanceType: item.instanceType,
@@ -378,7 +378,7 @@ const createSimpleInstance = async (instance) => {
   return new SimpleInstance({
     eClass: 'SimpleInstance',
     id: instance.uid,
-    name: instance.name,
+    name: instance.uid,
     type: { eClass: 'SimpleType' },
     visualValue,
   });

@@ -68,7 +68,7 @@ export const createWidget = (store, timePoint, viewerType) => {
   }, 1);
   return {
     id: null,
-    name: `${viewerType} ${viewerNumber} (${devStage.name} ${timePoint})`,
+    name: `${viewerType} ${viewerNumber} (${devStage.uid} ${timePoint})`,
     type: viewerType,
     timePoint,
   };

@@ -25,7 +25,7 @@ export class SynapseService {
   async getByUID(timePoint, uids = []) {
     // UIDS can have ampersands in them, so we need to encode them
     const encodedUids = uids.map((uid) => encodeURIComponent(uid));
-    const query = `timepoint=${timePoint}${encodedUids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    const query = `timepoint=${timePoint}${encodedUids.map((uid) => `&uid=${uid}`).join('')}`;
     const response = await backendClient.get(`${synapsesBackendUrl}?${query}`);
     return response.data.map((synapse) => ({
       instanceType: SYNAPSE_TYPE,
@@ -38,14 +38,11 @@ export class SynapseService {
     const { searchTerms, timePoint } = filters;
     const results = searchState.results.synapses;
     const query = {
-      sort: 'uid:ASC',
       timepoint: timePoint,
       start: searchState?.limit ? searchState?.start : results.items.length,
       limit: searchState?.limit || maxRecordsPerFetch,
+      sort: 'uid:ASC',
     };
-    if (searchTerms.length > 0) {
-      query.uid = searchTerms;
-    }
     if (filters.synapsesFilter.chemical) {
       query.type = 'chemical';
     }
@@ -58,7 +55,14 @@ export class SynapseService {
     if (filters.synapsesFilter.postNeuron) {
       query.post_neuron = filters.synapsesFilter.postNeuron;
     }
-    return qs.stringify(query);
+    let queryString = qs.stringify(query);
+
+    if (searchTerms.length > 0) {
+      const searchTermsString = searchTerms.map((term) => `&uid=${term}`).join('');
+      queryString += searchTermsString;
+    }
+
+    return queryString;
   }
 
   async search(searchState) {

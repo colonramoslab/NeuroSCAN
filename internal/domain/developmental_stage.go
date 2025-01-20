@@ -6,6 +6,6 @@ type DevelopmentalStage struct {
 	Begin      int    `json:"begin"`
 	End        int    `json:"end"`
 	Order      int    `json:"order"`
-	PromoterDB bool   `json:"promoterDB"`
+	PromoterDB *bool  `json:"promoterDB"`
 	Timepoints []int  `json:"timepoints"`
 }

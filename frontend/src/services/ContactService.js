@@ -61,23 +61,23 @@ export class ContactService {
 
   constructQuery(searchState) {
     const { searchTerms, timePoint } = searchState.filters;
-    if (searchTerms.length > 0) {
-      const terms = searchTerms.join(',');
-      return qs.stringify({
-        terms,
-        timepoint: timePoint,
-        start: searchState?.limit ? searchState.start : searchState.results.contacts.items.length,
-        limit: searchState?.limit || maxRecordsPerFetch,
-      });
-    }
-    return qs.stringify({
-      _where: [
-        { timepoint: timePoint },
-        { _or: searchTerms.map((term) => ({ uid_contains: term })) },
-      ],
-      start: searchState?.limit ? searchState.start : searchState.results.contacts.items.length,
+    const results = searchState.results.neurons;
+
+    const query = {
+      timepoint: timePoint,
+      start: searchState?.limit ? searchState?.start : results.items.length,
       limit: searchState?.limit || maxRecordsPerFetch,
-    });
+      sort: 'uid:ASC',
+    };
+
+    let queryString = qs.stringify(query);
+
+    if (searchTerms.length > 0) {
+      const searchTermsString = searchTerms.map((term) => `&uid=${term}`).join('');
+      queryString += searchTermsString;
+    }
+
+    return queryString;
   }
 }
 

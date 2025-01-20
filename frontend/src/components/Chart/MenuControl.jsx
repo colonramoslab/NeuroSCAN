@@ -65,7 +65,7 @@ const MenuControl = ({
   useEffect(() => {
     if (currentWidget && timePoint !== currentWidget?.timePoint && instances.length !== 0) {
       const lostInstancesArray = addedObjectsToViewer?.filter((item1) => !instances
-        .some((item2) => item2.name === item1.name));
+        .some((item2) => item2.uid === item1.uid));
       setLostInstances(lostInstancesArray);
     }
   }, [timePoint, addedObjectsToViewer, instances]);

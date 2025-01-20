@@ -195,7 +195,7 @@ const SearchResult = (props) => {
                   </ListItemIcon>
                   <ListItemText primary={(
                     <HTMLViewer
-                      content={item.name}
+                      content={item.uid}
                       style={{
                         width: '100%', height: '100%', float: 'center', wordWrap: 'break-word',
                       }}

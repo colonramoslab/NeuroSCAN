@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"neuroscan/internal/logging"
+	"neuroscan/pkg/logging"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

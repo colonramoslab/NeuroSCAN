@@ -59,7 +59,7 @@ const DevelopmentalStageFilter = (props) => {
   };
 
   const marks = devStages
-    .reduce((x, devStage) => (x.concat(devStage.timepoints?.split(','))), [])
+    .reduce((x, devStage) => (x.concat(devStage.timepoints)), [])
     .filter((item) => item !== undefined)
     .map((mark) => ({
       value: parseInt(mark, 10),
@@ -93,7 +93,7 @@ const DevelopmentalStageFilter = (props) => {
                 key={stage.id}
                 style={{ width: `${stageWidth}%` }}
               >
-                {stage.name}
+                {stage.uid}
               </Typography>
             );
           })

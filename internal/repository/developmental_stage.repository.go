@@ -7,7 +7,6 @@ import (
 
 	"neuroscan/internal/domain"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,7 +39,7 @@ func (r *PostgresDevelopmentalStageRepository) DevelopmentalStageExists(ctx cont
 }
 
 func (r *PostgresDevelopmentalStageRepository) SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error) {
-	q := "SELECT id, uid, begin, end, order, promoter_db, timepoints FROM developmental_stages "
+	q := `SELECT id, uid, begin, "end", "order", promoter_db, timepoints FROM developmental_stages `
 
 	parsedQuery, args := r.ParseDevelopmentalStageAPIV1Request(ctx, query)
 
@@ -48,9 +47,17 @@ func (r *PostgresDevelopmentalStageRepository) SearchDevelopmentalStages(ctx con
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	developmentalStages, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.DevelopmentalStage])
-	if err != nil {
-		return nil, err
+	var developmentalStages []domain.DevelopmentalStage
+
+	for rows.Next() {
+		var developmentalStage domain.DevelopmentalStage
+
+		err := rows.Scan(&developmentalStage.ID, &developmentalStage.UID, &developmentalStage.Begin, &developmentalStage.End, &developmentalStage.Order, &developmentalStage.PromoterDB, &developmentalStage.Timepoints)
+		if err != nil {
+			return nil, err
+		}
+
+		developmentalStages = append(developmentalStages, developmentalStage)
 	}
 
 	return developmentalStages, nil
@@ -74,7 +81,7 @@ func (r *PostgresDevelopmentalStageRepository) CountDevelopmentalStages(ctx cont
 }
 
 func (r *PostgresDevelopmentalStageRepository) CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error {
-	query := "INSERT INTO developmental_stages (uid, begin, end, order, promoter_db, timepoints) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING"
+	query := `INSERT INTO developmental_stages (uid, begin, "end", "order", promoter_db, timepoints) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`
 
 	_, err := r.DB.Exec(ctx, query, developmentalStage.UID, developmentalStage.Begin, developmentalStage.End, developmentalStage.Order, developmentalStage.PromoterDB, developmentalStage.Timepoints)
 	if err != nil {

@@ -89,7 +89,7 @@ export const VIEWER_MENU = {
   colorPicker: 'colorPicker',
 };
 
-export const filesURL = 'https://neuroscan-files.s3.amazonaws.com/2024_08_21T14_00_28/files';
+export const filesURL = '/files';
 
 export const NEURON_TYPE = 'neuron';
 export const CONTACT_TYPE = 'contact';

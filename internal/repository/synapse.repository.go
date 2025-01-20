@@ -193,8 +193,23 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 	}
 
 	if len(req.Types) > 0 {
+		synapseTypes := req.Types
+		containsChemical := false
 		args = append(args, req.Types)
-		queryParts = append(queryParts, fmt.Sprintf("synapse_type = ANY($%d)", len(args)))
+
+		for _, synapseType := range synapseTypes {
+			if synapseType == "chemical" {
+				containsChemical = true
+				break
+			}
+		}
+
+		if containsChemical {
+			queryParts = append(queryParts, fmt.Sprintf("synapse_type = ANY($%d) OR synapse_type IS NULL", len(args)))
+		} else {
+
+			queryParts = append(queryParts, fmt.Sprintf("synapse_type = ANY($%d)", len(args)))
+		}
 	}
 
 	if req.PreNeuron != "" {

@@ -14,14 +14,13 @@ import (
 	"neuroscan/internal/service"
 	"neuroscan/pkg/logging"
 
-
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
 )
 
-type WebCmd struct {}
+type WebCmd struct{}
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
 
@@ -103,7 +102,7 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		Timeout: 30 * time.Second,
 	}))
 
-	e.Static("/models", os.Getenv("APP_GLTF_DIR"))
+	e.Static("/files", os.Getenv("APP_GLTF_DIR"))
 	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)

@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"neuroscan/internal/gltf"
+	"neuroscan/pkg/gltf"
 	"os"
 	"path/filepath"
 	"runtime"

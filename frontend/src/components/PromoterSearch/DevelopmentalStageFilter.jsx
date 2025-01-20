@@ -95,7 +95,7 @@ const DevelopmentalStageFilter = (props) => {
         <img src={icon} alt="icon" />
       </Typography>
       <Typography className={classes.sliderValue}>
-        {stage.name}
+        {stage.uid}
       </Typography>
       <img width="6" height="4" src={DOWN} alt="DOWN" />
     </Box>
