@@ -12,7 +12,6 @@ create table developmental_stages (
 
 insert into developmental_stages (uid, "begin", "end", "order", promoter_db, timepoints)
 values
-  ('Hatching', 0, 0, 1, false, ARRAY[0]),
   ('L1', 0, 16, 2, false, ARRAY[0,5,8,16]),
   ('L2', 16, 24, 3, false, ARRAY[23]),
   ('L3', 24, 33, 4, false, ARRAY[27]),

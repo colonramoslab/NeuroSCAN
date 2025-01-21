@@ -108,6 +108,7 @@ const middleware = (store) => (next) => async (action) => {
             const state = store.getState();
             widget = createWidget(store, state.search.filters.timePoint, action.viewerType);
           }
+          console.log('widget', widget);
           const filteredNewInstances = Array.isArray(widget?.config?.instances)
           && widget?.config?.instances.length !== 0
             ? action.instances.filter((item2) => !widget.config.instances

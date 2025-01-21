@@ -69,6 +69,7 @@ const DevelopmentalStageFilter = (props) => {
   const min = Math.min(...devStages.map((devStage) => devStage.begin));
   // eslint-disable-next-line max-len
   const max = Math.max(...devStages.map((devStage) => Math.max(devStage.end, devStage.begin)));
+  devStages.sort((a, b) => a.order - b.order);
   const stepWidth = (max - min) / 100;
 
   return devStages.length > 0 && (

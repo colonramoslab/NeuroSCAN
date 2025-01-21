@@ -99,7 +99,7 @@ export const addToWidget = (
       flash: false,
       hidden: false,
       timePoint: widget.timePoint,
-      name: widget.uid,
+      name: widget.name,
       rotate: cameraControlsRotateState.STOP,
       backgroundColor: CANVAS_BACKGROUND_COLOR_DARK,
       colorPickerColor: null,

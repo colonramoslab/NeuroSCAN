@@ -25,6 +25,7 @@ const SearchBar = ({
         inputValue={inputValue}
         onUpdateInput={(event) => setInputValue(event.target.value)}
         placeholder="Search here"
+        style={{ fontSize: '16px' }}
         fullWidth
         chipRenderer={(
           { value, className },

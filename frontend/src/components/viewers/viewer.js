@@ -56,6 +56,7 @@ const CanvasToolTip = forwardRef((props, ref) => {
       { intersected && intersected.o
           && (
             <div
+              onContextMenu="return false;"
               id={`canvas-tooltip-${intersected?.o?.uid}`}
               style={{
                 position: 'fixed',
@@ -232,18 +233,18 @@ class Viewer extends React.Component {
     return (
       <div className={classes.canvasContainer}>
         <div>
-          <CanvasToolTip
-            visible
-            ref={this.tooltipRef}
-          />
+          <CanvasToolTip visible ref={this.tooltipRef} />
         </div>
         {contextMenuOpen && (
-        <AddToViewerMenu
-          handleClose={() => this.handleMenuClose()}
-          handleAddToViewer={this.handleAddInstancesToViewer}
-          useAnchorPosition
-          anchorPosition={{ top: contextMenuPosition.top, left: contextMenuPosition.left }}
-        />
+          <AddToViewerMenu
+            handleClose={() => this.handleMenuClose()}
+            handleAddToViewer={this.handleAddInstancesToViewer}
+            useAnchorPosition
+            anchorPosition={{
+              top: contextMenuPosition.top + 60,
+              left: contextMenuPosition.left,
+            }}
+          />
         )}
         <Canvas
           key={viewerId}

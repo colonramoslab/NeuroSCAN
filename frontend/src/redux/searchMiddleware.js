@@ -67,7 +67,7 @@ const searchMiddleware = (store) => (next) => (action) => {
       nerveRingService
         .getNerveRingByTimepoint(timePoint)
         .then((ring) => {
-          // console.log('ring', ring);
+          console.log('ring', ring);
           if (ring) {
             const ringInstances = nerveRingService.getInstances(ring);
             store.dispatch(addInstances(viewerId, ringInstances, VIEWERS.InstanceViewer));

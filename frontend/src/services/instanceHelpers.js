@@ -254,7 +254,7 @@ const getDevStageFromTimepoint = (timepoint) => {
   const state = store.getState();
   const devStage = state.devStages.neuroSCAN
     .find((stage) => stage.timepoints !== null
-      && stage.timepoints.includes(`${timepoint}`));
+      && stage.timepoints.includes(timepoint));
   return devStage.uid;
 };
 

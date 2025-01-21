@@ -42,7 +42,7 @@ export class ScaleService {
           timepoint,
         },
       })
-      .then((response) => response.data[0]);
+      .then((response) => response.data);
   }
 }
 

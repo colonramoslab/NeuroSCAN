@@ -102,7 +102,7 @@ const DevelopmentalStageFilter = (props) => {
   );
 
   const marks = devStages
-    .reduce((x, devStage) => (x.concat(devStage.timepoints?.split(','))), [])
+    .reduce((x, devStage) => (x.concat(devStage.timepoints)), [])
     .filter((item) => item !== undefined)
     .map((mark, index) => ({
       value: (stageStep * (index)) + min,
