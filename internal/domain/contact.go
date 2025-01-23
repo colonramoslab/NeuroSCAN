@@ -6,8 +6,11 @@ import (
 	"neuroscan/internal/toolshed"
 )
 
+const ContactULIDPrefix = "cntct"
+
 type Contact struct {
-	ID        int            `json:"id"`
+	ID        int            `json:"-"`
+	ULID      string         `json:"id"`
 	UID       string         `json:"uid"`
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
@@ -21,9 +24,11 @@ func (c *Contact) Parse(filePath string) error {
 		return errors.New("error parsing contact file path: " + err.Error())
 	}
 
+	ulid := toolshed.BuildUID(ContactULIDPrefix)
 	fileMeta := fileMetas[0]
 
 	c.UID = fileMeta.UID
+	c.ULID = ulid
 	c.Filename = fileMeta.Filename
 	c.Timepoint = fileMeta.Timepoint
 	c.Color = fileMeta.Color
@@ -46,4 +51,3 @@ func (c *Contact) Validate() error {
 
 	return nil
 }
-

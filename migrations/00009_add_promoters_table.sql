@@ -2,6 +2,7 @@
 -- +goose StatementBegin
 create table promoters (
   id int generated always as identity primary key,
+  ulid varchar(255) unique not null,
   uid varchar(255) unique not null,
   wormbase varchar(255),
   cellular_expression_pattern text,

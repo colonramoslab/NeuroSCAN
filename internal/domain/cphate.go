@@ -10,10 +10,13 @@ import (
 	"neuroscan/internal/toolshed"
 )
 
+const CphateULIDPrefix = "cph"
+const CphateMetaItemULIDPrefix = "cph_mi"
 
 type CphateNode struct {
 	id             int
 	uid            string
+	ulid string
 	cphateId       int
 	cluster        int
 	clusterCount   int
@@ -31,12 +34,14 @@ type CphateMetaItem struct {
 	Neurons []string       `json:"neurons"`
 	ObjFile string         `json:"objFile"`
 	Color   toolshed.Color `json:"color"`
+	ULID 	string         `json:"ulid"`
 }
 
 type Cphate struct {
-	ID        int             `json:"id"`
-	UID       string          `json:"uid"`
-	Timepoint int             `json:"timepoint"`
+	ID        int        `json:"-"`
+	UID       string     `json:"uid"`
+	ULID      string     `json:"id"`
+	Timepoint int        `json:"timepoint"`
 	Structure CphateMeta `json:"structure"`
 }
 
@@ -51,6 +56,8 @@ func (c *Cphate) Parse(dirPath string) error {
 
 	timepointString := strconv.Itoa(timepoint)
 
+	ulid := toolshed.BuildUID(CphateULIDPrefix)
+	c.ULID = ulid
 	c.UID = "CPHATE " + timepointString
 
 	var cphateMetaItems []CphateMetaItem
@@ -100,7 +107,7 @@ func (c *Cphate) Parse(dirPath string) error {
 	return nil
 }
 
-func buildCphateMetaItem( node string, filename string, color toolshed.Color) (CphateMetaItem, error) {
+func buildCphateMetaItem(node string, filename string, color toolshed.Color) (CphateMetaItem, error) {
 	// split the node string by the "-" character
 	// the first part is the neuron names
 	// the second part is the cluster, iteration, and serial
@@ -136,12 +143,15 @@ func buildCphateMetaItem( node string, filename string, color toolshed.Color) (C
 		}
 	}
 
+	ulid := toolshed.BuildUID(CphateMetaItemULIDPrefix)
+
 	cphateMetaItem := CphateMetaItem{
 		I:       iteration,
 		C:       cluster,
 		Neurons: neurons,
 		ObjFile: filename,
 		Color:   color,
+		ULID:    ulid,
 	}
 
 	return cphateMetaItem, nil

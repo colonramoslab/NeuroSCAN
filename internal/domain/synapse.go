@@ -10,8 +10,9 @@ import (
 type SynapseType string
 
 const (
-	SynapseTypeChemical SynapseType = "chemical"
+	SynapseTypeChemical   SynapseType = "chemical"
 	SynapseTypeElectrical SynapseType = "electrical"
+	SynapseULIDPrefix                  = "syn"
 )
 
 var ValidSynapseType = map[SynapseType]bool{
@@ -20,10 +21,11 @@ var ValidSynapseType = map[SynapseType]bool{
 }
 
 type Synapse struct {
-	ID          int            `json:"id"`
+	ID          int            `json:"-"`
 	UID         string         `json:"uid"`
+	ULID        string         `json:"id"`
 	Timepoint   int            `json:"timepoint"`
-	SynapseType *SynapseType    `json:"type"`
+	SynapseType *SynapseType   `json:"type"`
 	Filename    string         `json:"filename"`
 	Color       toolshed.Color `json:"color"`
 }
@@ -52,6 +54,7 @@ func (s *Synapse) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	s.UID = fileMeta.UID
+	s.ULID = toolshed.BuildUID(SynapseULIDPrefix)
 	s.Filename = fileMeta.Filename
 	s.Timepoint = fileMeta.Timepoint
 	s.Color = fileMeta.Color
@@ -75,4 +78,3 @@ func (s *Synapse) Validate() error {
 
 	return nil
 }
-

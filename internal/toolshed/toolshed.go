@@ -2,6 +2,7 @@ package toolshed
 
 import (
 	"compress/gzip"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -334,4 +336,10 @@ func MaxParallelism() int {
 	}
 
 	return numCPU
+}
+
+func CreateULID(prefix string) string {
+	entropy := rand.Reader
+	ms := ulid.Timestamp(time.Now())
+	return prefix + "_" + ulid.MustNew(ms, entropy).String()
 }

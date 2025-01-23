@@ -1,8 +1,11 @@
 package domain
 
+const DevelopmentalStageULIDPrefix = "devstg"
+
 type DevelopmentalStage struct {
-	ID         int    `json:"id"`
+	ID         int    `json:"-"`
 	UID        string `json:"uid"`
+	ULID       string `json:"id"`
 	Begin      int    `json:"begin"`
 	End        int    `json:"end"`
 	Order      int    `json:"order"`

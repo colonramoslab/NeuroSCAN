@@ -6,9 +6,12 @@ import (
 	"neuroscan/internal/toolshed"
 )
 
+const NeuronULIDPrefix = "neu"
+
 type Neuron struct {
-	ID        int            `json:"id"`
+	ID        int            `json:"-"`
 	UID       string         `json:"uid"`
+	ULID      string         `json:"id"`
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
@@ -24,6 +27,7 @@ func (n *Neuron) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	n.UID = fileMeta.UID
+	n.ULID = toolshed.BuildUID(NeuronULIDPrefix)
 	n.Filename = fileMeta.Filename
 	n.Timepoint = fileMeta.Timepoint
 	n.Color = fileMeta.Color

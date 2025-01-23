@@ -6,9 +6,12 @@ import (
 	"neuroscan/internal/toolshed"
 )
 
+const ScaleULIDPrefix = "scl"
+
 type Scale struct {
-	ID        int            `json:"id"`
+	ID        int            `json:"-"`
 	UID       string         `json:"uid"`
+	ULID      string         `json:"id"`
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
@@ -24,6 +27,7 @@ func (s *Scale) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	s.UID = fileMeta.UID
+	s.ULID = toolshed.BuildUID(ScaleULIDPrefix)
 	s.Filename = fileMeta.Filename
 	s.Timepoint = fileMeta.Timepoint
 	s.Color = fileMeta.Color
@@ -46,4 +50,3 @@ func (s *Scale) Validate() error {
 
 	return nil
 }
-

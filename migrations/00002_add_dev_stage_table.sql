@@ -2,6 +2,7 @@
 -- +goose StatementBegin
 create table developmental_stages (
   id int generated always as identity primary key,
+  ulid varchar(255) unique not null,
   uid varchar(255) unique not null,
   "begin" int not null,
   "end" int not null,
