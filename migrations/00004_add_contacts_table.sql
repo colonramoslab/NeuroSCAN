@@ -3,7 +3,6 @@
 create table contacts (
   id int generated always as identity primary key,
   ulid varchar(255) unique not null,
-  ulid varchar(255) unique not null,
   uid varchar(255) not null,
   timepoint int not null,
   filename varchar(255) not null,

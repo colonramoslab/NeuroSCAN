@@ -17,12 +17,12 @@ import (
 )
 
 type IngestCmd struct {
-	DirPath string `required:"" help:"Path to the directory" short:"d"`
-	Verbose bool `optional:"" help:"Enable verbose logging" short:"v"`
-	SkipExisting bool `optional:"" help:"Skip existing files" short:"s"`
-	ThreadCount int `optional:"" help:"Number of threads to use" short:"t"`
+	DirPath      string   `required:"" help:"Path to the directory" short:"d"`
+	Verbose      bool     `optional:"" help:"Enable verbose logging" short:"v"`
+	SkipExisting bool     `optional:"" help:"Skip existing files" short:"s"`
+	ThreadCount  int      `optional:"" help:"Number of threads to use" short:"t"`
 	ProcessTypes []string `optional:"" help:"Types of entities to process" short:"p"`
-	Clean bool `optional:"" help:"Clean the database before ingesting" short:"c"`
+	Clean        bool     `optional:"" help:"Clean the database before ingesting" short:"c"`
 }
 
 type Ingestor struct {
@@ -32,6 +32,8 @@ type Ingestor struct {
 	cphates      int64
 	nerveRings   int64
 	scales       int64
+	promoters    int64
+	devStages    int64
 	skipExisting bool
 	debug        bool
 	clean        bool
@@ -47,6 +49,8 @@ type ingestChannels struct {
 	cphates    chan string
 	nerveRings chan string
 	scales     chan string
+	promoters  chan string
+	devStages  chan string
 }
 
 type ingestWaitGroups struct {
@@ -56,6 +60,8 @@ type ingestWaitGroups struct {
 	cphates    sync.WaitGroup
 	nerveRings sync.WaitGroup
 	scales     sync.WaitGroup
+	promoters  sync.WaitGroup
+	devStages  sync.WaitGroup
 }
 
 // createIngestChannels creates the ingest channels
@@ -67,6 +73,8 @@ func createIngestChannels() *ingestChannels {
 		cphates:    make(chan string, 20),
 		nerveRings: make(chan string, 20),
 		scales:     make(chan string, 20),
+		promoters:  make(chan string, 500),
+		devStages:  make(chan string, 100),
 	}
 }
 
@@ -79,6 +87,8 @@ func createIngestWaitGroups() *ingestWaitGroups {
 		cphates:    sync.WaitGroup{},
 		nerveRings: sync.WaitGroup{},
 		scales:     sync.WaitGroup{},
+		promoters:  sync.WaitGroup{},
+		devStages:  sync.WaitGroup{},
 	}
 }
 
@@ -100,12 +110,14 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	defer db.Close(cntx)
 
 	n := &Ingestor{
-		neurons: 0,
-		synapses: 0,
-		contacts: 0,
-		cphates: 0,
-		nerveRings: 0,
-		scales: 0,
+		neurons:      0,
+		synapses:     0,
+		contacts:     0,
+		cphates:      0,
+		nerveRings:   0,
+		scales:       0,
+		promoters:    0,
+		devStages:    0,
 		skipExisting: cmd.SkipExisting,
 		debug:        cmd.Verbose,
 		clean:        cmd.Clean,
@@ -115,12 +127,14 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 
 	// if processTypes is empty, set it to all valid process types
 	if len(n.processTypes) == 0 {
-		n.processTypes = []string{"neurons", "contacts", "synapses", "cphate", "nerveRing", "scale"}
+		n.processTypes = []string{"neurons", "contacts", "synapses", "cphate", "nerveRing", "scale", "promoters", "dev_stages"}
 	}
 
+	// We use channels and wait groups to handle the ingestion of entities concurrently
 	channels := createIngestChannels()
 	waitGroups := createIngestWaitGroups()
 
+	// get the max number of routines to use
 	maxRoutines := toolshed.MaxParallelism()
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
@@ -140,6 +154,12 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 
 	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
 	scaleService := service.NewScaleService(scaleRepo)
+
+	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool)
+	promoterService := service.NewPromoterService(promoterRepo)
+
+	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
+	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 
 	if n.clean {
 		for _, processType := range n.processTypes {
@@ -173,6 +193,16 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 				err := scaleService.TruncateScales(cntx)
 				if err != nil {
 					logger.Error().Err(err).Msg("Error truncating scales")
+				}
+			case "promoters":
+				err := promoterService.TruncatePromoters(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating promoters")
+				}
+			case "dev_stages":
+				err := devStageService.TruncateDevelopmentalStages(cntx)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error truncating developmental stages")
 				}
 			}
 		}
@@ -317,6 +347,74 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 
 				waitGroups.scales.Done()
 			}
+
+			for promoterPath := range channels.promoters {
+				csvRows, err := toolshed.GetCSVRows(promoterPath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", promoterPath).Msg("Error getting CSV rows")
+					waitGroups.promoters.Done()
+					continue
+				}
+
+				for i, row := range csvRows {
+					if i == 0 {
+						continue
+					}
+
+					promoter := domain.Promoter{}
+					err := promoter.ParseCSV(row)
+					if err != nil {
+						logger.Error().Err(err).Str("path", promoterPath).Msg("Error parsing promoter")
+						continue
+					}
+
+					success, err := promoterService.IngestPromoter(cntx, promoter, n.skipExisting, n.debug)
+					if err != nil {
+						logger.Error().Err(err).Str("path", promoterPath).Msg("Error ingesting promoter")
+						continue
+					}
+
+					if success {
+						atomic.AddInt64(&n.promoters, 1)
+					}
+				}
+
+				waitGroups.promoters.Done()
+			}
+
+			for devStagePath := range channels.devStages {
+				csvRows, err := toolshed.GetCSVRows(devStagePath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", devStagePath).Msg("Error getting CSV rows")
+					waitGroups.devStages.Done()
+					continue
+				}
+
+				for i, row := range csvRows {
+					if i == 0 {
+						continue
+					}
+
+					devStage := domain.DevelopmentalStage{}
+					err := devStage.ParseCSV(row)
+					if err != nil {
+						logger.Error().Err(err).Str("path", devStagePath).Msg("Error parsing devStage")
+						continue
+					}
+
+					success, err := devStageService.IngestDevelopmentalStage(cntx, devStage, n.skipExisting, n.debug)
+					if err != nil {
+						logger.Error().Err(err).Str("path", devStagePath).Msg("Error ingesting devStage")
+						continue
+					}
+
+					if success {
+						atomic.AddInt64(&n.devStages, 1)
+					}
+				}
+
+				waitGroups.devStages.Done()
+			}
 		}()
 	}
 
@@ -343,6 +441,12 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	waitGroups.scales.Wait()
 	close(channels.scales)
 
+	waitGroups.promoters.Wait()
+	close(channels.promoters)
+
+	waitGroups.devStages.Wait()
+	close(channels.devStages)
+
 	logger.Info().Msg("Done processing entities")
 	logger.Info().Int64("count", n.neurons).Msg("Neurons ingested")
 	logger.Info().Int64("count", n.contacts).Msg("Contacts ingested")
@@ -350,6 +454,8 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	logger.Info().Int64("count", n.cphates).Msg("Cphates ingested")
 	logger.Info().Int64("count", n.nerveRings).Msg("NerveRings ingested")
 	logger.Info().Int64("count", n.scales).Msg("Scales ingested")
+	logger.Info().Int64("count", n.promoters).Msg("Promoters ingested")
+	logger.Info().Int64("count", n.devStages).Msg("DevelopmentalStages ingested")
 
 	return nil
 }
@@ -383,7 +489,7 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 		}
 
 		// if it's not a valid extension, skip it
-		if !toolshed.ValidExtension(path, []string{".gltf"}) {
+		if !toolshed.ValidExtension(path, []string{".gltf", ".csv"}) {
 			return nil
 		}
 
@@ -415,6 +521,14 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 			logger.Debug().Str("path", path).Msg("Adding scale to channel")
 			waitGroups.scales.Add(1)
 			channels.scales <- path
+		case "promoters":
+			logger.Debug().Str("path", path).Msg("Adding promoter to channel")
+			waitGroups.promoters.Add(1)
+			channels.promoters <- path
+		case "dev_stages":
+			logger.Debug().Str("path", path).Msg("Adding devStage to channel")
+			waitGroups.devStages.Add(1)
+			channels.devStages <- path
 		default:
 			logger.Error().Str("type", currentEntity).Msg("Unknown entity type")
 		}

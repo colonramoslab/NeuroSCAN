@@ -33,10 +33,10 @@ func NewPostgresContactRepository(db *pgxpool.Pool) *PostgresContactRepository {
 }
 
 func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {
-	query := "SELECT id, uid, timepoint, filename, color FROM contacts WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT id, uid, ulid, timepoint, filename, color FROM contacts WHERE uid = $1 AND timepoint = $2"
 
 	var contact domain.Contact
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&contact.ID, &contact.UID, &contact.Timepoint, &contact.Filename, &contact.Color)
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&contact.ID, &contact.UID, &contact.ULID, &contact.Timepoint, &contact.Filename, &contact.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Contact{}, nil
@@ -65,7 +65,7 @@ func (r *PostgresContactRepository) ContactExists(ctx context.Context, uid strin
 }
 
 func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error) {
-	q := "SELECT id, uid, timepoint, filename, color FROM contacts "
+	q := "SELECT id, uid, ulid, timepoint, filename, color FROM contacts "
 
 	parsedQuery, args := r.ParseContactAPIV1Request(ctx, query)
 
@@ -113,9 +113,9 @@ func (r *PostgresContactRepository) CreateContact(ctx context.Context, contact d
 		return fmt.Errorf("contact already exists")
 	}
 
-	query := "INSERT INTO contacts (uid, timepoint, filename, color) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+	query := "INSERT INTO contacts (uid, ulid, timepoint, filename, color) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
 
-	_, err = r.DB.Exec(ctx, query, contact.UID, contact.Timepoint, contact.Filename, contact.Color)
+	_, err = r.DB.Exec(ctx, query, contact.UID, contact.ULID, contact.Timepoint, contact.Filename, contact.Color)
 	if err != nil {
 		return err
 	}

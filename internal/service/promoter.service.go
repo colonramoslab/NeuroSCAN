@@ -13,6 +13,7 @@ type PromoterService interface {
 	SearchPromoters(ctx context.Context, query domain.APIV1Request) ([]domain.Promoter, error)
 	CountPromoters(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreatePromoter(ctx context.Context, promoter domain.Promoter) error
+	IngestPromoter(ctx context.Context, promoter domain.Promoter, skipExisting bool, force bool) (bool, error)
 	TruncatePromoters(ctx context.Context) error
 }
 
@@ -44,6 +45,10 @@ func (s *promoterService) CountPromoters(ctx context.Context, query domain.APIV1
 
 func (s *promoterService) CreatePromoter(ctx context.Context, promoter domain.Promoter) error {
 	return s.repo.CreatePromoter(ctx, promoter)
+}
+
+func (s *promoterService) IngestPromoter(ctx context.Context, promoter domain.Promoter, skipExisting bool, force bool) (bool, error) {
+	return s.repo.IngestPromoter(ctx, promoter, skipExisting, force)
 }
 
 func (s *promoterService) TruncatePromoters(ctx context.Context) error {

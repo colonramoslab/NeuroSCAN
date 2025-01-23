@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/csv"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -121,7 +122,7 @@ func GetEntityType(filePath string) (string, error) {
 	// iterate over the parts
 	for _, part := range parts {
 		// if the part is one of the entity types, return it
-		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" || part == "scale" {
+		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" || part == "scale" || part == "promoters" || part == "dev_stages" {
 			log.Debug().Str("type", part).Msg("Getting entity type")
 			return part, nil
 		}
@@ -342,4 +343,36 @@ func CreateULID(prefix string) string {
 	entropy := rand.Reader
 	ms := ulid.Timestamp(time.Now())
 	return prefix + "_" + ulid.MustNew(ms, entropy).String()
+}
+
+func ParseTimepointIntArray(timepoints string) []int {
+	// timepoints is a slice that comes through like {1,2,3,4,5} in the csv. lets' parse that
+	timepoints = timepoints[1 : len(timepoints)-1]
+	timepointArray := strings.Split(timepoints, ",")
+
+	var timepointIntArray []int
+
+	for _, tp := range timepointArray {
+		tpInt, _ := strconv.Atoi(tp)
+		timepointIntArray = append(timepointIntArray, tpInt)
+	}
+
+	return timepointIntArray
+}
+
+func GetCSVRows(filePath string) ([][]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return [][]string{}, errors.New("error opening file: " + err.Error())
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+
+	records, err := reader.ReadAll()
+	if err != nil {
+		return [][]string{}, errors.New("error reading file: " + err.Error())
+	}
+
+	return records, nil
 }

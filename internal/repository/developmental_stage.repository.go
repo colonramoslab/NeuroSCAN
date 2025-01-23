@@ -14,6 +14,8 @@ type DevelopmentalStageRepository interface {
 	DevelopmentalStageExists(ctx context.Context, uid string) (bool, error)
 	SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error)
 	CountDevelopmentalStages(ctx context.Context, query domain.APIV1Request) (int, error)
+	IngestDevelopmentalStage(ctx context.Context, devStage domain.DevelopmentalStage, skipExisting bool, force bool) (bool, error)
+	DeleteDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error
 	CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error
 	TruncateDevelopmentalStages(ctx context.Context) error
 }
@@ -39,7 +41,7 @@ func (r *PostgresDevelopmentalStageRepository) DevelopmentalStageExists(ctx cont
 }
 
 func (r *PostgresDevelopmentalStageRepository) SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error) {
-	q := `SELECT id, uid, begin, "end", "order", promoter_db, timepoints FROM developmental_stages `
+	q := `SELECT id, uid, ulid, begin, "end", "order", promoter_db, timepoints FROM developmental_stages `
 
 	parsedQuery, args := r.ParseDevelopmentalStageAPIV1Request(ctx, query)
 
@@ -52,7 +54,7 @@ func (r *PostgresDevelopmentalStageRepository) SearchDevelopmentalStages(ctx con
 	for rows.Next() {
 		var developmentalStage domain.DevelopmentalStage
 
-		err := rows.Scan(&developmentalStage.ID, &developmentalStage.UID, &developmentalStage.Begin, &developmentalStage.End, &developmentalStage.Order, &developmentalStage.PromoterDB, &developmentalStage.Timepoints)
+		err := rows.Scan(&developmentalStage.ID, &developmentalStage.UID, &developmentalStage.ULID, &developmentalStage.Begin, &developmentalStage.End, &developmentalStage.Order, &developmentalStage.PromoterDB, &developmentalStage.Timepoints)
 		if err != nil {
 			return nil, err
 		}
@@ -81,14 +83,51 @@ func (r *PostgresDevelopmentalStageRepository) CountDevelopmentalStages(ctx cont
 }
 
 func (r *PostgresDevelopmentalStageRepository) CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error {
-	query := `INSERT INTO developmental_stages (uid, begin, "end", "order", promoter_db, timepoints) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`
+	query := `INSERT INTO developmental_stages (uid, ulid, begin, "end", "order", promoter_db, timepoints) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`
 
-	_, err := r.DB.Exec(ctx, query, developmentalStage.UID, developmentalStage.Begin, developmentalStage.End, developmentalStage.Order, developmentalStage.PromoterDB, developmentalStage.Timepoints)
+	_, err := r.DB.Exec(ctx, query, developmentalStage.UID, developmentalStage.ULID, developmentalStage.Begin, developmentalStage.End, developmentalStage.Order, developmentalStage.PromoterDB, developmentalStage.Timepoints)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *PostgresDevelopmentalStageRepository) DeleteDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error {
+	query := `DELETE FROM developmental_stages WHERE uid = $1`
+
+	_, err := r.DB.Exec(ctx, query, developmentalStage.UID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresDevelopmentalStageRepository) IngestDevelopmentalStage(ctx context.Context, devStage domain.DevelopmentalStage, skipExisting bool, force bool) (bool, error) {
+	exists, err := r.DevelopmentalStageExists(ctx, devStage.UID)
+
+	if err != nil {
+		return false, err
+	}
+
+	if skipExisting && exists {
+		return true, nil
+	}
+
+	if force && exists {
+		err := r.DeleteDevelopmentalStage(ctx, devStage)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	err = r.CreateDevelopmentalStage(ctx, devStage)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *PostgresDevelopmentalStageRepository) TruncateDevelopmentalStages(ctx context.Context) error {

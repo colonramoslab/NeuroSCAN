@@ -22,8 +22,8 @@ var ValidSynapseType = map[SynapseType]bool{
 
 type Synapse struct {
 	ID          int            `json:"-"`
-	UID         string         `json:"uid"`
 	ULID        string         `json:"id"`
+	UID         string         `json:"uid"`
 	Timepoint   int            `json:"timepoint"`
 	SynapseType *SynapseType   `json:"type"`
 	Filename    string         `json:"filename"`
@@ -54,7 +54,7 @@ func (s *Synapse) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	s.UID = fileMeta.UID
-	s.ULID = toolshed.BuildUID(SynapseULIDPrefix)
+	s.ULID = toolshed.CreateULID(SynapseULIDPrefix)
 	s.Filename = fileMeta.Filename
 	s.Timepoint = fileMeta.Timepoint
 	s.Color = fileMeta.Color

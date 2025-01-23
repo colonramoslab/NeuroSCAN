@@ -34,10 +34,10 @@ func NewPostgresSynapseRepository(db *pgxpool.Pool) *PostgresSynapseRepository {
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {
-	query := "SELECT id, uid, timepoint, synapse_type, filename, color FROM synapses WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT id, uid, ulid, timepoint, synapse_type, filename, color FROM synapses WHERE uid = $1 AND timepoint = $2"
 
 	var synapse domain.Synapse
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.UID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Synapse{}, nil
@@ -66,7 +66,7 @@ func (r *PostgresSynapseRepository) SynapseExists(ctx context.Context, uid strin
 }
 
 func (r *PostgresSynapseRepository) SearchSynapses(ctx context.Context, query domain.APIV1Request) ([]domain.Synapse, error) {
-	q := "SELECT id, uid, timepoint, synapse_type, filename, color FROM synapses "
+	q := "SELECT id, uid, ulid, timepoint, synapse_type, filename, color FROM synapses "
 
 	parsedQuery, args := r.ParseSynapseAPIV1Request(ctx, query)
 
@@ -114,9 +114,9 @@ func (r *PostgresSynapseRepository) CreateSynapse(ctx context.Context, synapse d
 		return fmt.Errorf("synapse already exists")
 	}
 
-	query := "INSERT INTO synapses (uid, timepoint, synapse_type, filename, color) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
+	query := "INSERT INTO synapses (uid, ulid, timepoint, synapse_type, filename, color) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING"
 
-	_, err = r.DB.Exec(ctx, query, synapse.UID, synapse.Timepoint, synapse.SynapseType, synapse.Filename, synapse.Color)
+	_, err = r.DB.Exec(ctx, query, synapse.UID, synapse.ULID, synapse.Timepoint, synapse.SynapseType, synapse.Filename, synapse.Color)
 	if err != nil {
 		return err
 	}

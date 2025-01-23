@@ -11,6 +11,7 @@ type DevelopmentalStageService interface {
 	SearchDevelopmentalStages(ctx context.Context, query domain.APIV1Request) ([]domain.DevelopmentalStage, error)
 	CountDevelopmentalStages(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error
+	IngestDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage, skipExisting bool, force bool) (bool, error)
 	TruncateDevelopmentalStages(ctx context.Context) error
 }
 
@@ -32,6 +33,10 @@ func (s *developmentalStageService) CountDevelopmentalStages(ctx context.Context
 
 func (s *developmentalStageService) CreateDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage) error {
 	return s.repo.CreateDevelopmentalStage(ctx, developmentalStage)
+}
+
+func (s *developmentalStageService) IngestDevelopmentalStage(ctx context.Context, developmentalStage domain.DevelopmentalStage, skipExisting bool, force bool) (bool, error) {
+	return s.repo.IngestDevelopmentalStage(ctx, developmentalStage, skipExisting, force)
 }
 
 func (s *developmentalStageService) TruncateDevelopmentalStages(ctx context.Context) error {

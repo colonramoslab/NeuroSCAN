@@ -19,6 +19,7 @@ type PromoterRepository interface {
 	CountPromoters(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreatePromoter(ctx context.Context, promoter domain.Promoter) error
 	DeletePromoter(ctx context.Context, uid string) error
+	IngestPromoter(ctx context.Context, promoter domain.Promoter, skipExisting bool, force bool) (bool, error)
 	TruncatePromoters(ctx context.Context) error
 }
 
@@ -33,10 +34,10 @@ func NewPostgresPromoterRepository(db *pgxpool.Pool) *PostgresPromoterRepository
 }
 
 func (r *PostgresPromoterRepository) GetPromoterByUID(ctx context.Context, uid string) (domain.Promoter, error) {
-	query := "SELECT id, uid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells FROM promoters WHERE uid = $1"
+	query := "SELECT id, uid, ulid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells FROM promoters WHERE uid = $1"
 
 	var promoter domain.Promoter
-	err := r.DB.QueryRow(ctx, query, uid).Scan(&promoter.ID, &promoter.UID, &promoter.Wormbase, &promoter.CellularExpressionPattern, &promoter.TimepointStart, &promoter.TimepointEnd, &promoter.CellsByLineaging, &promoter.ExpressionPatterns, &promoter.Information, &promoter.OtherCells)
+	err := r.DB.QueryRow(ctx, query, uid).Scan(&promoter.ID, &promoter.UID, &promoter.ULID, &promoter.Wormbase, &promoter.CellularExpressionPattern, &promoter.TimepointStart, &promoter.TimepointEnd, &promoter.CellsByLineaging, &promoter.ExpressionPatterns, &promoter.Information, &promoter.OtherCells)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Promoter{}, nil
@@ -65,7 +66,7 @@ func (r *PostgresPromoterRepository) PromoterExists(ctx context.Context, uid str
 }
 
 func (r *PostgresPromoterRepository) SearchPromoters(ctx context.Context, query domain.APIV1Request) ([]domain.Promoter, error) {
-	q := "SELECT id, uid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells FROM promoters "
+	q := "SELECT id, uid, ulid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells FROM promoters "
 
 	parsedQuery, args := r.ParsePromoterAPIV1Request(ctx, query)
 
@@ -113,9 +114,9 @@ func (r *PostgresPromoterRepository) CreatePromoter(ctx context.Context, promote
 		return fmt.Errorf("promoter already exists")
 	}
 
-	query := "INSERT INTO promoters (uid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"
+	query := "INSERT INTO promoters (uid, ulid, wormbase, cellular_expression_pattern, timepoint_start, timepoint_end, cells_by_lineaging, expression_patterns, information, other_cells) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT DO NOTHING"
 
-	_, err = r.DB.Exec(ctx, query, promoter.UID, promoter.Wormbase, promoter.CellularExpressionPattern, promoter.TimepointStart, promoter.TimepointEnd, promoter.CellsByLineaging, promoter.ExpressionPatterns, promoter.Information, promoter.OtherCells)
+	_, err = r.DB.Exec(ctx, query, promoter.UID, promoter.ULID, promoter.Wormbase, promoter.CellularExpressionPattern, promoter.TimepointStart, promoter.TimepointEnd, promoter.CellsByLineaging, promoter.ExpressionPatterns, promoter.Information, promoter.OtherCells)
 	if err != nil {
 		return err
 	}
@@ -143,6 +144,32 @@ func (r *PostgresPromoterRepository) TruncatePromoters(ctx context.Context) erro
 	}
 
 	return nil
+}
+
+func (r *PostgresPromoterRepository) IngestPromoter(ctx context.Context, promoter domain.Promoter, skipExisting bool, force bool) (bool, error) {
+	exists, err := r.PromoterExists(ctx, promoter.UID)
+
+	if err != nil {
+		return false, err
+	}
+
+	if skipExisting && exists {
+		return true, nil
+	}
+
+	if force && exists {
+		err := r.DeletePromoter(ctx, promoter.UID)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	err = r.CreatePromoter(ctx, promoter)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *PostgresPromoterRepository) ParsePromoterAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {

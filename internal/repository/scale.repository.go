@@ -31,10 +31,10 @@ func NewPostgresScaleRepository(db *pgxpool.Pool) *PostgresScaleRepository {
 }
 
 func (r *PostgresScaleRepository) GetScaleByTimepoint(ctx context.Context, timepoint int) (domain.Scale, error) {
-	query := "SELECT id, uid, timepoint, filename, color FROM scales WHERE timepoint = $1"
+	query := "SELECT id, uid, ulid, timepoint, filename, color FROM scales WHERE timepoint = $1"
 
 	var scale domain.Scale
-	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&scale.ID, &scale.UID, &scale.Timepoint, &scale.Filename, &scale.Color)
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&scale.ID, &scale.UID, &scale.ULID, &scale.Timepoint, &scale.Filename, &scale.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Scale{}, nil
@@ -73,9 +73,9 @@ func (r *PostgresScaleRepository) CreateScale(ctx context.Context, scale domain.
 		return fmt.Errorf("scale already exists")
 	}
 
-	query := "INSERT INTO scales (uid, timepoint, filename, color) VALUES ($1, $2, $3, $4)"
+	query := "INSERT INTO scales (uid, ulid, timepoint, filename, color) VALUES ($1, $2, $3, $4, $5)"
 
-	_, err = r.DB.Exec(ctx, query, scale.UID, scale.Timepoint, scale.Filename, scale.Color)
+	_, err = r.DB.Exec(ctx, query, scale.UID, scale.ULID, scale.Timepoint, scale.Filename, scale.Color)
 	if err != nil {
 		return err
 	}

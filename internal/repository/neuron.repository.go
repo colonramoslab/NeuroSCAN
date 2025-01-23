@@ -34,10 +34,10 @@ func NewPostgresNeuronRepository(db *pgxpool.Pool) *PostgresNeuronRepository {
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
-	query := "SELECT id, uid, timepoint, filename, color FROM neurons WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons WHERE uid = $1 AND timepoint = $2"
 
 	var neuron domain.Neuron
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.UID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Neuron{}, nil
@@ -66,7 +66,7 @@ func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string,
 }
 
 func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error) {
-	q := "SELECT id, uid, timepoint, filename, color FROM neurons "
+	q := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons "
 
 	parsedQuery, args := r.ParseNeuronAPIV1Request(ctx, query)
 
@@ -114,9 +114,9 @@ func (r *PostgresNeuronRepository) CreateNeuron(ctx context.Context, neuron doma
 		return fmt.Errorf("neuron already exists")
 	}
 
-	query := "INSERT INTO neurons (uid, timepoint, filename, color) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
+	query := "INSERT INTO neurons (uid, ulid, timepoint, filename, color) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
 
-	_, err = r.DB.Exec(ctx, query, neuron.UID, neuron.Timepoint, neuron.Filename, neuron.Color)
+	_, err = r.DB.Exec(ctx, query, neuron.UID, neuron.ULID, neuron.Timepoint, neuron.Filename, neuron.Color)
 	if err != nil {
 		return err
 	}

@@ -10,8 +10,8 @@ const NeuronULIDPrefix = "neu"
 
 type Neuron struct {
 	ID        int            `json:"-"`
-	UID       string         `json:"uid"`
 	ULID      string         `json:"id"`
+	UID       string         `json:"uid"`
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
@@ -27,7 +27,7 @@ func (n *Neuron) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	n.UID = fileMeta.UID
-	n.ULID = toolshed.BuildUID(NeuronULIDPrefix)
+	n.ULID = toolshed.CreateULID(NeuronULIDPrefix)
 	n.Filename = fileMeta.Filename
 	n.Timepoint = fileMeta.Timepoint
 	n.Color = fileMeta.Color

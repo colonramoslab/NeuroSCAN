@@ -31,10 +31,10 @@ func NewPostgresCphateRepository(db *pgxpool.Pool) *PostgresCphateRepository {
 }
 
 func (r *PostgresCphateRepository) GetCphateByTimepoint(ctx context.Context, timepoint int) (domain.Cphate, error) {
-	query := "SELECT id, uid, timepoint, structure FROM cphates WHERE timepoint = $1"
+	query := "SELECT id, uid, ulid, timepoint, structure FROM cphates WHERE timepoint = $1"
 
 	var cphate domain.Cphate
-	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&cphate.ID, &cphate.UID, &cphate.Timepoint, &cphate.Structure)
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&cphate.ID, &cphate.UID, &cphate.ULID, &cphate.Timepoint, &cphate.Structure)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Cphate{}, nil
@@ -73,9 +73,9 @@ func (r *PostgresCphateRepository) CreateCphate(ctx context.Context, cphate doma
 		return fmt.Errorf("cphate already exists")
 	}
 
-	query := "INSERT INTO cphates (uid, timepoint, structure) VALUES ($1, $2, $3)"
+	query := "INSERT INTO cphates (uid, ulid, timepoint, structure) VALUES ($1, $2, $3, $4)"
 
-	_, err = r.DB.Exec(ctx, query, cphate.UID, cphate.Timepoint, cphate.Structure)
+	_, err = r.DB.Exec(ctx, query, cphate.UID, cphate.ULID, cphate.Timepoint, cphate.Structure)
 	if err != nil {
 		return err
 	}

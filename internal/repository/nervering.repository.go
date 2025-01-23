@@ -31,10 +31,10 @@ func NewPostgresNerveRingRepository(db *pgxpool.Pool) *PostgresNerveRingReposito
 }
 
 func (r *PostgresNerveRingRepository) GetNerveRingByTimepoint(ctx context.Context, timepoint int) (domain.NerveRing, error) {
-	query := "SELECT id, uid, timepoint, filename, color FROM nerve_rings WHERE timepoint = $1"
+	query := "SELECT id, uid, ulid, timepoint, filename, color FROM nerve_rings WHERE timepoint = $1"
 
 	var nerveRing domain.NerveRing
-	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&nerveRing.ID, &nerveRing.UID, &nerveRing.Timepoint, &nerveRing.Filename, &nerveRing.Color)
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&nerveRing.ID, &nerveRing.UID, &nerveRing.ULID, &nerveRing.Timepoint, &nerveRing.Filename, &nerveRing.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.NerveRing{}, nil
@@ -73,9 +73,9 @@ func (r *PostgresNerveRingRepository) CreateNerveRing(ctx context.Context, nerve
 		return fmt.Errorf("nerve ring already exists")
 	}
 
-	query := "INSERT INTO nerve_rings (uid, timepoint, filename, color) VALUES ($1, $2, $3, $4)"
+	query := "INSERT INTO nerve_rings (uid, ulid, timepoint, filename, color) VALUES ($1, $2, $3, $4, $5)"
 
-	_, err = r.DB.Exec(ctx, query, nerveRing.UID, nerveRing.Timepoint, nerveRing.Filename, nerveRing.Color)
+	_, err = r.DB.Exec(ctx, query, nerveRing.UID, nerveRing.ULID, nerveRing.Timepoint, nerveRing.Filename, nerveRing.Color)
 	if err != nil {
 		return err
 	}

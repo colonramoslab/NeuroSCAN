@@ -15,8 +15,8 @@ const CphateMetaItemULIDPrefix = "cph_mi"
 
 type CphateNode struct {
 	id             int
-	uid            string
 	ulid string
+	uid            string
 	cphateId       int
 	cluster        int
 	clusterCount   int
@@ -39,8 +39,8 @@ type CphateMetaItem struct {
 
 type Cphate struct {
 	ID        int        `json:"-"`
-	UID       string     `json:"uid"`
 	ULID      string     `json:"id"`
+	UID       string     `json:"uid"`
 	Timepoint int        `json:"timepoint"`
 	Structure CphateMeta `json:"structure"`
 }
@@ -56,7 +56,7 @@ func (c *Cphate) Parse(dirPath string) error {
 
 	timepointString := strconv.Itoa(timepoint)
 
-	ulid := toolshed.BuildUID(CphateULIDPrefix)
+	ulid := toolshed.CreateULID(CphateULIDPrefix)
 	c.ULID = ulid
 	c.UID = "CPHATE " + timepointString
 
@@ -143,7 +143,7 @@ func buildCphateMetaItem(node string, filename string, color toolshed.Color) (Cp
 		}
 	}
 
-	ulid := toolshed.BuildUID(CphateMetaItemULIDPrefix)
+	ulid := toolshed.CreateULID(CphateMetaItemULIDPrefix)
 
 	cphateMetaItem := CphateMetaItem{
 		I:       iteration,

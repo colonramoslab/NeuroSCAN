@@ -24,7 +24,7 @@ func (c *Contact) Parse(filePath string) error {
 		return errors.New("error parsing contact file path: " + err.Error())
 	}
 
-	ulid := toolshed.BuildUID(ContactULIDPrefix)
+	ulid := toolshed.CreateULID(ContactULIDPrefix)
 	fileMeta := fileMetas[0]
 
 	c.UID = fileMeta.UID

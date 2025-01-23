@@ -10,8 +10,8 @@ const ScaleULIDPrefix = "scl"
 
 type Scale struct {
 	ID        int            `json:"-"`
-	UID       string         `json:"uid"`
 	ULID      string         `json:"id"`
+	UID       string         `json:"uid"`
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
@@ -27,7 +27,7 @@ func (s *Scale) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 
 	s.UID = fileMeta.UID
-	s.ULID = toolshed.BuildUID(ScaleULIDPrefix)
+	s.ULID = toolshed.CreateULID(ScaleULIDPrefix)
 	s.Filename = fileMeta.Filename
 	s.Timepoint = fileMeta.Timepoint
 	s.Color = fileMeta.Color
