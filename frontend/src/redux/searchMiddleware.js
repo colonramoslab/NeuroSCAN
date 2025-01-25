@@ -1,5 +1,7 @@
 import * as search from './actions/search';
+// eslint-disable-next-line import/no-cycle
 import doSearch from '../services/helpers';
+// eslint-disable-next-line import/no-cycle
 import doGetAll from '../services/getAllHelper';
 // eslint-disable-next-line import/no-cycle
 import nerveRingService from '../services/NerveRingService';
@@ -67,7 +69,6 @@ const searchMiddleware = (store) => (next) => (action) => {
       nerveRingService
         .getNerveRingByTimepoint(timePoint)
         .then((ring) => {
-          console.log('ring', ring);
           if (ring) {
             const ringInstances = nerveRingService.getInstances(ring);
             store.dispatch(addInstances(viewerId, ringInstances, VIEWERS.InstanceViewer));
@@ -90,7 +91,7 @@ const searchMiddleware = (store) => (next) => (action) => {
         .then((scale) => {
           if (scale) {
             const scaleInstances = scaleService.getInstances(scale);
-            store.dispatch(addInstances(null, scaleInstances, VIEWERS.ScaleViewer));
+            store.dispatch(addInstances(null, scaleInstances, VIEWERS.InstanceViewer));
           }
           next(loadingSuccess(msg, action.type));
         },

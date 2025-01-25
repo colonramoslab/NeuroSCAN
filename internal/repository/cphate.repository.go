@@ -13,6 +13,7 @@ import (
 
 type CphateRepository interface {
 	GetCphateByTimepoint(ctx context.Context, timepoint int) (domain.Cphate, error)
+	CountCphates(ctx context.Context, timepoint int) (int, error)
 	CphateExists(ctx context.Context, timepoint int) (bool, error)
 	CreateCphate(ctx context.Context, cphate domain.Cphate) error
 	DeleteCphate(ctx context.Context, timepoint int) error
@@ -44,6 +45,18 @@ func (r *PostgresCphateRepository) GetCphateByTimepoint(ctx context.Context, tim
 	}
 
 	return cphate, nil
+}
+
+func (r *PostgresCphateRepository) CountCphates(ctx context.Context, timepoint int) (int, error) {
+	query := "SELECT COUNT(*) FROM cphates WHERE timepoint = $1"
+
+	var count int
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (r *PostgresCphateRepository) CphateExists(ctx context.Context, timepoint int) (bool, error) {

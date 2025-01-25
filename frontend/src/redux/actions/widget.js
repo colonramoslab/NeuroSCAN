@@ -62,10 +62,11 @@ export const setInstancesColor = ((viewerId, instances, color) => ({
   color,
 }));
 
-export const updateTimePointViewer = ((viewerId, timePoint) => ({
+export const updateTimePointViewer = ((viewerId, timePoint, newViewer) => ({
   type: UPDATE_TIMEPOINT_VIEWER,
   viewerId,
   timePoint,
+  newViewer,
 }));
 
 export const updateBackgroundColorViewer = ((viewerId, backgroundColor) => ({

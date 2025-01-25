@@ -28,12 +28,18 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
+  {
+    title: 'Scale',
+    resultItem: 'scale',
+    image: SYNAPSES,
+  },
 ];
 
 const initialSelectedItems = {
   neurons: [],
   contacts: [],
   synapses: [],
+  scale: [],
 };
 const Results = ({ timePoint }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -43,6 +49,7 @@ const Results = ({ timePoint }) => {
 
   const searchesCount = useSelector((state) => state.search.searchesCount);
   const handleClick = (event, selectedItem) => {
+    console.log('selectedItem', selectedItem);
     setCurrentItem(selectedItem);
     setAnchorEl(event.currentTarget);
   };
@@ -57,8 +64,11 @@ const Results = ({ timePoint }) => {
       const instances = [mapToInstance(currentItem)];
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
     } else if (Object.values(selectedItems).some((array) => array.length > 0)) {
+      console.log('selectedItems', selectedItems);
       const itemsArray = Object.values(selectedItems).flat();
+      console.log('itemsArray', itemsArray);
       const instances = itemsArray.map((item) => mapToInstance(item));
+      console.log('instances', instances);
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
       setSelectedItems(initialSelectedItems);
       Object.keys(selectedItems).forEach((key) => dispatch(search.deselectAll({ entity: key })));

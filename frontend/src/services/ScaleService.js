@@ -5,7 +5,7 @@ import { getLocationPrefixFromType, buildColor } from './instanceHelpers';
 const scaleBackendUrl = '/scales';
 
 /* eslint class-methods-use-this:
-    ["error", { "exceptMethods": ["getInstances", "getScaleByTimepoint"] }]
+    ["error", { "exceptMethods": ["getInstances", "getScaleByTimepoint", "getByUID"] }]
 */
 export class ScaleService {
   mapScaleInstance(scale, fileUrl, fileType) {
@@ -42,7 +42,20 @@ export class ScaleService {
           timepoint,
         },
       })
-      .then((response) => response.data);
+      .then((response) => {
+        const scale = response.data;
+        scale.instanceType = SCALE_TYPE;
+        return scale;
+      });
+  }
+
+  async getByUID(timePoint, uids = []) {
+    const query = `timepoint=${timePoint}`;
+    const response = await backendClient.get(`${scaleBackendUrl}?${query}`);
+    return response.data.map((scale) => ({
+      instanceType: SCALE_TYPE,
+      ...scale,
+    }));
   }
 }
 

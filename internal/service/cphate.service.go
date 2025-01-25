@@ -9,6 +9,7 @@ import (
 
 type CphateService interface {
 	GetCphateByTimepoint(ctx context.Context, timepoint int) (domain.Cphate, error)
+	CountCphates(ctx context.Context, timepoint int) (int, error)
 	CphateExists(ctx context.Context, timepoint int) (bool, error)
 	CreateCphate(ctx context.Context, cphate domain.Cphate) error
 	IngestCphate(ctx context.Context, cphate domain.Cphate, skipExisting bool, force bool) (bool, error)
@@ -27,6 +28,10 @@ func NewCphateService(repo repository.CphateRepository) CphateService {
 
 func (s *cphateService) GetCphateByTimepoint(ctx context.Context, timepoint int) (domain.Cphate, error) {
 	return s.repo.GetCphateByTimepoint(ctx, timepoint)
+}
+
+func (s *cphateService) CountCphates(ctx context.Context, timepoint int) (int, error) {
+	return s.repo.CountCphates(ctx, timepoint)
 }
 
 func (s *cphateService) CphateExists(ctx context.Context, timepoint int) (bool, error) {

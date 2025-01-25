@@ -1715,6 +1715,11 @@ const theme = createTheme({
             '& img': {
               marginRight: '0.625rem',
             },
+            '&.disabled': {
+              cursor: 'default',
+              opacity: '0.5',
+              pointerEvents: 'none',
+            },
           },
           '& h3': {
             fontWeight: 'bold',

@@ -40,3 +40,26 @@ func (h *CphateHandler) CphateByTimepoint(c echo.Context) error {
 	c.JSON(http.StatusOK, cphate)
 	return nil
 }
+
+func (h *CphateHandler) CountCphates(c echo.Context) error {
+	var req domain.APIV1Request
+
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	if req.Timepoint == nil {
+		c.JSON(http.StatusBadRequest, errors.New("timepoint is required"))
+		return errors.New("timepoint is required")
+	}
+
+	count, err := h.cphateService.CountCphates(c.Request().Context(), *req.Timepoint)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, count)
+	return nil
+}

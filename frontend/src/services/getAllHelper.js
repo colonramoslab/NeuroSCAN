@@ -1,6 +1,8 @@
 import neuronService from './NeuronService';
 import contactService from './ContactService';
 import synapseService from './SynapseService';
+/* eslint-disable import/no-cycle */
+import scaleService from './ScaleService';
 import * as search from '../redux/actions/search';
 import { loading, loadingSuccess } from '../redux/actions/misc';
 import { SET_ALL } from '../redux/actions/search';
@@ -121,7 +123,27 @@ const doGetAllContacts = async (dispatch, searchState) => {
   dispatch(loadingSuccess('Adding all instances', SET_ALL));
 };
 
-export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses']) => {
+const doGetAllScales = async (dispatch, searchState) => {
+  dispatch(loading('Adding all instances', SET_ALL));
+  const items = [];
+  const scales = await scaleService.getScaleByTimepoint(searchState.filters.timePoint);
+  dispatch(
+    search.updateCounters({
+      scale: 1,
+    }),
+  );
+  items.push(scales);
+  dispatch(
+    search.setAll({
+      scale: {
+        items,
+      },
+    }),
+  );
+  dispatch(loadingSuccess('Adding all instances', SET_ALL));
+};
+
+export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses', 'scale']) => {
   entities.forEach((entity) => {
     switch (entity) {
       case 'neurons': {
@@ -134,6 +156,10 @@ export default async (dispatch, searchState, entities = ['neurons', 'contacts', 
       }
       case 'synapses': {
         doGetAllSynapses(dispatch, searchState);
+        break;
+      }
+      case 'scale': {
+        doGetAllScales(dispatch, searchState);
         break;
       }
 

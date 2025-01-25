@@ -17,6 +17,7 @@ func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandle
 	e.GET("/synapses/count", synapseHandler.CountSynapses)
 
 	e.GET("/cphates", cphateHandler.CphateByTimepoint)
+	e.GET("/cphates/count", cphateHandler.CountCphates)
 
 	e.GET("/nerve-rings", nerveringHandler.NerveRingByTimepoint)
 
