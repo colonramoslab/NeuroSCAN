@@ -30,7 +30,7 @@ export class CphateService {
     return {
       id,
       uid: id,
-      name: `${obj.neurons.join(', ')} (${obj.c})`,
+      name: obj.neurons.join(', '),
       i: obj.i,
       c: obj.c,
       selected: false,

@@ -34,7 +34,7 @@ const MenuControl = ({
   const [openWarningModal, setOpenWarningModal] = useState(false);
   const [lostInstances, setLostInstances] = useState([]);
 
-  const layersList = ['Worm Body', 'Pharynx', 'NerveRing'];
+  // const layersList = ['Worm Body', 'Pharynx', 'NerveRing'];
   const downloadFiles = (option) => {
     // console.log(`selected option: ${option}`);
     handleClose();
@@ -92,8 +92,8 @@ const MenuControl = ({
         />,
       );
         break;
-      case VIEWER_MENU.layers: setContent(<LayersMenu layers={layersList} />);
-        break;
+      // case VIEWER_MENU.layers: setContent(<LayersMenu layers={layersList} />);
+      //   break;
       case VIEWER_MENU.colorPicker:
         setContent(
           <ColorPickerMenu
