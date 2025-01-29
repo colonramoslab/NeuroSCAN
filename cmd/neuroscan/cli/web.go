@@ -17,7 +17,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/time/rate"
 )
 
 type WebCmd struct{}
@@ -66,7 +65,7 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 			Level: 5,
 		}))
 
-		e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(100))))
+		// e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(100))))
 
 		e.Use(middleware.Recover())
 	}
