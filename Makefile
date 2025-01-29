@@ -1,7 +1,7 @@
 .PHONY: build clean
 
 # Binary name and path
-BINARY_DIR=~/code/neuroscan
+BINARY_DIR=/usr/local/bin
 BINARY_NAME=neuroscan
 CMD_PATH=cmd/neuroscan
 
@@ -12,6 +12,7 @@ BUILD_FLAGS=-trimpath -buildvcs=false -ldflags "$(LDFLAGS)"
 build:
 	@echo "Building binary..."
 	go build $(BUILD_FLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./$(CMD_PATH)
+	cp .env /etc/default/neuroscan.env
 
 clean:
 	@echo "Cleaning up..."
