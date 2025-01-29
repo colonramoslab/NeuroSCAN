@@ -28,11 +28,11 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
-  {
-    title: 'Scale',
-    resultItem: 'scale',
-    image: SYNAPSES,
-  },
+  // {
+  //   title: 'Scale',
+  //   resultItem: 'scale',
+  //   image: SYNAPSES,
+  // },
 ];
 
 const initialSelectedItems = {

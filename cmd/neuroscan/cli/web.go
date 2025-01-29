@@ -72,7 +72,7 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	}
 
 	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	// e.Use(middleware.Recover())
 
 	// config := middleware.RateLimiterConfig{
 	// 	Skipper: middleware.DefaultSkipper,
