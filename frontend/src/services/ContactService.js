@@ -61,12 +61,12 @@ export class ContactService {
 
   constructQuery(searchState) {
     const { searchTerms, timePoint } = searchState.filters;
-    const results = searchState.results.neurons;
+    const results = searchState.results.contacts;
 
     const query = {
       timepoint: timePoint,
-      start: searchState?.limit ? searchState?.start : results.items.length,
-      limit: searchState?.limit || maxRecordsPerFetch,
+      start: results.items.length,
+      limit: maxRecordsPerFetch,
       sort: 'uid:ASC',
     };
 

@@ -33,11 +33,13 @@ const searchMiddleware = (store) => (next) => (action) => {
     }
 
     case search.LOAD_MORE: {
+      console.log('action', action);
       const { entity } = action.data;
       next({
         type: action.type,
       });
       const state = store.getState();
+      console.log('state', state);
       doSearch(store.dispatch, state.search, [entity]);
       break;
     }

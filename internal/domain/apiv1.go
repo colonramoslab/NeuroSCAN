@@ -7,7 +7,7 @@ type APIV1Request struct {
 	Types      []string `query:"type"`
 	Sort       string   `query:"sort"`
 	Limit      int      `query:"limit"`
-	Offset     int      `query:"offset"`
+	Offset     int      `query:"start"`
 	PostNeuron string   `query:"post_neuron"`
 	PreNeuron  string   `query:"pre_neuron"`
 }

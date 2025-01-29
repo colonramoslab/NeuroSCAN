@@ -145,6 +145,7 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
 
     case search.UPDATE_RESULTS:
     {
+      console.log('state', state);
       return {
         ...state,
         searchesCount: state.searchesCount - 1,
