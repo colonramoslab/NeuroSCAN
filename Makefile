@@ -1,7 +1,7 @@
 .PHONY: build clean
 
 # Binary name and path
-BINARY_DIR=/usr/local/bin
+BINARY_DIR=~/code/neuroscan
 BINARY_NAME=neuroscan
 CMD_PATH=cmd/neuroscan
 
