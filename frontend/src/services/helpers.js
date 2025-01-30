@@ -1,6 +1,10 @@
 import neuronService from './NeuronService';
 import contactService from './ContactService';
 import synapseService from './SynapseService';
+// eslint-disable-next-line import/no-cycle
+import scaleService from './ScaleService';
+// eslint-disable-next-line import/no-cycle
+import cphateService from './CphateService';
 import * as search from '../redux/actions/search';
 //
 
@@ -64,7 +68,46 @@ const doSearchContacts = async (dispatch, searchState) => {
   });
 };
 
-export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses']) => {
+const doSearchCphate = async (dispatch, searchState) => {
+  const { timePoint } = searchState.filters;
+  cphateService.totalCount(timePoint).then((count) => {
+    dispatch(
+      search.updateCounters({
+        cphate: count,
+      }),
+    );
+  });
+  cphateService.getCphateByTimepoint(timePoint).then((data) => {
+    dispatch(
+      search.updateResults({
+        cphate: {
+          ...searchState.results.cphate,
+          items: searchState.results.cphate.items.concat(data),
+        },
+      }),
+    );
+  });
+};
+
+const doSearchScale = async (dispatch, searchState) => {
+  const { timePoint } = searchState.filters;
+  dispatch(
+    search.updateCounters({
+      scale: 1,
+    }),
+  );
+  scaleService.getScaleByTimepoint(timePoint).then((data) => {
+    dispatch(
+      search.updateResults({
+        scale: {
+          items: [data],
+        },
+      }),
+    );
+  });
+};
+
+export default async (dispatch, searchState, entities = ['neurons', 'contacts', 'synapses', 'scale', 'cphate']) => {
   entities.forEach((entity) => {
     switch (entity) {
       case 'neurons': {
@@ -77,6 +120,14 @@ export default async (dispatch, searchState, entities = ['neurons', 'contacts', 
       }
       case 'synapses': {
         doSearchSynapses(dispatch, searchState);
+        break;
+      }
+      case 'scale': {
+        doSearchScale(dispatch, searchState);
+        break;
+      }
+      case 'cphate': {
+        doSearchCphate(dispatch, searchState);
         break;
       }
 

@@ -42,7 +42,7 @@ export class NerveRingService {
           timepoint,
         },
       })
-      .then((response) => response.data[0]);
+      .then((response) => response.data);
   }
 }
 

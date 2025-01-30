@@ -89,13 +89,14 @@ export const VIEWER_MENU = {
   colorPicker: 'colorPicker',
 };
 
-export const filesURL = 'https://neuroscan-files.s3.amazonaws.com/2024_08_21T14_00_28/files';
+export const filesURL = '/files';
 
 export const NEURON_TYPE = 'neuron';
 export const CONTACT_TYPE = 'contact';
 export const SYNAPSE_TYPE = 'synapse';
 export const NERVE_RING_TYPE = 'nervering';
 export const CPHATE_TYPE = 'cluster';
+export const SCALE_TYPE = 'scale';
 
 export const CANVAS_BACKGROUND_COLOR_LIGHT = 0xFFFFFF;
 export const CANVAS_BACKGROUND_COLOR_DARK = 0x2C2C2C;

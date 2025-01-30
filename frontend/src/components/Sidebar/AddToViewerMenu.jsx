@@ -67,12 +67,17 @@ const AddToViewerMenu = ({
     return [];
   }
 
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+  };
+
   return (
     <Menu
       id="addToViewerMenu"
       className="custom-popover dark right"
       anchorEl={anchorEl}
       keepMounted
+      onContextMenu={handleContextMenu}
       open={useAnchorPosition ? true : Boolean(anchorEl)}
       anchorReference={useAnchorPosition ? 'anchorPosition' : undefined}
       anchorPosition={useAnchorPosition ? anchorPosition : undefined}

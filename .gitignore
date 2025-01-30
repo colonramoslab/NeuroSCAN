@@ -11,3 +11,5 @@ node_modules/
 applications/neuroscan/backend/public/files/
 applications/neuroscan/backend/.tmp/
 *.gltf
+./neuroscan
+neuroscan

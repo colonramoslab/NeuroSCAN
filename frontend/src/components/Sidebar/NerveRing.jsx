@@ -24,7 +24,7 @@ const NerveRing = ({ timePoint }) => {
     <Box className="wrap" onClick={createNerveRingViewer} id="nerveRing-id">
       <Typography component="h5">
         <img src={PLUS} alt="Plus" />
-        Add Nerve Ring
+        Add Nerve Ring (add last)
       </Typography>
     </Box>
   );

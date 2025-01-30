@@ -7,7 +7,7 @@ const devStagesBackendUrl = '/developmental-stages';
 */
 export class DevStageService {
   async getDevStages() {
-    const response = await backendClient.get(`${devStagesBackendUrl}`);
+    const response = await backendClient.get(`${devStagesBackendUrl}?sort=order:ASC`);
     return response.data;
   }
 }

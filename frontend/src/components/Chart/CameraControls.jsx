@@ -90,13 +90,13 @@ const CameraControls = (props) => {
       ref: developmentRef,
       constant: VIEWER_MENU.devStage,
     },
-    {
-      action: cameraControlsActions.LAYERS,
-      tooltip: 'Addons',
-      image: LAYERS,
-      ref: layersRef,
-      constant: VIEWER_MENU.layers,
-    },
+    // {
+    //   action: cameraControlsActions.LAYERS,
+    //   tooltip: 'Addons',
+    //   image: LAYERS,
+    //   ref: layersRef,
+    //   constant: VIEWER_MENU.layers,
+    // },
   ];
 
   const controlsRight = [

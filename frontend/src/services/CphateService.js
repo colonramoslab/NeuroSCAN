@@ -5,7 +5,12 @@ import { getLocationPrefixFromType, sortedInstances } from './instanceHelpers';
 const cphateUrl = '/cphates';
 
 /* eslint class-methods-use-this:
-    ["error", { "exceptMethods": ["getInstances", "getCphateByTimepoint", "createTestCphate"] }]
+    ["error", { "exceptMethods": [
+      "getInstances",
+      "getCphateByTimepoint",
+      "createTestCphate",
+      "totalCount"
+    ] }]
 */
 export class CphateService {
   async createTestCphate() {
@@ -25,7 +30,7 @@ export class CphateService {
     return {
       id,
       uid: id,
-      name: `${obj.neurons.join(', ')} (${obj.c})`,
+      name: obj.neurons.join(', '),
       i: obj.i,
       c: obj.c,
       selected: false,
@@ -56,7 +61,17 @@ export class CphateService {
           timepoint,
         },
       })
-      .then((response) => response.data[0]);
+      .then((response) => response.data);
+  }
+
+  async totalCount(timepoint) {
+    return backendClient
+      .get(`${cphateUrl}/count`, {
+        params: {
+          timepoint,
+        },
+      })
+      .then((response) => response.data);
   }
 }
 

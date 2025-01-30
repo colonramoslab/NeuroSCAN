@@ -2,6 +2,7 @@ export const ADD_INSTANCES = 'ADD_INSTANCES';
 export const CLONE_VIEWER_WITH_INSTANCES_LIST = 'CLONE_VIEWER_CLONE_INSTANCES_LIST';
 export const ADD_CPHATE = 'ADD_CPHATE';
 export const ADD_NERVE_RING = 'ADD_NERVE_RING';
+export const ADD_SCALE = 'ADD_SCALE';
 export const ADD_INSTANCES_TO_GROUP = 'ADD_INSTANCES_TO_GROUP';
 export const SET_INSTANCES_COLOR = 'SET_INSTANCES_COLOR';
 export const UPDATE_TIMEPOINT_VIEWER = 'UPDATE_TIMEPOINT_VIEWER';
@@ -41,6 +42,12 @@ export const addNerveRing = (timePoint, viewer) => ({
   viewer,
 });
 
+export const addScale = (timePoint, viewer) => ({
+  type: ADD_SCALE,
+  timePoint,
+  viewer,
+});
+
 export const addInstancesToGroup = ((viewerId, instances, group) => ({
   type: ADD_INSTANCES_TO_GROUP,
   viewerId,
@@ -55,10 +62,11 @@ export const setInstancesColor = ((viewerId, instances, color) => ({
   color,
 }));
 
-export const updateTimePointViewer = ((viewerId, timePoint) => ({
+export const updateTimePointViewer = ((viewerId, timePoint, newViewer) => ({
   type: UPDATE_TIMEPOINT_VIEWER,
   viewerId,
   timePoint,
+  newViewer,
 }));
 
 export const updateBackgroundColorViewer = ((viewerId, backgroundColor) => ({

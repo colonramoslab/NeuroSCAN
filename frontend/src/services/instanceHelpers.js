@@ -11,7 +11,7 @@ import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
 import {
-  CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE,
+  CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE, SCALE_TYPE,
 } from '../utilities/constants';
 // import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
@@ -254,8 +254,8 @@ const getDevStageFromTimepoint = (timepoint) => {
   const state = store.getState();
   const devStage = state.devStages.neuroSCAN
     .find((stage) => stage.timepoints !== null
-      && stage.timepoints.includes(`${timepoint}`));
-  return devStage.name;
+      && stage.timepoints.includes(timepoint));
+  return devStage.uid;
 };
 
 export const getLocationPrefixFromType = (item) => {
@@ -275,6 +275,9 @@ export const getLocationPrefixFromType = (item) => {
     }
     case NERVE_RING_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/nerveRing/`;
+    }
+    case SCALE_TYPE: {
+      return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/scale/${item.filename}`;
     }
     default: {
       return '';
@@ -317,7 +320,7 @@ export const mapToInstance = (item) => {
     id: item.id,
     uid: `i_${item.uid.replace(/[-&~]/g, '_')}_${item.timepoint}`,
     uidFromDb: item.uid,
-    name: item.name,
+    name: item.uid,
     selected: false,
     color,
     instanceType: item.instanceType,
@@ -375,7 +378,7 @@ const createSimpleInstance = async (instance) => {
   return new SimpleInstance({
     eClass: 'SimpleInstance',
     id: instance.uid,
-    name: instance.name,
+    name: instance.uid,
     type: { eClass: 'SimpleType' },
     visualValue,
   });

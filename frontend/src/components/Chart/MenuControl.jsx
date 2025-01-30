@@ -34,7 +34,7 @@ const MenuControl = ({
   const [openWarningModal, setOpenWarningModal] = useState(false);
   const [lostInstances, setLostInstances] = useState([]);
 
-  const layersList = ['Worm Body', 'Pharynx', 'NerveRing'];
+  // const layersList = ['Worm Body', 'Pharynx', 'NerveRing'];
   const downloadFiles = (option) => {
     // console.log(`selected option: ${option}`);
     handleClose();
@@ -57,15 +57,15 @@ const MenuControl = ({
        * version but we are not supporting this anymore. */
       dispatch(deleteFromWidget(viewerId));
       // This below is the only line should stay in this condition
-      dispatch(updateTimePointViewer(viewerId, timePoint));
+      dispatch(updateTimePointViewer(viewerId, timePoint, true));
       // end of the hack
     }
   }, [timePoint]);
 
   useEffect(() => {
     if (currentWidget && timePoint !== currentWidget?.timePoint && instances.length !== 0) {
-      const lostInstancesArray = addedObjectsToViewer?.filter((item1) => !instances
-        .some((item2) => item2.name === item1.name));
+      const lostInstancesArray = instances?.filter((item1) => !addedObjectsToViewer
+        .some((item2) => item1.name.toLowerCase() === item2.name.toLowerCase()));
       setLostInstances(lostInstancesArray);
     }
   }, [timePoint, addedObjectsToViewer, instances]);
@@ -92,8 +92,8 @@ const MenuControl = ({
         />,
       );
         break;
-      case VIEWER_MENU.layers: setContent(<LayersMenu layers={layersList} />);
-        break;
+      // case VIEWER_MENU.layers: setContent(<LayersMenu layers={layersList} />);
+      //   break;
       case VIEWER_MENU.colorPicker:
         setContent(
           <ColorPickerMenu

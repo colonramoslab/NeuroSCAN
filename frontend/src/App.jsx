@@ -36,6 +36,7 @@ window.Instances = [];
 const App = () => {
   const dispatch = useDispatch();
   const misc = useSelector((state) => state.misc);
+  const loadingMessages = ['Loading...'];
 
   useEffect(() => {
     dispatch(addDevStages());
@@ -59,7 +60,7 @@ const App = () => {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <Loader active={getActiveStatus()} />
+      <Loader active={getActiveStatus()} messages={loadingMessages} className="custom-loading-text" />
       <Router>
         <Switch>
           <Route exact path="/" component={mainComponent} />

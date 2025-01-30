@@ -26,7 +26,7 @@ export class NeuronService {
   }
 
   async getByUID(timePoint, uids = []) {
-    const query = `timepoint=${timePoint}&_limit=${uids.length + 1}${uids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    const query = `timepoint=${timePoint}&limit=${uids.length + 1}${uids.map((uid) => `&uid=${uid}`).join('')}`;
     const response = await backendClient.get(`${neuronsBackendUrl}?${query}`);
     return response.data.map((neuron) => ({
       instanceType: NEURON_TYPE,
@@ -37,15 +37,29 @@ export class NeuronService {
   constructQuery(searchState) {
     const { searchTerms, timePoint } = searchState.filters;
     const results = searchState.results.neurons;
-    return qs.stringify({
-      _where: [
-        { timepoint: timePoint },
-        { _or: searchTerms.map((term) => ({ uid_contains: term })) },
-      ],
-      _sort: 'uid:ASC',
-      _start: searchState?.limit ? searchState.start : results.items.length,
-      _limit: searchState?.limit || maxRecordsPerFetch,
-    });
+    let start = 0;
+
+    if (searchState.start !== undefined) {
+      start = searchState.start;
+    } else if (results.items.length > 0) {
+      start = results.items.length;
+    }
+
+    const query = {
+      timepoint: timePoint,
+      start,
+      limit: searchState.limit ? searchState.limit : maxRecordsPerFetch,
+      sort: 'uid:ASC',
+    };
+
+    let queryString = qs.stringify(query);
+
+    if (searchTerms.length > 0) {
+      const searchTermsString = searchTerms.map((term) => `&uid=${term}`).join('');
+      queryString += searchTermsString;
+    }
+
+    return queryString;
   }
 
   async search(searchState) {
@@ -61,7 +75,6 @@ export class NeuronService {
     const query = this.constructQuery({
       ...searchState,
       start: searchState.start,
-      limit: searchState.limit,
     });
     const response = await backendClient.get(`${neuronsBackendUrl}?${query}`);
     return response.data.map((neuron) => ({

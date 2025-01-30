@@ -30,11 +30,16 @@ import synapseService from '../services/SynapseService';
 // eslint-disable-next-line import/no-cycle
 import cphateService from '../services/CphateService';
 // eslint-disable-next-line import/no-cycle
+import scaleService from '../services/ScaleService';
+// eslint-disable-next-line import/no-cycle
 import nerveRingService from '../services/NerveRingService';
 import {
   CONTACT_TYPE,
   NEURON_TYPE,
-  SYNAPSE_TYPE, VIEWERS,
+  SYNAPSE_TYPE,
+  SCALE_TYPE,
+  NERVE_RING_TYPE,
+  VIEWERS,
 } from '../utilities/constants';
 // eslint-disable-next-line import/no-cycle
 import { cameraControlsRotateState } from '../components/Chart/CameraControls';
@@ -68,7 +73,7 @@ export const createWidget = (store, timePoint, viewerType) => {
   }, 1);
   return {
     id: null,
-    name: `${viewerType} ${viewerNumber} (${devStage.name} ${timePoint})`,
+    name: `${viewerType} ${viewerNumber} (${devStage.uid} ${timePoint})`,
     type: viewerType,
     timePoint,
   };
@@ -215,8 +220,8 @@ const middleware = (store) => (next) => async (action) => {
     }
 
     case UPDATE_TIMEPOINT_VIEWER: {
+      const { timePoint, newViewer } = action;
       const widget = getWidget(store, action.viewerId);
-      const { timePoint } = action;
       const { addedObjectsToViewer } = widget.config;
 
       if (timePoint !== widget.config.timePoint) {
@@ -250,15 +255,34 @@ const middleware = (store) => (next) => async (action) => {
           next(loading(msg, action.type));
           next(addToWidget(widget, [], false, addedObjectsToViewer));
           const neurons = getInstancesOfType(addedObjectsToViewer, NEURON_TYPE) || [];
+          console.log('neurons', neurons);
           const contacts = getInstancesOfType(addedObjectsToViewer, CONTACT_TYPE) || [];
+          console.log('contacts', contacts);
           const synapses = getInstancesOfType(addedObjectsToViewer, SYNAPSE_TYPE) || [];
+          console.log('synapses', synapses);
+          const scale = getInstancesOfType(addedObjectsToViewer, SCALE_TYPE) || [];
+          console.log('scale', scale);
+          const nerveRing = getInstancesOfType(addedObjectsToViewer, NERVE_RING_TYPE) || [];
+          console.log('nerveRing', nerveRing);
 
           const newNeurons = await fetchDataForEntity(neuronService, timePoint, neurons);
+          console.log('newNeurons', newNeurons);
           const newContacts = await fetchDataForEntity(contactService, timePoint, contacts);
+          console.log('newContacts', newContacts);
           const newSynapses = await fetchDataForEntity(synapseService, timePoint, synapses);
+          console.log('newSynapses', newSynapses);
+          const newScale = await fetchDataForEntity(scaleService, timePoint, scale);
+          console.log('newScale', newScale);
+          const newNerveRing = await fetchDataForEntity(nerveRingService, timePoint, nerveRing);
+          console.log('newNerveRing', newNerveRing);
 
-          const newInstances = [...newNeurons, ...newContacts, ...newSynapses]
-            .map((i) => mapToInstance(i));
+          const newInstances = [
+            ...newNeurons,
+            ...newContacts,
+            ...newSynapses,
+            ...newScale,
+            ...newNerveRing,
+          ].map((i) => mapToInstance(i));
           widget.config.timePoint = timePoint; // update the current widget's timepoint
           await createSimpleInstancesFromInstances(newInstances);
           store.dispatch(addToWidget(widget, newInstances, true, addedObjectsToViewer));

@@ -25,7 +25,7 @@ export class SynapseService {
   async getByUID(timePoint, uids = []) {
     // UIDS can have ampersands in them, so we need to encode them
     const encodedUids = uids.map((uid) => encodeURIComponent(uid));
-    const query = `timepoint=${timePoint}${encodedUids.map((uid) => `&uid_in=${uid}`).join('')}`;
+    const query = `timepoint=${timePoint}${encodedUids.map((uid) => `&uid=${uid}`).join('')}`;
     const response = await backendClient.get(`${synapsesBackendUrl}?${query}`);
     return response.data.map((synapse) => ({
       instanceType: SYNAPSE_TYPE,
@@ -37,37 +37,41 @@ export class SynapseService {
     const { filters } = searchState;
     const { searchTerms, timePoint } = filters;
     const results = searchState.results.synapses;
-    const andPart = [];
-    andPart.push({ timepoint: timePoint });
-    if (searchTerms.length > 0) {
-      andPart.push({ searchTerms: searchTerms.join('|') });
+    let start = 0;
+
+    if (searchState.start !== undefined) {
+      start = searchState.start;
+    } else if (results.items.length > 0) {
+      start = results.items.length;
     }
+
+    const query = {
+      timepoint: timePoint,
+      start,
+      limit: searchState.limit ? searchState.limit : maxRecordsPerFetch,
+      sort: 'uid:ASC',
+    };
+
     if (filters.synapsesFilter.chemical) {
-      andPart.push({
-        type: 'chemical',
-      });
+      query.type = 'chemical';
     }
     if (filters.synapsesFilter.electrical) {
-      andPart.push({
-        type: 'electrical',
-      });
+      query.type = 'electrical';
     }
     if (filters.synapsesFilter.preNeuron) {
-      andPart.push({
-        neuronPre: filters.synapsesFilter.preNeuron,
-      });
+      query.pre_neuron = filters.synapsesFilter.preNeuron;
     }
     if (filters.synapsesFilter.postNeuron) {
-      andPart.push({
-        postNeuron: filters.synapsesFilter.postNeuron,
-      });
+      query.post_neuron = filters.synapsesFilter.postNeuron;
     }
-    return qs.stringify({
-      _where: andPart,
-      _sort: 'uid:ASC',
-      _start: searchState?.limit ? searchState?.start : results.items.length,
-      _limit: searchState?.limit || maxRecordsPerFetch,
-    });
+    let queryString = qs.stringify(query);
+
+    if (searchTerms.length > 0) {
+      const searchTermsString = searchTerms.map((term) => `&uid=${term}`).join('');
+      queryString += searchTermsString;
+    }
+
+    return queryString;
   }
 
   async search(searchState) {

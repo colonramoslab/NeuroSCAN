@@ -59,7 +59,7 @@ const DevelopmentalStageFilter = (props) => {
   };
 
   const marks = devStages
-    .reduce((x, devStage) => (x.concat(devStage.timepoints?.split(','))), [])
+    .reduce((x, devStage) => (x.concat(devStage.timepoints)), [])
     .filter((item) => item !== undefined)
     .map((mark) => ({
       value: parseInt(mark, 10),
@@ -69,6 +69,7 @@ const DevelopmentalStageFilter = (props) => {
   const min = Math.min(...devStages.map((devStage) => devStage.begin));
   // eslint-disable-next-line max-len
   const max = Math.max(...devStages.map((devStage) => Math.max(devStage.end, devStage.begin)));
+  devStages.sort((a, b) => a.order - b.order);
   const stepWidth = (max - min) / 100;
 
   return devStages.length > 0 && (
@@ -93,7 +94,7 @@ const DevelopmentalStageFilter = (props) => {
                 key={stage.id}
                 style={{ width: `${stageWidth}%` }}
               >
-                {stage.name}
+                {stage.uid}
               </Typography>
             );
           })

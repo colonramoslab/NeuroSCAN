@@ -18,6 +18,8 @@ export const SEARCH_DEFAULT_STATUS = {
       neurons: 0,
       contacts: 0,
       synapses: 0,
+      scale: 0,
+      cphate: 0,
     },
     searchesCount: 0,
     results: {
@@ -30,6 +32,12 @@ export const SEARCH_DEFAULT_STATUS = {
       synapses: {
         items: [],
       },
+      cphate: {
+        items: [],
+      },
+      scale: {
+        items: [],
+      },
     },
     allItems: {
       neurons: {
@@ -39,6 +47,12 @@ export const SEARCH_DEFAULT_STATUS = {
         items: [],
       },
       synapses: {
+        items: [],
+      },
+      cphate: {
+        items: [],
+      },
+      scale: {
         items: [],
       },
     },
@@ -56,7 +70,7 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
           searchTerms: action.searchTerms || state.filters.searchTerms,
           timePoint: action.timePoint || state.filters.timePoint,
           synapsesFilter: {
-            ...action.synapsesFilter || state.filters.synapsesFilter,
+            ...(action.synapsesFilter || state.filters.synapsesFilter),
           },
         },
         results: {
@@ -67,6 +81,12 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
             items: [],
           },
           synapses: {
+            items: [],
+          },
+          cphate: {
+            items: [],
+          },
+          scale: {
             items: [],
           },
         },
@@ -111,6 +131,12 @@ export default (state = SEARCH_DEFAULT_STATUS, action) => {
             items: [],
           },
           synapses: {
+            items: [],
+          },
+          cphate: {
+            items: [],
+          },
+          scale: {
             items: [],
           },
         },

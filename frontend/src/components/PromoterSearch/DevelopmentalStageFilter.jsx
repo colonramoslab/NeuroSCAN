@@ -95,14 +95,14 @@ const DevelopmentalStageFilter = (props) => {
         <img src={icon} alt="icon" />
       </Typography>
       <Typography className={classes.sliderValue}>
-        {stage.name}
+        {stage.uid}
       </Typography>
       <img width="6" height="4" src={DOWN} alt="DOWN" />
     </Box>
   );
 
   const marks = devStages
-    .reduce((x, devStage) => (x.concat(devStage.timepoints?.split(','))), [])
+    .reduce((x, devStage) => (x.concat(devStage.timepoints)), [])
     .filter((item) => item !== undefined)
     .map((mark, index) => ({
       value: (stageStep * (index)) + min,

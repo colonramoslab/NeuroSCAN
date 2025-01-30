@@ -1,7 +1,0 @@
-*/node_modules
-backend/public/files/
-frontend/geppetto-meta/
-.env
-backend/file_upload/
-*.db
-frontend/vendor

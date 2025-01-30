@@ -28,12 +28,18 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
+  // {
+  //   title: 'Scale',
+  //   resultItem: 'scale',
+  //   image: SYNAPSES,
+  // },
 ];
 
 const initialSelectedItems = {
   neurons: [],
   contacts: [],
   synapses: [],
+  scale: [],
 };
 const Results = ({ timePoint }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
