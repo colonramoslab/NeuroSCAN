@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandler *handler.ContactHandler, synapseHandler *handler.SynapseHandler, cphateHandler *handler.CphateHandler, nerveringHandler *handler.NerveRingHandler, scaleHandler *handler.ScaleHandler, promoterHandler *handler.PromoterHandler, developmentalStageHandler *handler.DevelopmentalStageHandler,) *echo.Echo {
+func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandler *handler.ContactHandler, synapseHandler *handler.SynapseHandler, cphateHandler *handler.CphateHandler, nerveringHandler *handler.NerveRingHandler, scaleHandler *handler.ScaleHandler, promoterHandler *handler.PromoterHandler, developmentalStageHandler *handler.DevelopmentalStageHandler) *echo.Echo {
 	e.GET("/neurons", neuronHandler.SearchNeurons)
 	e.GET("/neurons/count", neuronHandler.CountNeurons)
 
