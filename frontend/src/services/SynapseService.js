@@ -37,12 +37,21 @@ export class SynapseService {
     const { filters } = searchState;
     const { searchTerms, timePoint } = filters;
     const results = searchState.results.synapses;
+    let start = 0;
+
+    if (searchState.start !== undefined) {
+      start = searchState.start;
+    } else if (results.items.length > 0) {
+      start = results.items.length;
+    }
+
     const query = {
       timepoint: timePoint,
-      start: results.items.length,
-      limit: maxRecordsPerFetch,
+      start,
+      limit: searchState.limit ? searchState.limit : maxRecordsPerFetch,
       sort: 'uid:ASC',
     };
+
     if (filters.synapsesFilter.chemical) {
       query.type = 'chemical';
     }

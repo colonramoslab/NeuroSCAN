@@ -25,21 +25,21 @@ const doGetAllNeurons = async (dispatch, searchState) => {
   dispatch(loading('Adding all instances', SET_ALL));
   const items = [];
   const counter = await neuronService.totalCount(searchState);
-  const maxLimit = checkSearchState(searchState) ? 100 : 500;
-  let start = 0;
-  let end = counter < maxLimit ? counter : maxLimit;
+  const maxLimit = 1000000;
+  const start = 0;
+  // let end = counter < maxLimit ? counter : maxLimit;
 
-  while (end <= counter) {
-    // eslint-disable-next-line no-await-in-loop
-    const neurons = await neuronService.getAll({ ...searchState, start, limit: maxLimit });
-    items.push(...neurons);
-    start = end;
-    if (start < counter && start + maxLimit > counter) {
-      end = counter;
-    } else {
-      end += maxLimit;
-    }
-  }
+  // while (end <= counter) {
+  // eslint-disable-next-line no-await-in-loop
+  const neurons = await neuronService.getAll({ ...searchState, start, limit: maxLimit });
+  items.push(...neurons);
+  // start = end;
+  // if (start < counter && start + maxLimit > counter) {
+  //   end = counter;
+  // } else {
+  //   end += maxLimit;
+  // }
+  // }
   dispatch(
     search.updateCounters({
       neurons: counter,
@@ -59,21 +59,21 @@ const doGetAllSynapses = async (dispatch, searchState) => {
   dispatch(loading('Adding all instances', SET_ALL));
   const items = [];
   const counter = await synapseService.totalCount(searchState);
-  const maxLimit = checkSearchState(searchState) ? 100 : 500;
-  let start = 0;
-  let end = counter < maxLimit ? counter : maxLimit;
+  const maxLimit = 1000000;
+  const start = 0;
+  // let end = counter < maxLimit ? counter : maxLimit;
 
-  while (end <= counter) {
-    // eslint-disable-next-line no-await-in-loop
-    const synapses = await synapseService.getAll({ ...searchState, start, limit: maxLimit });
-    items.push(...synapses);
-    start = end;
-    if (start < counter && start + maxLimit > counter) {
-      end = counter;
-    } else {
-      end += maxLimit;
-    }
-  }
+  // while (end <= counter) {
+  // eslint-disable-next-line no-await-in-loop
+  const synapses = await synapseService.getAll({ ...searchState, start, limit: maxLimit });
+  items.push(...synapses);
+  // start = end;
+  // if (start < counter && start + maxLimit > counter) {
+  //   end = counter;
+  // } else {
+  //   end += maxLimit;
+  // }
+  // }
   dispatch(
     search.updateCounters({
       synapses: counter,
