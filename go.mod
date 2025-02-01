@@ -13,7 +13,6 @@ require (
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
 	github.com/schollz/progressbar/v3 v3.18.0
-	golang.org/x/time v0.9.0
 )
 
 require (
@@ -48,4 +47,5 @@ require (
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/time v0.9.0 // indirect
 )

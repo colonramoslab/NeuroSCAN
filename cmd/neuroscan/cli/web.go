@@ -68,6 +68,7 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		// e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(100))))
 
 		e.Use(middleware.Recover())
+		e.Use(middleware.Secure())
 	}
 
 	e.Use(middleware.Logger())
