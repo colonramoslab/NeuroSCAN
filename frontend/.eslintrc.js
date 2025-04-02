@@ -1,19 +1,18 @@
 module.exports = {
-  extends: [
-    'airbnb-typescript',
-  ],
+  extends: ["airbnb-typescript"],
   parserOptions: {
     project: "tsconfig.json",
     tsconfigRootDir: __dirname,
   },
   rules: {
-    'react/jsx-filename-extension': 0,
-    '@typescript-eslint/no-unused-vars': 1,
-    'react/no-array-index-key': 0,
-    'react/prop-types': 0,
-    'react/jsx-props-no-spreading': 0,
+    "react/jsx-filename-extension": 0,
+    "@typescript-eslint/no-unused-vars": 1,
+    "react/no-array-index-key": 0,
+    "react/prop-types": 0,
+    "react/jsx-props-no-spreading": 0,
+    "comma-dangle": [1, "always-multiline"],
   },
   globals: {
     window: true,
-  }
+  },
 };

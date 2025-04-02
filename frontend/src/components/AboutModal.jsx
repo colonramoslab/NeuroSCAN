@@ -36,14 +36,15 @@ const AboutModal = (props) => {
         </Box>
         <Box className="modal-body">
           {aboutText.map((value) => (
-            <Typography
+            <div
               dangerouslySetInnerHTML={{
                 __html: value,
               }}
             />
           ))}
+          <h3>Website design and development:</h3>
           <Typography>
-            {`${title} was developed with MetaCell and is currently maintained by Bilte Co.`}
+            {`${title} was initially developed by MetaCell and is currently maintained by Bilte Co.`}
           </Typography>
         </Box>
         <Box className="modal-footer">
