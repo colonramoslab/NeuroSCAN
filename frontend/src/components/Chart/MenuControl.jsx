@@ -22,7 +22,7 @@ import { updateTimePointViewer, deleteFromWidget } from '../../redux/actions/wid
 import WarningModal from '../WarningModal';
 
 const MenuControl = ({
-  anchorEl, handleClose, open, id, selection, viewerId,
+  anchorEl, setAnchorEl, handleClose, open, id, selection, viewerId,
 }) => {
   const dispatch = useDispatch();
   const widgets = useSelector((state) => state.widgets);
@@ -52,12 +52,23 @@ const MenuControl = ({
   const clusters = getInstancesOfType(instances, CPHATE_TYPE) || [];
 
   useEffect(() => {
+    console.log(`timepoint changing to ${timePoint}`);
+    console.log({ currentWidget });
+    console.log({ viewerId });
     if (currentWidget && timePoint !== currentWidget?.config?.timePoint) {
+      console.log('dispatching');
       /* TODO: this below is just an hack, it requires a new geppetto
        * version but we are not supporting this anymore. */
-      dispatch(deleteFromWidget(viewerId));
+      // dispatch(deleteFromWidget(viewerId));
       // This below is the only line should stay in this condition
-      dispatch(updateTimePointViewer(viewerId, timePoint, true));
+      dispatch(updateTimePointViewer(
+        viewerId,
+        timePoint,
+        currentWidget.config.timePoint,
+        currentWidget.component,
+        true,
+      ));
+      setAnchorEl(null);
       // end of the hack
     }
   }, [timePoint]);
@@ -71,16 +82,17 @@ const MenuControl = ({
   }, [timePoint, addedObjectsToViewer, instances]);
 
   useEffect(() => {
-    if (currentWidget
-      && timePoint !== currentWidget?.timePoint
-      && lostInstances.length !== 0) {
-      // const delay = setTimeout(() => {
-      setOpenWarningModal(true);
-      // clearTimeout(delay);
-      // }, 1000);
-    } else {
-      setOpenWarningModal(false);
-    }
+    // if (currentWidget
+    // && timePoint !== currentWidget?.timePoint
+    // && lostInstances.length !== 0) {
+    // console.log(lostInstances);
+    // const delay = setTimeout(() => {
+    // setOpenWarningModal(true);
+    // clearTimeout(delay);
+    // }, 1000);
+    // } else {
+    setOpenWarningModal(false);
+    // }
   }, [lostInstances]);
 
   useEffect(() => {

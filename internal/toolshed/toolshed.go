@@ -8,13 +8,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"neuroscan/pkg/gltf"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"neuroscan/pkg/gltf"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
@@ -169,7 +170,6 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 	filename := filepath.Base(filePath)
 
 	filehash, err := HashFile(filePath)
-
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting file hash")
 		return []NeuroscanFilepathData{}, err
@@ -182,7 +182,6 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 	}
 
 	devStageUID, err := GetDevStage(filePath)
-
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting developmental stage")
 		return []NeuroscanFilepathData{}, err
@@ -199,7 +198,8 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 	color := doc.Materials[0].PBRMetallicRoughness.BaseColorFactor
 
 	for _, node := range doc.Nodes {
-		uid := node.Name
+		// we need to make sure any spaces are replaced with underscores
+		uid := strings.ReplaceAll(node.Name, " ", "_")
 
 		parsedFile := NeuroscanFilepathData{
 			UID:                uid,
@@ -221,7 +221,6 @@ func CreateDirectory(path string, permissions os.FileMode) error {
 	// create directory if it doesn't exist at path
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.MkdirAll(path, permissions)
-
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating directory")
 			return err
@@ -246,7 +245,7 @@ func BuildFilePath(dir string, fileName string, extension string) string {
 	dir = filepath.Clean(dir)
 
 	// if dir does not exist, create it
-	err := CreateDirectory(dir, 0755)
+	err := CreateDirectory(dir, 0o755)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating directory")
 		return path
@@ -276,7 +275,7 @@ func BuildFilePath(dir string, fileName string, extension string) string {
 func CreateTempDirectory() string {
 	// create a temp directory
 	tempDirectory := os.TempDir() + "vsa-" + strconv.FormatInt(time.Now().Unix(), 10)
-	CreateDirectory(tempDirectory, 0755)
+	CreateDirectory(tempDirectory, 0o755)
 
 	return tempDirectory
 }
@@ -295,7 +294,7 @@ func GzipFile(input string, output string) error {
 	defer file.Close()
 
 	// create the directory if it doesn't exist
-	CreateDirectory(filepath.Dir(output), 0755)
+	CreateDirectory(filepath.Dir(output), 0o755)
 
 	// if output equals input, add .gz to the end
 	if output == input {

@@ -28,11 +28,11 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
-  // {
-  //   title: 'Scale',
-  //   resultItem: 'scale',
-  //   image: SYNAPSES,
-  // },
+  {
+    title: 'Scale',
+    resultItem: 'scale',
+    image: SYNAPSES,
+  },
 ];
 
 const initialSelectedItems = {
@@ -76,7 +76,7 @@ const Results = ({ timePoint }) => {
 
   if (searchesCount > 0) {
     buttonComponent = <CircularLoader />;
-  } else if (Object.values(selectedItems).some((array) => array.length > 0)) {
+  } else if (Object.values(selectedItems).some((array) => array.filter((item) => item.instanceType !== 'scale').length > 0)) {
     buttonComponent = (
       <Button
         disableElevation

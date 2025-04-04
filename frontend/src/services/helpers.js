@@ -100,7 +100,7 @@ const doSearchScale = async (dispatch, searchState) => {
     dispatch(
       search.updateResults({
         scale: {
-          items: [data],
+          items: data,
         },
       }),
     );
