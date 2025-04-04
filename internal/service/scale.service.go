@@ -8,7 +8,7 @@ import (
 )
 
 type ScaleService interface {
-	GetScaleByTimepoint(ctx context.Context, timepoint int) (domain.Scale, error)
+	GetScaleByTimepoint(ctx context.Context, timepoint int) ([]domain.Scale, error)
 	ScaleExists(ctx context.Context, timepoint int) (bool, error)
 	CreateScale(ctx context.Context, scale domain.Scale) error
 	IngestScale(ctx context.Context, scale domain.Scale, skipExisting bool, force bool) (bool, error)
@@ -25,7 +25,7 @@ func NewScaleService(repo repository.ScaleRepository) ScaleService {
 	}
 }
 
-func (s *scaleService) GetScaleByTimepoint(ctx context.Context, timepoint int) (domain.Scale, error) {
+func (s *scaleService) GetScaleByTimepoint(ctx context.Context, timepoint int) ([]domain.Scale, error) {
 	return s.repo.GetScaleByTimepoint(ctx, timepoint)
 }
 

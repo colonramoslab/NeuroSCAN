@@ -33,13 +33,11 @@ const searchMiddleware = (store) => (next) => (action) => {
     }
 
     case search.LOAD_MORE: {
-      console.log('action', action);
       const { entity } = action.data;
       next({
         type: action.type,
       });
       const state = store.getState();
-      console.log('state', state);
       doSearch(store.dispatch, state.search, [entity]);
       break;
     }
@@ -65,7 +63,9 @@ const searchMiddleware = (store) => (next) => (action) => {
     case ADD_NERVE_RING: {
       const { timePoint, viewer } = action;
       const viewerId = viewer.id || null;
-      // console.log(action);
+      if (viewer?.config?.type?.toLowerCase() === 'cphate') {
+        return;
+      }
       const msg = 'Add nerve ring';
       next(loading(msg, action.type));
       nerveRingService

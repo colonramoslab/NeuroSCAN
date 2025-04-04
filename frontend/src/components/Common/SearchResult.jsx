@@ -143,80 +143,97 @@ const SearchResult = (props) => {
     };
   }, [resultItem]);
 
+  useEffect(() => {
+    if (resultItem === 'scale') {
+      dispatch(search.getAll({ entity: resultItem }));
+      setSelectedItems({
+        ...selectedItems,
+        [resultItem]: [results.items[0]],
+      });
+    }
+  }, []);
+
   return (
     <>
-      <Accordion className={searchesCount > 0 ? classes.fade : ''} id={`${title}-result`}>
-        <AccordionSummary
-          expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
-          IconButtonProps={{ disableRipple: true }}
-        >
-          <Typography variant="h5">
-            {title}
-            {
-              selectedItems[resultItem].length === 0
-                ? (
-                  <Button
-                    variant="text"
-                    onClick={handleSelectAll}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                  >
-                    <Typography variant="caption">
-                      {isHovered ? `Select ${count} items` : `${count} items`}
-                    </Typography>
-                  </Button>
-                )
-                : (
-                  <Button variant="text" onClick={() => handleDeselectAllSelectedItems(resultItem)}>
-                    <Typography variant="caption">{`Deselect ${selectedItems[resultItem].length} items`}</Typography>
-                  </Button>
-                )
-            }
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <List component="nav" ref={listRef}>
-            {results && results.items.length > 0
-              ? results.items.map((item, i) => (
-                <ListItem
-                  key={`results-${resultItem}-listitem-${i}`}
-                  className={`${classes.listItem} ${isItemSelected(item) ? 'selected' : ''}`}
-                >
-                  <ListItemIcon>
-                    <Checkbox
-                      edge="start"
-                      checked={isItemSelected(item)}
-                      tabIndex={-1}
-                      disableRipple
-                      onChange={() => handleCheckboxChange(item)}
-                      icon={<CustomCheckedIcon fill="none" stroke="#8C8C8C" />}
-                      checkedIcon={<CustomCheckedIcon fill="#77478F" stroke={vars.primaryColor} />}
-                    />
-                  </ListItemIcon>
-                  <ListItemText primary={(
-                    <HTMLViewer
-                      content={item.uid}
-                      style={{
-                        width: '100%', height: '100%', float: 'center', wordWrap: 'break-word',
-                      }}
-                    />
-                  )}
-                  />
-                  <Button
-                    disableElevation
-                    aria-haspopup="true"
-                    onClick={(event) => handleClick(event, item)}
-                    color="primary"
-                    variant="contained"
-                  >
-                    Add to
-                  </Button>
-                </ListItem>
-              ))
-              : <div />}
-          </List>
-        </AccordionDetails>
-      </Accordion>
+      {resultItem && resultItem === 'scale'
+        ? (
+          <></>
+        ) : (
+          <>
+            <Accordion className={searchesCount > 0 ? classes.fade : ''} id={`${title}-result`}>
+              <AccordionSummary
+                expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
+                IconButtonProps={{ disableRipple: true }}
+              >
+                <Typography variant="h5">
+                  {title}
+                  {
+                    selectedItems[resultItem].length === 0
+                      ? (
+                        <Button
+                          variant="text"
+                          onClick={handleSelectAll}
+                          onMouseEnter={() => setIsHovered(true)}
+                          onMouseLeave={() => setIsHovered(false)}
+                        >
+                          <Typography variant="caption">
+                            {isHovered ? `Select ${count} items` : `${count} items`}
+                          </Typography>
+                        </Button>
+                      )
+                      : (
+                        <Button variant="text" onClick={() => handleDeselectAllSelectedItems(resultItem)}>
+                          <Typography variant="caption">{`Deselect ${selectedItems[resultItem].length} items`}</Typography>
+                        </Button>
+                      )
+                  }
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List component="nav" ref={listRef}>
+                  {results && results.items.length > 0
+                    ? results.items.map((item, i) => (
+                      <ListItem
+                        key={`results-${resultItem}-listitem-${i}`}
+                        className={`${classes.listItem} ${isItemSelected(item) ? 'selected' : ''}`}
+                      >
+                        <ListItemIcon>
+                          <Checkbox
+                            edge="start"
+                            checked={isItemSelected(item)}
+                            tabIndex={-1}
+                            disableRipple
+                            onChange={() => handleCheckboxChange(item)}
+                            icon={<CustomCheckedIcon fill="none" stroke="#8C8C8C" />}
+                            checkedIcon={<CustomCheckedIcon fill="#77478F" stroke={vars.primaryColor} />}
+                          />
+                        </ListItemIcon>
+                        <ListItemText primary={(
+                          <HTMLViewer
+                            content={item.uid}
+                            style={{
+                              width: '100%', height: '100%', float: 'center', wordWrap: 'break-word',
+                            }}
+                          />
+                        )}
+                        />
+                        <Button
+                          disableElevation
+                          aria-haspopup="true"
+                          onClick={(event) => handleClick(event, item)}
+                          color="primary"
+                          variant="contained"
+                        >
+                          Add to
+                        </Button>
+                      </ListItem>
+                    ))
+                    : <div />}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          </>
+        )}
     </>
   );
 };

@@ -24,17 +24,17 @@ with MetaCell and Bilte Co.`,
 ];
 
 export const NEUROSCAN_ABOUT = [
-  '<p>NeuroSCAN is a resource for exploring neuronal relationships and structures within the C. elegans nerve ring and across developmental stages. CPHATE graphs enable users to investigate how neuronal relationships evolve over time based on their contactomic profiles.</p>',
+  '<p>NeuroSCAN is a resource for exploring neuronal relationships and structures within the <em>C. elegans</em> nerve ring and across developmental stages. CPHATE graphs enable users to investigate how neuronal relationships evolve over time based on their contactomic profiles.</p>',
   '<p>To ensure meaningful comparative connectomics, we have collated segmented electron microscopy datasets across multiple developmental time points. This process required standardization and alignment to make the datasets truly comparable, allowing for accurate 3D visualization of neuron morphologies, neuron-neuron contact sites, and synaptic connections.</p>',
-  '<p>By integrating these standardized datasets, NeuroSCAN provides a platform for exploring the developmental dynamics of the C. elegans nervous system.</p>',
+  '<p>By integrating these standardized datasets, NeuroSCAN provides a platform for exploring the developmental dynamics of the <em>C. elegans</em> nervous system.</p>',
   '<p>See <a href=\'https://elifesciences.org/reviewed-preprints/103977v1\' target=\'_blank\'>Koonce and Emerson et al.</a> for more details.</p>',
   '<p>To contribute to NeuroSCAN, contact <a href=\'mailto:daniel.colon-ramos@yale.edu\'>daniel.colon-ramos@yale.edu</a> / <a href=\'mailto:wmohler@neuron.uchc.edu\'>wmohler@neuron.uchc.edu</a></p>',
   '<h3>Data availability:</h3>',
-  `<p>The data generated for NeuroSCAN is available in <strong>.OBJ file format<strong> and can be visualized locally using <strong>CytoSHOW</strong>. To explore the data, you can:<ul>
+  `<p>The data generated for NeuroSCAN is available in .OBJ file format and can be visualized locally using <strong>CytoSHOW</strong>. To explore the data, you can:<ul>
   <li>Use CytoSHOW: A program designed for interactive visualization.</li>
   <li>Access the data: Available at http://neuroscan.cytoshow.org/</li></ul></p>`,
   `<p>This ensures client-side exploration of neuronal structures and relationships.<ul>
-  <li>For interactive contactome spreadsheets, see <a href="https://elifesciences.org/reviewed-preprints/103977v1" target="_blank">Koonce and Emerson et al.</a>, Supplementary Tables <strong>8–13</strong>. These tables provide detailed insights into neuronal adjacencies and can be used alongside NeuroSCAN for comprehensive contactomic analysis.</li></ul></p>`,
+  <li>For interactive contactome spreadsheets, see <a href="https://elifesciences.org/reviewed-preprints/103977v1" target="_blank">Koonce and Emerson et al.</a>, Supplementary Tables 8–13. These tables provide detailed insights into neuronal adjacencies and can be used alongside NeuroSCAN for comprehensive contactomic analysis.</li></ul></p>`,
   '<h3>CPHATE:</h3>',
   `<p><ul>
   <li>Brugnone <em>et al., Proc. IEEE Int. Conf. Big Data</em> (2019).<a href="https://arxiv.org/abs/1907.04463" target="_blank">DOI:10.1109/BigData47090.2019.9006013</a>.</li>
@@ -43,8 +43,7 @@ export const NEUROSCAN_ABOUT = [
   '<h3>Datasets used:</h3>',
   `<p><ul>
   <li><strong>L1, L2, L3, Adult (45h)</strong>: Witvliet <em>et al., Nature</em> (2021). <a href="https://www.nature.com/articles/s41586-021-03778-8" target="_blank">DOI: 10.1038/s41586-021-03778-8</a></li>
-  <li><strong>L4, Adult (48h)</strong>: White <em>et al., Phil. Trans. R. Soc. Lond. B</em> (1986). <a href="https://royalsocietypublishing.org/doi/10.1098/rstb.1986.0056" target="_blank">DOI: 10.1098/rstb.1986.0056</a>;</li>
-  <li>Cook <em>et al., Nature</em> (2019). <a href="https://www.nature.com/articles/s41586-019-1352-7" target="_blank">DOI: 10.1038/s41586-019-1352-7</a>.</li>
+  <li><strong>L4, Adult (48h)</strong>: White <em>et al., Phil. Trans. R. Soc. Lond. B</em> (1986). <a href="https://royalsocietypublishing.org/doi/10.1098/rstb.1986.0056" target="_blank">DOI: 10.1098/rstb.1986.0056</a>; Cook <em>et al., Nature</em> (2019). <a href="https://www.nature.com/articles/s41586-019-1352-7" target="_blank">DOI: 10.1038/s41586-019-1352-7</a>.</li>
   </ul></p>`,
 ];
 

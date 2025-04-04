@@ -12,7 +12,7 @@ import (
 )
 
 type ScaleRepository interface {
-	GetScaleByTimepoint(ctx context.Context, timepoint int) (domain.Scale, error)
+	GetScaleByTimepoint(ctx context.Context, timepoint int) ([]domain.Scale, error)
 	ScaleExists(ctx context.Context, timepoint int) (bool, error)
 	CreateScale(ctx context.Context, scale domain.Scale) error
 	DeleteScale(ctx context.Context, timepoint int) error
@@ -30,20 +30,20 @@ func NewPostgresScaleRepository(db *pgxpool.Pool) *PostgresScaleRepository {
 	}
 }
 
-func (r *PostgresScaleRepository) GetScaleByTimepoint(ctx context.Context, timepoint int) (domain.Scale, error) {
+func (r *PostgresScaleRepository) GetScaleByTimepoint(ctx context.Context, timepoint int) ([]domain.Scale, error) {
 	query := "SELECT id, uid, ulid, timepoint, filename, color FROM scales WHERE timepoint = $1"
 
 	var scale domain.Scale
 	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&scale.ID, &scale.UID, &scale.ULID, &scale.Timepoint, &scale.Filename, &scale.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.Scale{}, nil
+			return []domain.Scale{}, nil
 		}
 
-		return domain.Scale{}, err
+		return []domain.Scale{}, err
 	}
 
-	return scale, nil
+	return []domain.Scale{scale}, nil
 }
 
 func (r *PostgresScaleRepository) ScaleExists(ctx context.Context, timepoint int) (bool, error) {
@@ -64,7 +64,6 @@ func (r *PostgresScaleRepository) ScaleExists(ctx context.Context, timepoint int
 
 func (r *PostgresScaleRepository) CreateScale(ctx context.Context, scale domain.Scale) error {
 	exists, err := r.ScaleExists(ctx, scale.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,6 @@ func (r *PostgresScaleRepository) DeleteScale(ctx context.Context, timepoint int
 
 func (r *PostgresScaleRepository) IngestScale(ctx context.Context, scale domain.Scale, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.ScaleExists(ctx, scale.Timepoint)
-
 	if err != nil {
 		return false, err
 	}

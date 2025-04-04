@@ -234,6 +234,7 @@ const CameraControls = (props) => {
           open={open}
           handleClose={handleClose}
           anchorEl={anchorEl}
+          setAnchorEl={setAnchorEl}
           selection={selection}
           viewerId={viewerId}
         />

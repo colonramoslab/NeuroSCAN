@@ -32,7 +32,7 @@ export class ScaleService {
       timepoint: scale.timepoint,
       instanceType: SCALE_TYPE,
     });
-    return [this.mapScaleInstance(scale, scaleFile, 'url')];
+    return this.mapScaleInstance(scale, scaleFile, 'url');
   }
 
   async getScaleByTimepoint(timepoint) {
@@ -42,14 +42,13 @@ export class ScaleService {
           timepoint,
         },
       })
-      .then((response) => {
-        const scale = response.data;
-        scale.instanceType = SCALE_TYPE;
-        return scale;
-      });
+      .then((response) => response.data.map((scale) => ({
+        instanceType: SCALE_TYPE,
+        ...scale,
+      })));
   }
 
-  async getByUID(timePoint, uids = []) {
+  async getByUID(timePoint) {
     const query = `timepoint=${timePoint}`;
     const response = await backendClient.get(`${scaleBackendUrl}?${query}`);
     return response.data.map((scale) => ({

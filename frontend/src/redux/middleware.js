@@ -71,9 +71,10 @@ export const createWidget = (store, timePoint, viewerType) => {
     }
     return maxViewerNumber;
   }, 1);
+  const viewerName = `${viewerType} ${viewerNumber} (${devStage.uid} ${timePoint})`;
   return {
     id: null,
-    name: `${viewerType} ${viewerNumber} (${devStage.uid} ${timePoint})`,
+    name: viewerName,
     type: viewerType,
     timePoint,
   };
@@ -87,6 +88,35 @@ const getWidget = (store, viewerId) => {
   }
   const widget = widgets[viewerId];
   return !widget ? false : { ...widget };
+};
+
+const findWidget = (store, timepoint, viewerType) => {
+  const state = store.getState();
+  const { widgets } = state;
+  if (!widgets) {
+    return false;
+  }
+  const widget = Object
+    .values(widgets)
+    .find((w) => w.timePoint === timepoint && w.type === viewerType);
+  return !widget ? false : { ...widget };
+};
+
+const cleanEmpty = (store) => {
+  const state = store.getState();
+  const { widgets } = state;
+  if (!widgets) {
+    return false;
+  }
+  const cleanedWidgets = Object
+    .values(widgets)
+    .each((w) => {
+      if (w.config?.instances?.length > 0) {
+        const { addedObjectsToViewer } = w.config;
+        store.dispatch(addToWidget(w, [], true, addedObjectsToViewer));
+      }
+    });
+  return cleanedWidgets.length > 0 ? cleanedWidgets : false;
 };
 
 const middleware = (store) => (next) => async (action) => {
@@ -107,11 +137,12 @@ const middleware = (store) => (next) => async (action) => {
       const msg = 'Creating and adding instances to the viewer';
       next(loading(msg, action.type));
       createSimpleInstancesFromInstances(action.instances)
-        .then(() => {
+        .then(async () => {
+          const state = store.getState();
+          const timepoint = state.search.filters.timePoint;
           let widget = getWidget(store, action.viewerId, action.viewerType);
           if (!widget) {
-            const state = store.getState();
-            widget = createWidget(store, state.search.filters.timePoint, action.viewerType);
+            widget = createWidget(store, timepoint, action.viewerType);
           }
           const filteredNewInstances = Array.isArray(widget?.config?.instances)
           && widget?.config?.instances.length !== 0
@@ -220,28 +251,36 @@ const middleware = (store) => (next) => async (action) => {
     }
 
     case UPDATE_TIMEPOINT_VIEWER: {
-      const { timePoint, newViewer } = action;
-      const widget = getWidget(store, action.viewerId);
-      const { addedObjectsToViewer } = widget.config;
+      const {
+        viewerId, newTimePoint, currTimePoint, widgetType, newViewer,
+      } = action;
+      const currentWidget = getWidget(store, viewerId);
 
-      if (timePoint !== widget.config.timePoint) {
-        if (widget.component === VIEWERS.CphateViewer) {
+      const addedObjectsToViewer = currentWidget.config?.addedObjectsToViewer || [];
+
+      if (currTimePoint !== newTimePoint) {
+        if (widgetType === VIEWERS.CphateViewer) {
           const msg = 'Updating cphate';
           next(loading(msg, action.type));
           cphateService
-            .getCphateByTimepoint(timePoint)
+            .getCphateByTimepoint(newTimePoint)
             .then((cphate) => {
               if (cphate) {
                 const cphateInstances = cphateService.getInstances(cphate);
                 createSimpleInstancesFromInstances(cphateInstances)
                   .then(() => {
-                    widget.config.timePoint = timePoint;
+                    let newWidget;
+                    const foundNewWidget = findWidget(store, newTimePoint, widgetType);
+                    if (foundNewWidget) {
+                      newWidget = foundNewWidget;
+                    }
+                    newWidget = createWidget(store, newTimePoint, widgetType);
                     store
                       .dispatch(
                         addToWidget(
-                          widget,
+                          newWidget,
                           cphateInstances,
-                          true,
+                          false,
                         ),
                       );
                     next(loadingSuccess(msg, action.type));
@@ -251,30 +290,22 @@ const middleware = (store) => (next) => async (action) => {
               next(raiseError(msg));
             });
         } else {
+          console.debug('Updating viewer timepoint');
           const msg = 'Updating viewer timepoint';
           next(loading(msg, action.type));
-          next(addToWidget(widget, [], false, addedObjectsToViewer));
+          // next(addToWidget(newWidget, [], false, addedObjectsToViewer));
           const neurons = getInstancesOfType(addedObjectsToViewer, NEURON_TYPE) || [];
-          console.log('neurons', neurons);
           const contacts = getInstancesOfType(addedObjectsToViewer, CONTACT_TYPE) || [];
-          console.log('contacts', contacts);
           const synapses = getInstancesOfType(addedObjectsToViewer, SYNAPSE_TYPE) || [];
-          console.log('synapses', synapses);
           const scale = getInstancesOfType(addedObjectsToViewer, SCALE_TYPE) || [];
-          console.log('scale', scale);
           const nerveRing = getInstancesOfType(addedObjectsToViewer, NERVE_RING_TYPE) || [];
-          console.log('nerveRing', nerveRing);
 
-          const newNeurons = await fetchDataForEntity(neuronService, timePoint, neurons);
-          console.log('newNeurons', newNeurons);
-          const newContacts = await fetchDataForEntity(contactService, timePoint, contacts);
-          console.log('newContacts', newContacts);
-          const newSynapses = await fetchDataForEntity(synapseService, timePoint, synapses);
-          console.log('newSynapses', newSynapses);
-          const newScale = await fetchDataForEntity(scaleService, timePoint, scale);
-          console.log('newScale', newScale);
-          const newNerveRing = await fetchDataForEntity(nerveRingService, timePoint, nerveRing);
-          console.log('newNerveRing', newNerveRing);
+          const newNeurons = await fetchDataForEntity(neuronService, newTimePoint, neurons);
+          const newContacts = await fetchDataForEntity(contactService, newTimePoint, contacts);
+          const newSynapses = await fetchDataForEntity(synapseService, newTimePoint, synapses);
+          const newScale = await fetchDataForEntity(scaleService, newTimePoint, scale);
+          // const newScale = await scaleService.getByUID(newTimePoint);
+          const newNerveRing = await fetchDataForEntity(nerveRingService, newTimePoint, nerveRing);
 
           const newInstances = [
             ...newNeurons,
@@ -283,10 +314,12 @@ const middleware = (store) => (next) => async (action) => {
             ...newScale,
             ...newNerveRing,
           ].map((i) => mapToInstance(i));
-          widget.config.timePoint = timePoint; // update the current widget's timepoint
-          await createSimpleInstancesFromInstances(newInstances);
-          store.dispatch(addToWidget(widget, newInstances, true, addedObjectsToViewer));
-          next(loadingSuccess(msg, action.type));
+          createSimpleInstancesFromInstances(newInstances).then(async () => {
+            const newWidget = createWidget(store, newTimePoint, widgetType);
+            store.dispatch(addToWidget(newWidget, newInstances, false, addedObjectsToViewer));
+            next(loadingSuccess(msg, action.type));
+          });
+          // cleanEmpty(store);
         }
       }
       break;

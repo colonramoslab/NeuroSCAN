@@ -47,7 +47,7 @@ export const addToWidget = (
   cleanInstances = false,
   addedObjectsToViewer = [],
 ) => {
-  if (widget.id === null) {
+  if (!widget || widget.id === null) {
     const newViewerId = uuidv4();
     const newWidget = {
       type: widget.type,

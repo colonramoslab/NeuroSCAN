@@ -132,7 +132,7 @@ const doGetAllScales = async (dispatch, searchState) => {
       scale: 1,
     }),
   );
-  items.push(scales);
+  items.push(...scales);
   dispatch(
     search.setAll({
       scale: {
