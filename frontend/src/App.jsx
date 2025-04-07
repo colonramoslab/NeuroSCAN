@@ -53,7 +53,8 @@ const App = () => {
   };
 
   let mainComponent = NeuroScan;
-  if (window.location.host === 'promoterdb.bilte.co' || window.location.host === 'promoters.wormguides.org') {
+  const isPromoterDB = window.location.host === 'promoterdb.bilte.co' || window.location.host === 'promoters.wormguides.org' || window.location.search.includes('promoterdb');
+  if (isPromoterDB) {
     mainComponent = PromoterDB;
   }
 
