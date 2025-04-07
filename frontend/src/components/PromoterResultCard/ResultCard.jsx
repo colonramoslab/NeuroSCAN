@@ -13,7 +13,7 @@ import PromoterInformation from './PromoterInformation';
 const ResultCard = ({
   result,
 }) => {
-  const promoterBaseUrl = `${filesURL}/files/promoterdb/promoters/promoter${result.uid.toLowerCase()}`;
+  const promoterBaseUrl = `${filesURL}/promoters/promoter${result.uid.toLowerCase()}`;
   const timeline = [{
     label: 'Timeline',
     src: `${promoterBaseUrl}/timeline.svg`,
