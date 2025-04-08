@@ -70,6 +70,7 @@ const SearchResult = (props) => {
     handleClick,
     selectedItems,
     setSelectedItems,
+    timePoint,
   } = props;
   const classes = useStyles();
   const dispatch = useDispatch();
@@ -152,6 +153,16 @@ const SearchResult = (props) => {
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (resultItem === 'scale') {
+      dispatch(search.getAll({ entity: resultItem }));
+      setSelectedItems({
+        ...selectedItems,
+        [resultItem]: [results.items[0]],
+      });
+    }
+  }, [timePoint]);
 
   return (
     <>
