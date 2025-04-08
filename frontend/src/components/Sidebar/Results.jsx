@@ -111,6 +111,7 @@ const Results = ({ timePoint }) => {
               handleClick={handleClick}
               selectedItems={selectedItems}
               setSelectedItems={setSelectedItems}
+              timePoint={timePoint}
             />
           ))
         }
