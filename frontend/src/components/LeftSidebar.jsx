@@ -189,7 +189,7 @@ const LeftSidebar = (props) => {
             <Explorer />
           </>
         ) : (
-          <Typography>NeuroSCAN</Typography>
+          <Typography>NeuroSC</Typography>
         )}
       </Drawer>
 

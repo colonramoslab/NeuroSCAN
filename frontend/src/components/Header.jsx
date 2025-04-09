@@ -63,7 +63,8 @@ const useStyles = makeStyles((theme) => ({
     display: 'block',
     top: '0rem',
     left: '2rem',
-    width: '15rem',
+    width: 'auto',
+    height: '40px',
   },
 }));
 
@@ -84,36 +85,36 @@ const Header = (props) => {
 
   const handleViewTutorial = (showMessage) => {
     const intro = new IntroJs();
-    if (view?.title === 'NeuroSCAN') {
+    if (view?.title === 'NeuroSC') {
       intro.setOptions({
         tooltipClass: 'customTooltip',
         dontShowAgain: showMessage,
         steps: [{
           element: window.document.querySelector('#search-bar'),
           title: 'Search bar',
-          intro: `Type in one or more neuron names (AIB, AIBR, RIML) to filter results for 
+          intro: `Type in one or more neuron names (AIB, AIBR, RIML) to filter results for
           <b>Neurons, Contacts and Synapses</b>.`,
           position: 'right',
         },
         {
           element: window.document.querySelector('#filter-icon'),
           title: 'Synapse filter',
-          intro: `Assign neurons typed in the search bar to <b>Pre</b> or <b>Post</b> synaptic 
+          intro: `Assign neurons typed in the search bar to <b>Pre</b> or <b>Post</b> synaptic
           identities to filter the <b>Synapses</b> data.`,
           position: 'right',
         },
         {
           element: window.document.querySelector('#Neurons-result'),
           title: 'Neurons',
-          intro: `Click on <b>Neurons</b>, <b>Contacts</b> or <b>Synapses</b> to expand and use the 
-          <b>Add to</b> button next to the neuron/contact/synapse name to add it to a 3D viewer. 
+          intro: `Click on <b>Neurons</b>, <b>Contacts</b> or <b>Synapses</b> to expand and use the
+          <b>Add to</b> button next to the neuron/contact/synapse name to add it to a 3D viewer.
           Refine your results by using the search bar.`,
           position: 'right',
         },
         {
           element: window.document.querySelector('#cphate-id'),
           title: 'CPHATE',
-          intro: `Add contact profile plot (<b>CPHATE</b>) of the entire nerve ring for the 
+          intro: `Add contact profile plot (<b>CPHATE</b>) of the entire nerve ring for the
           developmental time point selected above.`,
           position: 'right',
         },
@@ -122,12 +123,12 @@ const Header = (props) => {
           title: 'Left toolbar',
           intro: `Tool usage from Left to Right:<br>
           Change <b>background</b> from dark to white.<br>
-          Change <b>color</b> and <b>transparency</b> of Neurons, Contacts, Synapses, and CPHATE 
+          Change <b>color</b> and <b>transparency</b> of Neurons, Contacts, Synapses, and CPHATE
           clusters.<br>
           Change <b>developmental stage</b> of all the renderings in the viewer.<br>
           <b>Add</b> additional renderings to the viewer.<br>
           <b>Record</b> video of the current viewer and <b>download</b> video.<br>
-          <b>Download</b> the viewer files for your own desktop viewing or download a <b>screenshot</b> 
+          <b>Download</b> the viewer files for your own desktop viewing or download a <b>screenshot</b>
           of the current viewer.`,
           position: 'down',
         },
@@ -145,7 +146,7 @@ const Header = (props) => {
           title: 'Navigation',
           intro: `<b>Play all</b> for 360&#176; rotation of all open windows.<br>
           Click <b>viewer name</b> to expand names for all <b>Neurons</b>, <b>Contacts</b> and <b>Synapses</b>
-          in viewers. Hover over neuron names and click three dots on the right to open a menu to <b>Select</b>, 
+          in viewers. Hover over neuron names and click three dots on the right to open a menu to <b>Select</b>,
           <b>Group</b>, <b>Hide</b> and <b>Delete</b> the neuron.`,
           position: 'right',
         }].filter((step) => step.element !== null),
@@ -158,8 +159,8 @@ const Header = (props) => {
         steps: [{
           element: window.document.querySelector('.lineaged-cells'),
           title: 'Lineaged cells',
-          intro: `Neuron names with check marks have been identified by <b>lineage tracking</b>, 
-          and all other neurons are suspected to have promoter expression. 
+          intro: `Neuron names with check marks have been identified by <b>lineage tracking</b>,
+          and all other neurons are suspected to have promoter expression.
           `,
           position: 'left',
         },

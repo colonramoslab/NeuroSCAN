@@ -28,11 +28,6 @@ const list = [
     resultItem: 'synapses',
     image: SYNAPSES,
   },
-  {
-    title: 'Scale',
-    resultItem: 'scale',
-    image: SYNAPSES,
-  },
 ];
 
 const initialSelectedItems = {
@@ -48,6 +43,7 @@ const Results = ({ timePoint }) => {
   const dispatch = useDispatch();
 
   const searchesCount = useSelector((state) => state.search.searchesCount);
+  const scaleItems = useSelector((state) => state.search.results.scale);
   const handleClick = (event, selectedItem) => {
     setCurrentItem(selectedItem);
     setAnchorEl(event.currentTarget);
@@ -58,7 +54,20 @@ const Results = ({ timePoint }) => {
     setAnchorEl(null);
   };
 
+  const setScaleItem = () => {
+    // dispatch(search.getAll({ entity: 'scale' }));
+    dispatch(search.loadMore({ entity: 'scale' }));
+    console.log({ scaleItems });
+    if (scaleItems.items && scaleItems.items.length > 0) {
+      setSelectedItems({
+        ...selectedItems,
+        scale: [scaleItems.items[0]],
+      });
+    }
+  };
+
   const handleAddToViewer = async (viewerId = null) => {
+    setScaleItem();
     if (currentItem) {
       const instances = [mapToInstance(currentItem)];
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
@@ -92,6 +101,7 @@ const Results = ({ timePoint }) => {
 
   useEffect(() => {
     setSelectedItems(initialSelectedItems);
+    setScaleItem();
   }, [timePoint]);
 
   return (

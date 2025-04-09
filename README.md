@@ -1,11 +1,11 @@
 # Geppetto - NeuroSCAN & PromoterDB
 
-The Yale NeuroSCAN &amp; Promoter DB Project
+The Yale NeuroSC &amp; Promoter DB Project
 
 ## Folder Structure
 
-* `backend/` strapi - headless CMS
-* `frontend/` React application composed of NeuroSCAN and PromoterDB application
+- `backend/` strapi - headless CMS
+- `frontend/` React application composed of NeuroSC and PromoterDB application
 
 ## Install and deploy
 
@@ -16,6 +16,7 @@ The deployment process is based on Python 3.7+ scripts. It is recommended to set
 environment first.
 
 With conda:
+
 ```bash
 conda create --name yale python=3.7
 conda activate yale
@@ -43,11 +44,9 @@ Optionally, you can also deploy to a local minikube cluster to test any changes 
 
 Two scripts are available to take off some work:
 
-* `build.sh` - builds the required Docker images
-* `deploy_minikube.sh` - installs the helm chart, located in `deployment` folder, in the minikube cluster
+- `build.sh` - builds the required Docker images
+- `deploy_minikube.sh` - installs the helm chart, located in `deployment` folder, in the minikube cluster
 
 ## Deployment
 
 A commit to development branch will trigger the deployment pipeline in Codefresh for the development stage.
-
-

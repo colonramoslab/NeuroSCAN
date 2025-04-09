@@ -39,7 +39,7 @@
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--openssl-legacy-provider craco start",
     "start:dev": "NODE_OPTIONS=--openssl-legacy-provider REACT_APP_BACKEND_URL=http://localhost:1337/ craco start",
-    "start:prod": "NODE_OPTIONS=--openssl-legacy-provider REACT_APP_BACKEND_URL=https://neuroscan.net/ craco start",
+    "start:prod": "NODE_OPTIONS=--openssl-legacy-provider REACT_APP_BACKEND_URL=https://neurosc.net/ craco start",
     "build": "cross-env craco build",
     "test": "craco test",
     "eject": "react-scripts eject"

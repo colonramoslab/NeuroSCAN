@@ -3,11 +3,11 @@ import axios from 'axios';
 export const VIEWS = {
   promoterDB: {
     title: 'Promoter DB',
-    linkTo: 'NeuroSCAN',
-    linkToRoute: 'https://neuroscan.net',
+    linkTo: 'NeuroSC',
+    linkToRoute: 'https://neurosc.net',
   },
   neuroScan: {
-    title: 'NeuroSCAN',
+    title: 'NeuroSC',
     linkTo: 'Promoter DB',
     linkToRoute: 'https://promoters.wormguides.org/',
   },
@@ -24,17 +24,17 @@ with MetaCell and Bilte Co.`,
 ];
 
 export const NEUROSCAN_ABOUT = [
-  '<p>NeuroSCAN is a resource for exploring neuronal relationships and structures within the <em>C. elegans</em> nerve ring and across developmental stages. CPHATE graphs enable users to investigate how neuronal relationships evolve over time based on their contactomic profiles.</p>',
+  '<p>NeuroSC is a resource for exploring neuronal relationships and structures within the <em>C. elegans</em> nerve ring and across developmental stages. CPHATE graphs enable users to investigate how neuronal relationships evolve over time based on their contactomic profiles.</p>',
   '<p>To ensure meaningful comparative connectomics, we have collated segmented electron microscopy datasets across multiple developmental time points. This process required standardization and alignment to make the datasets truly comparable, allowing for accurate 3D visualization of neuron morphologies, neuron-neuron contact sites, and synaptic connections.</p>',
-  '<p>By integrating these standardized datasets, NeuroSCAN provides a platform for exploring the developmental dynamics of the <em>C. elegans</em> nervous system.</p>',
+  '<p>By integrating these standardized datasets, NeuroSC provides a platform for exploring the developmental dynamics of the <em>C. elegans</em> nervous system.</p>',
   '<p>See <a href=\'https://elifesciences.org/reviewed-preprints/103977v1\' target=\'_blank\'>Koonce and Emerson et al.</a> for more details.</p>',
-  '<p>To contribute to NeuroSCAN, contact <a href=\'mailto:daniel.colon-ramos@yale.edu\'>daniel.colon-ramos@yale.edu</a> / <a href=\'mailto:wmohler@neuron.uchc.edu\'>wmohler@neuron.uchc.edu</a></p>',
+  '<p>To contribute to NeuroSC, contact <a href=\'mailto:daniel.colon-ramos@yale.edu\'>daniel.colon-ramos@yale.edu</a> / <a href=\'mailto:wmohler@neuron.uchc.edu\'>wmohler@neuron.uchc.edu</a></p>',
   '<h3>Data availability:</h3>',
-  `<p>The data generated for NeuroSCAN is available in .OBJ file format and can be visualized locally using <strong>CytoSHOW</strong>. To explore the data, you can:<ul>
+  `<p>The data generated for NeuroSC is available in .OBJ file format and can be visualized locally using <strong>CytoSHOW</strong>. To explore the data, you can:<ul>
   <li>Use CytoSHOW: A program designed for interactive visualization.</li>
   <li>Access the data: Available at http://neuroscan.cytoshow.org/</li></ul></p>`,
   `<p>This ensures client-side exploration of neuronal structures and relationships.<ul>
-  <li>For interactive contactome spreadsheets, see <a href="https://elifesciences.org/reviewed-preprints/103977v1" target="_blank">Koonce and Emerson et al.</a>, Supplementary Tables 8–13. These tables provide detailed insights into neuronal adjacencies and can be used alongside NeuroSCAN for comprehensive contactomic analysis.</li></ul></p>`,
+  <li>For interactive contactome spreadsheets, see <a href="https://elifesciences.org/reviewed-preprints/103977v1" target="_blank">Koonce and Emerson et al.</a>, Supplementary Tables 8–13. These tables provide detailed insights into neuronal adjacencies and can be used alongside NeuroSC for comprehensive contactomic analysis.</li></ul></p>`,
   '<h3>CPHATE:</h3>',
   `<p><ul>
   <li>Brugnone <em>et al., Proc. IEEE Int. Conf. Big Data</em> (2019).<a href="https://arxiv.org/abs/1907.04463" target="_blank">DOI:10.1109/BigData47090.2019.9006013</a>.</li>

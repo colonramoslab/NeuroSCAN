@@ -34,13 +34,14 @@ yarn start
 Environment variable: `REACT_APP_BACKEND_URL`
 
 To run the frontend on your computer and connect to a local/remote backend:
+
 ```bash
 cd frontend
 # for using the local strapi server
 REACT_APP_BACKEND_URL=http://localhost:1337 npm run start
 
 #or for using the production strapie server
-REACT_APP_BACKEND_URL=https://neuroscan.net npm run start
+REACT_APP_BACKEND_URL=https://neurosc.net npm run start
 ```
 
 ### Test changes made in geppetto-meta repository

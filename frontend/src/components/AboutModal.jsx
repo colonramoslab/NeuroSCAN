@@ -11,7 +11,7 @@ import { NEUROSCAN_ABOUT, PROMOTERDB_ABOUT } from '../utilities/constants';
 const AboutModal = (props) => {
   const { open, handleClose, title } = props;
   let aboutText = '';
-  if (title === 'NeuroSCAN') {
+  if (title === 'NeuroSC') {
     aboutText = NEUROSCAN_ABOUT;
   } else {
     aboutText = PROMOTERDB_ABOUT;
