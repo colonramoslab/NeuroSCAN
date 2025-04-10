@@ -3,13 +3,12 @@ import { useSelector } from 'react-redux';
 import {
   makeStyles,
   Box,
-  Drawer,
+  Button,
   Typography,
-  IconButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Divider,
 } from '@material-ui/core';
+import CloseIcon from '@material-ui/icons/Close';
+import { resetDataOverlay } from '../../services/instanceHelpers';
 import vars from '../../styles/constants';
 
 const useStyles = makeStyles((theme) => ({
@@ -19,6 +18,20 @@ const useStyles = makeStyles((theme) => ({
     right: 0,
     border: `4px solid ${vars.primaryColor}`,
     backgroundColor: '#ffffff',
+    width: '300px',
+    maxWidth: '300px',
+    maxHeight: '70vh',
+    '& .data-overlay': {
+      '&-header': {
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+      },
+      '&-title': {
+        padding: '10px 16px',
+        fontWeight: 700,
+      },
+    },
   },
 }));
 
@@ -31,7 +44,13 @@ const DataOverlay = () => {
     (dataOverlay?.uid ? (
       <Box className={classes.root}>
         <Box className="data-overlay">
-          <Typography>{dataOverlay.uid}</Typography>
+          <Box className="data-overlay-header">
+            <Typography component="h3" className="data-overlay-title">{dataOverlay.id}</Typography>
+            <Button onClick={() => resetDataOverlay()} fontSize="large" className="data-overlay-icon">
+              <CloseIcon />
+            </Button>
+          </Box>
+          <Divider />
         </Box>
       </Box>
     ) : (

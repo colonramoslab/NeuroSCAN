@@ -54,25 +54,19 @@ const Results = ({ timePoint }) => {
     setAnchorEl(null);
   };
 
-  const setScaleItem = () => {
-    // dispatch(search.getAll({ entity: 'scale' }));
-    dispatch(search.loadMore({ entity: 'scale' }));
-    if (scaleItems.items && scaleItems.items.length > 0) {
-      setSelectedItems({
-        ...selectedItems,
-        scale: [scaleItems.items[0]],
-      });
-    }
-  };
-
   const handleAddToViewer = async (viewerId = null) => {
-    setScaleItem();
     if (currentItem) {
       const instances = [mapToInstance(currentItem)];
+      if (scaleItems.items && scaleItems.items.length > 0) {
+        instances.push(mapToInstance(scaleItems.items[0]));
+      }
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
     } else if (Object.values(selectedItems).some((array) => array.length > 0)) {
       const itemsArray = Object.values(selectedItems).flat();
       const instances = itemsArray.map((item) => mapToInstance(item));
+      if (scaleItems.items && scaleItems.items.length > 0) {
+        instances.push(mapToInstance(scaleItems.items[0]));
+      }
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
       setSelectedItems(initialSelectedItems);
       Object.keys(selectedItems).forEach((key) => dispatch(search.deselectAll({ entity: key })));
@@ -99,9 +93,13 @@ const Results = ({ timePoint }) => {
   }
 
   useEffect(() => {
+    dispatch(search.getAll({ entity: 'scale' }));
     setSelectedItems(initialSelectedItems);
-    setScaleItem();
   }, [timePoint]);
+
+  useEffect(() => {
+    dispatch(search.getAll({ entity: 'scale' }));
+  }, []);
 
   return (
     <Box className="wrap">

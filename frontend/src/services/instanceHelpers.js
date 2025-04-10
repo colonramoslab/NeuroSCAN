@@ -6,7 +6,7 @@ import {
   updateWidgetConfig,
   darkenColorsFlashing,
 } from '../redux/actions/widget';
-import { getDataOverlay } from '../redux/actions/dataOverlay';
+import { getDataOverlay, clearDataOverlay } from '../redux/actions/dataOverlay';
 import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
@@ -40,6 +40,10 @@ export const lightenColor = ({
 }) => ({
   r, g, b, a: a + 0.7,
 });
+
+export const resetDataOverlay = () => {
+  store.dispatch(clearDataOverlay());
+};
 
 export const invertColorSelectedInstances = (instances, selectedUids) => (
   instances
