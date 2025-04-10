@@ -7,7 +7,7 @@ export default (state = DEFAULT_DATA_OVERLAY, action) => {
     case RENDER_DATA_OVERLAY:
       return {
         ...state,
-        dataOverlay: action.overlayData,
+        dataOverlay: action.dataOverlay,
       };
     case CLEAR_DATA_OVERLAY:
       return {

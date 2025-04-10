@@ -52,11 +52,7 @@ const MenuControl = ({
   const clusters = getInstancesOfType(instances, CPHATE_TYPE) || [];
 
   useEffect(() => {
-    console.log(`timepoint changing to ${timePoint}`);
-    console.log({ currentWidget });
-    console.log({ viewerId });
     if (currentWidget && timePoint !== currentWidget?.config?.timePoint) {
-      console.log('dispatching');
       /* TODO: this below is just an hack, it requires a new geppetto
        * version but we are not supporting this anymore. */
       // dispatch(deleteFromWidget(viewerId));

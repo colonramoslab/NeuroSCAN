@@ -1,9 +1,7 @@
 import * as layoutActions from '@metacell/geppetto-meta-client/common/layout/actions';
 import { updateWidget } from '@metacell/geppetto-meta-client/common/layout/actions';
 import { ADD_DEVSTAGES, receivedDevStages } from './actions/devStages';
-import {
-  CLEAR_DATA_OVERLAY, RENDER_DATA_OVERLAY, clearDataOverlay, renderDataOverlay,
-} from './actions/dataOverlay';
+import { GET_DATA_OVERLAY, renderDataOverlay } from './actions/dataOverlay';
 import {
   loading,
   raiseError,
@@ -239,15 +237,16 @@ const middleware = (store) => (next) => async (action) => {
       break;
     }
 
-    case RENDER_DATA_OVERLAY: {
-      if (!action?.overlayData?.instanceType || !action?.overlayData?.id) {
+    case GET_DATA_OVERLAY: {
+      if (!action?.instance?.instanceType || !action?.instance?.id) {
         break;
       }
-      const id = action?.overlayData?.id;
+
+      const id = action?.instance?.id;
       const msg = 'Getting data overlay';
       next(loading(msg, action.type));
 
-      switch (action.overlayData?.instanceType) {
+      switch (action.instance?.instanceType) {
         case 'neuron':
           neuronService.getByID(id).then((neuron) => {
             store.dispatch(renderDataOverlay(neuron));
@@ -275,22 +274,6 @@ const middleware = (store) => (next) => async (action) => {
         default:
           break;
       }
-      // const widget = getWidget(store, action.viewerId);
-      // const instances = darkenColorSelectedInstances(
-      //   widget.config.instances,
-      //   action.uids,
-      // );
-      // widget.config = {
-      //   ...widget.config,
-      //   instances,
-      // };
-      // store.dispatch(updateWidget(widget));
-      break;
-    }
-
-    case CLEAR_DATA_OVERLAY: {
-      console.log('Clear data overlay');
-      store.dispatch(clearDataOverlay());
       break;
     }
 

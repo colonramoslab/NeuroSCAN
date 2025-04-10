@@ -11,10 +11,10 @@ const contactsUrl = '/contacts';
 export class ContactService {
   async getByID(id) {
     const response = await backendClient.get(`${contactsUrl}/${id}`);
-    return response.data.map((contact) => ({
+    return {
+      ...response.data,
       instanceType: CONTACT_TYPE,
-      ...contact,
-    }));
+    };
   }
 
   async getByUID(timePoint, uids = []) {

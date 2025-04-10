@@ -6,7 +6,7 @@ import {
   updateWidgetConfig,
   darkenColorsFlashing,
 } from '../redux/actions/widget';
-import { renderDataOverlay } from '../redux/actions/dataOverlay';
+import { getDataOverlay } from '../redux/actions/dataOverlay';
 import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
@@ -183,8 +183,8 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   // Add the last Selected instances uid
   const newSelectedUid = instances.find((item) => (item.selected === false)
       && selectedUids.includes(item.uid));
+  store.dispatch(getDataOverlay(newSelectedUid));
   store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
-  store.dispatch(renderDataOverlay(newSelectedUid));
 };
 
 export const deleteSelectedInstances = (viewerId, selectedUids) => {

@@ -38,7 +38,6 @@ export default function NeuroScan() {
   const store = useStore();
   const [LayoutComponent, setLayoutManager] = useState(undefined);
   const [shrinkSidebar, setShrinkSidebar] = React.useState(false);
-  const [dataOverlay, setDataOverlay] = useState(undefined);
   const viewerCount = useSelector((state) => Object.keys(state.widgets).length);
 
   const handleToggle = () => {
@@ -80,6 +79,7 @@ export default function NeuroScan() {
             {componentToRender}
           </Box>
         </Box>
+        <DataOverlay />
       </Box>
 
       {/* <Header shrink={shrinkSidebar} toggleSidebar={handleToggle} view={VIEWS?.neuroScan} />

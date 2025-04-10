@@ -11,10 +11,10 @@ const synapsesBackendUrl = '/synapses';
 export class SynapseService {
   async getByID(id) {
     const response = await backendClient.get(`${synapsesBackendUrl}/${id}`);
-    return response.data.map((synapse) => ({
+    return {
+      ...response.data,
       instanceType: SYNAPSE_TYPE,
-      ...synapse,
-    }));
+    };
   }
 
   async getByUID(timePoint, uids = []) {

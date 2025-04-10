@@ -9,10 +9,10 @@ const neuronsBackendUrl = '/neurons';
 export class NeuronService {
   async getByID(id) {
     const response = await backendClient.get(`${neuronsBackendUrl}/${id}`);
-    return response.data.map((neuron) => ({
+    return {
+      ...response.data,
       instanceType: NEURON_TYPE,
-      ...neuron,
-    }));
+    };
   }
 
   async getByUID(timePoint, uids = []) {

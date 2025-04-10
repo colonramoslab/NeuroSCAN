@@ -57,7 +57,6 @@ const Results = ({ timePoint }) => {
   const setScaleItem = () => {
     // dispatch(search.getAll({ entity: 'scale' }));
     dispatch(search.loadMore({ entity: 'scale' }));
-    console.log({ scaleItems });
     if (scaleItems.items && scaleItems.items.length > 0) {
       setSelectedItems({
         ...selectedItems,
