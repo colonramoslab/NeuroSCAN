@@ -2,6 +2,9 @@ import * as layoutActions from '@metacell/geppetto-meta-client/common/layout/act
 import { updateWidget } from '@metacell/geppetto-meta-client/common/layout/actions';
 import { ADD_DEVSTAGES, receivedDevStages } from './actions/devStages';
 import {
+  CLEAR_DATA_OVERLAY, RENDER_DATA_OVERLAY, clearDataOverlay, renderDataOverlay,
+} from './actions/dataOverlay';
+import {
   loading,
   raiseError,
   loadingSuccess,
@@ -233,6 +236,61 @@ const middleware = (store) => (next) => async (action) => {
         instances,
       };
       store.dispatch(updateWidget(widget));
+      break;
+    }
+
+    case RENDER_DATA_OVERLAY: {
+      if (!action?.overlayData?.instanceType || !action?.overlayData?.id) {
+        break;
+      }
+      const id = action?.overlayData?.id;
+      const msg = 'Getting data overlay';
+      next(loading(msg, action.type));
+
+      switch (action.overlayData?.instanceType) {
+        case 'neuron':
+          neuronService.getByID(id).then((neuron) => {
+            store.dispatch(renderDataOverlay(neuron));
+            next(loadingSuccess(msg, action.type));
+          }, (error) => {
+            next(raiseError(error));
+          });
+          break;
+        case 'synapse':
+          synapseService.getByID(id).then((synapse) => {
+            store.dispatch(renderDataOverlay(synapse));
+            next(loadingSuccess(msg, action.type));
+          }, (error) => {
+            next(raiseError(error));
+          });
+          break;
+        case 'contact':
+          contactService.getByID(id).then((contact) => {
+            store.dispatch(renderDataOverlay(contact));
+            next(loadingSuccess(msg, action.type));
+          }, (error) => {
+            next(raiseError(error));
+          });
+          break;
+        default:
+          break;
+      }
+      // const widget = getWidget(store, action.viewerId);
+      // const instances = darkenColorSelectedInstances(
+      //   widget.config.instances,
+      //   action.uids,
+      // );
+      // widget.config = {
+      //   ...widget.config,
+      //   instances,
+      // };
+      // store.dispatch(updateWidget(widget));
+      break;
+    }
+
+    case CLEAR_DATA_OVERLAY: {
+      console.log('Clear data overlay');
+      store.dispatch(clearDataOverlay());
       break;
     }
 

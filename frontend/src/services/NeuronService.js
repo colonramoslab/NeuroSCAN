@@ -4,25 +4,15 @@ import { NEURON_TYPE, backendClient, maxRecordsPerFetch } from '../utilities/con
 const neuronsBackendUrl = '/neurons';
 
 /* eslint class-methods-use-this:
-    ["error", { "exceptMethods": ["getById", "search", "constructQuery", "getByUID"] }]
+    ["error", { "exceptMethods": ["getByID", "search", "constructQuery", "getByUID"] }]
 */
 export class NeuronService {
-  async getById(id) {
-    try {
-      const response = await backendClient.get(`${neuronsBackendUrl}/${id}`);
-      return response.data;
-    } catch (error) {
-      return {
-        id,
-        uid: 'SAAVR',
-        content: {
-          type: 'url',
-          location: 'https://raw.githubusercontent.com/MetaCell/geppetto-meta/master/geppetto.js/geppetto-ui/src/3d-canvas/showcase/examples/SketchVolumeViewer_SAAVR_SAAVR_1_1_0000_draco.gltf',
-          fileName: 'SketchVolumeViewer_SAAVR_SAAVR_1_1_0000_draco.gltf',
-        },
-        getId: () => this.id,
-      };
-    }
+  async getByID(id) {
+    const response = await backendClient.get(`${neuronsBackendUrl}/${id}`);
+    return response.data.map((neuron) => ({
+      instanceType: NEURON_TYPE,
+      ...neuron,
+    }));
   }
 
   async getByUID(timePoint, uids = []) {

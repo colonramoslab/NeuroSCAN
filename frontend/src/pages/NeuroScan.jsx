@@ -3,6 +3,7 @@ import { useSelector, useStore } from 'react-redux';
 import { Box, CircularProgress, makeStyles } from '@material-ui/core';
 import { getLayoutManagerInstance } from '@metacell/geppetto-meta-client/common/layout/LayoutManager';
 import LeftSidebar from '../components/LeftSidebar';
+import DataOverlay from '../components/DataOverlay/DataOverlay';
 import Header from '../components/Header';
 import { VIEWS } from '../utilities/constants';
 import ViewerPlaceholder from '../components/ViewerPlaceholder';
@@ -37,6 +38,7 @@ export default function NeuroScan() {
   const store = useStore();
   const [LayoutComponent, setLayoutManager] = useState(undefined);
   const [shrinkSidebar, setShrinkSidebar] = React.useState(false);
+  const [dataOverlay, setDataOverlay] = useState(undefined);
   const viewerCount = useSelector((state) => Object.keys(state.widgets).length);
 
   const handleToggle = () => {

@@ -1,12 +1,12 @@
 /* eslint-disable import/no-cycle */
 import SimpleInstance from '@metacell/geppetto-meta-core/model/SimpleInstance';
 import {
-  invertColorsFlashing,
   setOriginalColors,
   addLastSelectedInstance,
   updateWidgetConfig,
   darkenColorsFlashing,
 } from '../redux/actions/widget';
+import { renderDataOverlay } from '../redux/actions/dataOverlay';
 import urlService from './UrlService';
 import zipService from './ZipService';
 import store from '../redux/store';
@@ -184,6 +184,7 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   const newSelectedUid = instances.find((item) => (item.selected === false)
       && selectedUids.includes(item.uid));
   store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
+  store.dispatch(renderDataOverlay(newSelectedUid));
 };
 
 export const deleteSelectedInstances = (viewerId, selectedUids) => {
