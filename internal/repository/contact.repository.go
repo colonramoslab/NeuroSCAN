@@ -13,6 +13,7 @@ import (
 )
 
 type ContactRepository interface {
+	GetContactByULID(ctx context.Context, id string) (domain.Contact, error)
 	GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error)
 	ContactExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error)
@@ -30,6 +31,22 @@ func NewPostgresContactRepository(db *pgxpool.Pool) *PostgresContactRepository {
 	return &PostgresContactRepository{
 		DB: db,
 	}
+}
+
+func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id string) (domain.Contact, error) {
+	query := "SELECT * FROM contacts WHERE ulid = $1"
+
+	var contact domain.Contact
+	err := r.DB.QueryRow(ctx, query, id).Scan(&contact.ID, &contact.UID, &contact.ULID, &contact.Timepoint, &contact.Filename, &contact.Color)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Contact{}, nil
+		}
+
+		return domain.Contact{}, err
+	}
+
+	return contact, nil
 }
 
 func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {
@@ -104,7 +121,6 @@ func (r *PostgresContactRepository) CountContacts(ctx context.Context, query dom
 
 func (r *PostgresContactRepository) CreateContact(ctx context.Context, contact domain.Contact) error {
 	exists, err := r.ContactExists(ctx, contact.UID, contact.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -136,7 +152,6 @@ func (r *PostgresContactRepository) DeleteContact(ctx context.Context, uid strin
 
 func (r *PostgresContactRepository) IngestContact(ctx context.Context, contact domain.Contact, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.ContactExists(ctx, contact.UID, contact.Timepoint)
-
 	if err != nil {
 		return false, err
 	}
@@ -172,7 +187,6 @@ func (r *PostgresContactRepository) TruncateContacts(ctx context.Context) error 
 }
 
 func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
-
 	queryParts := []string{"where 1=1"}
 	args := []interface{}{}
 

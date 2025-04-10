@@ -13,6 +13,7 @@ import (
 )
 
 type NeuronRepository interface {
+	GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error)
 	GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error)
@@ -31,6 +32,22 @@ func NewPostgresNeuronRepository(db *pgxpool.Pool) *PostgresNeuronRepository {
 	return &PostgresNeuronRepository{
 		DB: db,
 	}
+}
+
+func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error) {
+	query := "SELECT * FROM neurons WHERE ulid = $1"
+
+	var neuron domain.Neuron
+	err := r.DB.QueryRow(ctx, query, id).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Neuron{}, nil
+		}
+
+		return domain.Neuron{}, err
+	}
+
+	return neuron, nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
@@ -105,7 +122,6 @@ func (r *PostgresNeuronRepository) CountNeurons(ctx context.Context, query domai
 
 func (r *PostgresNeuronRepository) CreateNeuron(ctx context.Context, neuron domain.Neuron) error {
 	exists, err := r.NeuronExists(ctx, neuron.UID, neuron.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -137,7 +153,6 @@ func (r *PostgresNeuronRepository) DeleteNeuron(ctx context.Context, uid string,
 
 func (r *PostgresNeuronRepository) IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.NeuronExists(ctx, neuron.UID, neuron.Timepoint)
-
 	if err != nil {
 		return false, err
 	}
@@ -173,7 +188,6 @@ func (r *PostgresNeuronRepository) TruncateNeurons(ctx context.Context) error {
 }
 
 func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
-
 	queryParts := []string{"where 1=1"}
 	args := []interface{}{}
 

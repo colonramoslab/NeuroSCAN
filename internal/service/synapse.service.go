@@ -8,6 +8,7 @@ import (
 )
 
 type SynapseService interface {
+	GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error)
 	GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error)
 	SynapseExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchSynapses(ctx context.Context, query domain.APIV1Request) ([]domain.Synapse, error)
@@ -25,6 +26,10 @@ func NewSynapseService(repo repository.SynapseRepository) SynapseService {
 	return &synapseService{
 		repo: repo,
 	}
+}
+
+func (s *synapseService) GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error) {
+	return s.repo.GetSynapseByULID(ctx, id)
 }
 
 func (s *synapseService) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {

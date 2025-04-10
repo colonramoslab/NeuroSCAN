@@ -3,6 +3,7 @@ package domain
 type APIV1Request struct {
 	Count      bool     `query:"count"`
 	Timepoint  *int     `query:"timepoint"`
+	ULID       string   `query:"ulid" param:"ulid"`
 	UIDs       []string `query:"uid"`
 	Types      []string `query:"type"`
 	Sort       string   `query:"sort"`

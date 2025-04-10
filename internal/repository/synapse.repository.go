@@ -13,6 +13,7 @@ import (
 )
 
 type SynapseRepository interface {
+	GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error)
 	GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error)
 	SynapseExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchSynapses(ctx context.Context, query domain.APIV1Request) ([]domain.Synapse, error)
@@ -31,6 +32,22 @@ func NewPostgresSynapseRepository(db *pgxpool.Pool) *PostgresSynapseRepository {
 	return &PostgresSynapseRepository{
 		DB: db,
 	}
+}
+
+func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error) {
+	query := "SELECT * FROM synapses WHERE ulid = $1"
+
+	var synapse domain.Synapse
+	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Synapse{}, nil
+		}
+
+		return domain.Synapse{}, err
+	}
+
+	return synapse, nil
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {
@@ -105,7 +122,6 @@ func (r *PostgresSynapseRepository) CountSynapses(ctx context.Context, query dom
 
 func (r *PostgresSynapseRepository) CreateSynapse(ctx context.Context, synapse domain.Synapse) error {
 	exists, err := r.SynapseExists(ctx, synapse.UID, synapse.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -137,7 +153,6 @@ func (r *PostgresSynapseRepository) DeleteSynapse(ctx context.Context, uid strin
 
 func (r *PostgresSynapseRepository) IngestSynapse(ctx context.Context, synapse domain.Synapse, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.SynapseExists(ctx, synapse.UID, synapse.Timepoint)
-
 	if err != nil {
 		return false, err
 	}
@@ -173,7 +188,6 @@ func (r *PostgresSynapseRepository) TruncateSynapses(ctx context.Context) error 
 }
 
 func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
-
 	queryParts := []string{"where 1=1"}
 	args := []interface{}{}
 
@@ -207,7 +221,6 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		if containsChemical {
 			queryParts = append(queryParts, fmt.Sprintf("synapse_type = ANY($%d) OR synapse_type IS NULL", len(args)))
 		} else {
-
 			queryParts = append(queryParts, fmt.Sprintf("synapse_type = ANY($%d)", len(args)))
 		}
 	}

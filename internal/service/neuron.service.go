@@ -8,6 +8,7 @@ import (
 )
 
 type NeuronService interface {
+	GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error)
 	GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error)
 	NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error)
@@ -25,6 +26,10 @@ func NewNeuronService(repo repository.NeuronRepository) NeuronService {
 	return &neuronService{
 		repo: repo,
 	}
+}
+
+func (s *neuronService) GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error) {
+	return s.repo.GetNeuronByULID(ctx, id)
 }
 
 func (s *neuronService) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {

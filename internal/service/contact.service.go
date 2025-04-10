@@ -8,6 +8,7 @@ import (
 )
 
 type ContactService interface {
+	GetContactByULID(ctx context.Context, id string) (domain.Contact, error)
 	GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error)
 	ContactExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error)
@@ -25,6 +26,10 @@ func NewContactService(repo repository.ContactRepository) ContactService {
 	return &contactService{
 		repo: repo,
 	}
+}
+
+func (s *contactService) GetContactByULID(ctx context.Context, id string) (domain.Contact, error) {
+	return s.repo.GetContactByULID(ctx, id)
 }
 
 func (s *contactService) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"neuroscan/internal/domain"
@@ -15,6 +16,31 @@ type NeuronHandler struct {
 
 func NewNeuronHandler(neuronService service.NeuronService) *NeuronHandler {
 	return &NeuronHandler{neuronService: neuronService}
+}
+
+func (h *NeuronHandler) FindNeuron(c echo.Context) error {
+	var req domain.APIV1Request
+
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	neuronULID := req.ULID
+
+	if neuronULID == "" {
+		c.JSON(http.StatusBadRequest, "invalid neuron ID")
+		return errors.New("invalid neuron ID")
+	}
+
+	neuron, err := h.neuronService.GetNeuronByULID(c.Request().Context(), neuronULID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, neuron)
+	return nil
 }
 
 func (h *NeuronHandler) SearchNeurons(c echo.Context) error {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"neuroscan/internal/domain"
@@ -15,6 +16,31 @@ type SynapseHandler struct {
 
 func NewSynapseHandler(synapseService service.SynapseService) *SynapseHandler {
 	return &SynapseHandler{synapseService: synapseService}
+}
+
+func (h *SynapseHandler) FindSynapse(c echo.Context) error {
+	var req domain.APIV1Request
+
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	synapseULID := req.ULID
+
+	if synapseULID == "" {
+		c.JSON(http.StatusBadRequest, "invalid synapse ID")
+		return errors.New("invalid synapse ID")
+	}
+
+	synapse, err := h.synapseService.GetSynapseByULID(c.Request().Context(), synapseULID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, synapse)
+	return nil
 }
 
 func (h *SynapseHandler) SearchSynapses(c echo.Context) error {
