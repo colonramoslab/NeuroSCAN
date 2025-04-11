@@ -22,6 +22,9 @@ const useStyles = makeStyles((theme) => ({
     maxWidth: '300px',
     maxHeight: '70vh',
     '& .data-overlay': {
+      '&-icon': {
+        minWidth: 'initial',
+      },
       '&-header': {
         display: 'flex',
         flexDirection: 'row',
@@ -30,6 +33,14 @@ const useStyles = makeStyles((theme) => ({
       '&-title': {
         padding: '10px 16px',
         fontWeight: 700,
+        overflowX: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: 'calc(100% - 40px)',
+      },
+      '&-body': {
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
       },
     },
   },
@@ -51,6 +62,7 @@ const DataOverlay = () => {
             </Button>
           </Box>
           <Divider />
+          <Box className="data-overlay-body" />
         </Box>
       </Box>
     ) : (
