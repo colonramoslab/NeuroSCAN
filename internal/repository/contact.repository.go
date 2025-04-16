@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 	"neuroscan/internal/toolshed"
 
@@ -49,12 +50,14 @@ func (c *Contact) ToDomain() domain.Contact {
 }
 
 type PostgresContactRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresContactRepository(db *pgxpool.Pool) *PostgresContactRepository {
+func NewPostgresContactRepository(db *pgxpool.Pool, c cache.Cache) *PostgresContactRepository {
 	return &PostgresContactRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
@@ -200,6 +203,57 @@ func (r *PostgresContactRepository) UpdateContact(ctx context.Context, contact d
 	}
 
 	return nil
+}
+
+func (r *PostgresContactRepository) PatchSurfaceArea(ctx context.Context, uid string, timepoint int) (float64, error) {
+	cacheKey := fmt.Sprintf("neuron:patch_surface_area:%s:%d", uid, timepoint)
+
+	if cachedPSA, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedPSA.(float64); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT sum(surface_area) FROM contacts WHERE uid like $1 AND timepoint = $2;"
+	like := fmt.Sprintf("%s%%", uid)
+
+	var total float64
+	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	r.cache.Set(cacheKey, total)
+
+	return total, nil
+}
+
+func (r *PostgresContactRepository) NerveRingPatchSurfaceArea(ctx context.Context, timepoint int) (float64, error) {
+	cacheKey := fmt.Sprintf("nervering:surface_area:%d", timepoint)
+
+	if cachedNRSA, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedNRSA.(float64); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT sum(surface_area) FROM neurons WHERE timepoint = $1;"
+
+	var total float64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	r.cache.Set(cacheKey, total)
+
+	return total, nil
 }
 
 func (r *PostgresContactRepository) DeleteContact(ctx context.Context, uid string, timepoint int) error {

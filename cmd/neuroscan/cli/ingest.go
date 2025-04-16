@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/database"
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -113,6 +114,12 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 		return err
 	}
 
+	cache, err := cache.NewCache(cntx)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to connect to cache")
+		return err
+	}
+
 	defer db.Close(cntx)
 
 	n := &Ingestor{
@@ -144,28 +151,28 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	// get the max number of routines to use
 	maxRoutines := toolshed.MaxParallelism()
 
-	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
+	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
 
-	contactRepo := repository.NewPostgresContactRepository(db.Pool)
+	contactRepo := repository.NewPostgresContactRepository(db.Pool, cache)
 	contactService := service.NewContactService(contactRepo)
 
-	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool)
+	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool, cache)
 	synapseService := service.NewSynapseService(synapseRepo)
 
-	cphateRepo := repository.NewPostgresCphateRepository(db.Pool)
+	cphateRepo := repository.NewPostgresCphateRepository(db.Pool, cache)
 	cphateService := service.NewCphateService(cphateRepo)
 
-	nerveRingRepo := repository.NewPostgresNerveRingRepository(db.Pool)
+	nerveRingRepo := repository.NewPostgresNerveRingRepository(db.Pool, cache)
 	nerveRingService := service.NewNerveRingService(nerveRingRepo)
 
-	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
+	scaleRepo := repository.NewPostgresScaleRepository(db.Pool, cache)
 	scaleService := service.NewScaleService(scaleRepo)
 
-	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool)
+	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool, cache)
 	promoterService := service.NewPromoterService(promoterRepo)
 
-	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
+	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool, cache)
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 
 	if n.clean {

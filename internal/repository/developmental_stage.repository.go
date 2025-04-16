@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,11 +22,15 @@ type DevelopmentalStageRepository interface {
 }
 
 type PostgresDevelopmentalStageRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresDevelopmentalStageRepository(db *pgxpool.Pool) *PostgresDevelopmentalStageRepository {
-	return &PostgresDevelopmentalStageRepository{DB: db}
+func NewPostgresDevelopmentalStageRepository(db *pgxpool.Pool, cache cache.Cache) *PostgresDevelopmentalStageRepository {
+	return &PostgresDevelopmentalStageRepository{
+		cache: cache,
+		DB:    db,
+	}
 }
 
 func (r *PostgresDevelopmentalStageRepository) DevelopmentalStageExists(ctx context.Context, uid string) (bool, error) {

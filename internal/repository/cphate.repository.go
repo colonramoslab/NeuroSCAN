@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -22,12 +23,14 @@ type CphateRepository interface {
 }
 
 type PostgresCphateRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresCphateRepository(db *pgxpool.Pool) *PostgresCphateRepository {
+func NewPostgresCphateRepository(db *pgxpool.Pool, c cache.Cache) *PostgresCphateRepository {
 	return &PostgresCphateRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
@@ -77,7 +80,6 @@ func (r *PostgresCphateRepository) CphateExists(ctx context.Context, timepoint i
 
 func (r *PostgresCphateRepository) CreateCphate(ctx context.Context, cphate domain.Cphate) error {
 	exists, err := r.CphateExists(ctx, cphate.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -109,7 +111,6 @@ func (r *PostgresCphateRepository) DeleteCphate(ctx context.Context, timepoint i
 
 func (r *PostgresCphateRepository) IngestCphate(ctx context.Context, cphate domain.Cphate, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.CphateExists(ctx, cphate.Timepoint)
-
 	if err != nil {
 		return false, err
 	}

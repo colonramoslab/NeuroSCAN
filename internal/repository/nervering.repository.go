@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -21,12 +22,14 @@ type NerveRingRepository interface {
 }
 
 type PostgresNerveRingRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresNerveRingRepository(db *pgxpool.Pool) *PostgresNerveRingRepository {
+func NewPostgresNerveRingRepository(db *pgxpool.Pool, c cache.Cache) *PostgresNerveRingRepository {
 	return &PostgresNerveRingRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 

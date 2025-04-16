@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -26,12 +27,14 @@ type SynapseRepository interface {
 }
 
 type PostgresSynapseRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresSynapseRepository(db *pgxpool.Pool) *PostgresSynapseRepository {
+func NewPostgresSynapseRepository(db *pgxpool.Pool, c cache.Cache) *PostgresSynapseRepository {
 	return &PostgresSynapseRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 

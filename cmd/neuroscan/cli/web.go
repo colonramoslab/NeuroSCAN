@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/database"
 	"neuroscan/internal/handler"
 	"neuroscan/internal/repository"
@@ -22,7 +23,6 @@ import (
 type WebCmd struct{}
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
-
 	logger := logging.NewLoggerFromEnv()
 
 	err := godotenv.Load()
@@ -47,6 +47,12 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("🤯 failed to connect to database")
 		return err
+	}
+
+	cache, err := cache.NewCache(cntx)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to connect to cache")
+		return fmt.Errorf("failed to connect to cache: %w", err)
 	}
 
 	defer db.Close(cntx)
@@ -105,35 +111,35 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	e.Static("/files", os.Getenv("APP_GLTF_DIR"))
 	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
 
-	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
+	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
 	neuronHandler := handler.NewNeuronHandler(neuronService)
 
-	contactRepo := repository.NewPostgresContactRepository(db.Pool)
+	contactRepo := repository.NewPostgresContactRepository(db.Pool, cache)
 	contactService := service.NewContactService(contactRepo)
 	contactHandler := handler.NewContactHandler(contactService)
 
-	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool)
+	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool, cache)
 	synapseService := service.NewSynapseService(synapseRepo)
 	synapseHandler := handler.NewSynapseHandler(synapseService)
 
-	cphateRepo := repository.NewPostgresCphateRepository(db.Pool)
+	cphateRepo := repository.NewPostgresCphateRepository(db.Pool, cache)
 	cphateService := service.NewCphateService(cphateRepo)
 	cphateHandler := handler.NewCphateHandler(cphateService)
 
-	nerveringRepo := repository.NewPostgresNerveRingRepository(db.Pool)
+	nerveringRepo := repository.NewPostgresNerveRingRepository(db.Pool, cache)
 	nerveringService := service.NewNerveRingService(nerveringRepo)
 	nerveringHandler := handler.NewNerveRingHandler(nerveringService)
 
-	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
+	scaleRepo := repository.NewPostgresScaleRepository(db.Pool, cache)
 	scaleService := service.NewScaleService(scaleRepo)
 	scaleHandler := handler.NewScaleHandler(scaleService)
 
-	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool)
+	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool, cache)
 	promoterService := service.NewPromoterService(promoterRepo)
 	promoterHandler := handler.NewPromoterHandler(promoterService)
 
-	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
+	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool, cache)
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
 

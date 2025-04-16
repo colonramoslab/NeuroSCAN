@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -24,12 +25,14 @@ type PromoterRepository interface {
 }
 
 type PostgresPromoterRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresPromoterRepository(db *pgxpool.Pool) *PostgresPromoterRepository {
+func NewPostgresPromoterRepository(db *pgxpool.Pool, c cache.Cache) *PostgresPromoterRepository {
 	return &PostgresPromoterRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
