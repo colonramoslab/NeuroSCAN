@@ -28,11 +28,11 @@ func (n *Neuron) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 	ulid := toolshed.CreateULID(NeuronULIDPrefix)
 
-	n.UID = *fileMeta.UID
+	n.UID = fileMeta.UID
 	n.ULID = ulid
-	n.Filename = *fileMeta.Filename
-	n.Timepoint = *fileMeta.Timepoint
-	n.Color = *fileMeta.Color
+	n.Filename = fileMeta.Filename
+	n.Timepoint = fileMeta.Timepoint
+	n.Color = fileMeta.Color
 
 	return nil
 }

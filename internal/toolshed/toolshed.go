@@ -22,12 +22,12 @@ import (
 )
 
 type NeuroscanFilepathData struct {
-	UID                *string
-	Filename           *string
-	Filehash           *string
-	Timepoint          *int
-	DevelopmentalStage *string
-	Color              *Color
+	UID                string
+	Filename           string
+	Filehash           string
+	Timepoint          int
+	DevelopmentalStage string
+	Color              Color
 }
 
 type Color [4]float64
@@ -203,12 +203,12 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 		uid := strings.ReplaceAll(node.Name, " ", "_")
 
 		parsedFile := NeuroscanFilepathData{
-			UID:                &uid,
-			Filename:           &filename,
-			Filehash:           &filehash,
-			Timepoint:          &timepoint,
-			DevelopmentalStage: &devStageUID,
-			Color:              &color,
+			UID:                uid,
+			Filename:           filename,
+			Filehash:           filehash,
+			Timepoint:          timepoint,
+			DevelopmentalStage: devStageUID,
+			Color:              color,
 		}
 
 		parsedFiles = append(parsedFiles, parsedFile)

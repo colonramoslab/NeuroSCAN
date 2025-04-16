@@ -27,11 +27,11 @@ func (c *Contact) Parse(filePath string) error {
 	ulid := toolshed.CreateULID(ContactULIDPrefix)
 	fileMeta := fileMetas[0]
 
-	c.UID = *fileMeta.UID
+	c.UID = fileMeta.UID
 	c.ULID = ulid
-	c.Filename = *fileMeta.Filename
-	c.Timepoint = *fileMeta.Timepoint
-	c.Color = *fileMeta.Color
+	c.Filename = fileMeta.Filename
+	c.Timepoint = fileMeta.Timepoint
+	c.Color = fileMeta.Color
 
 	return nil
 }

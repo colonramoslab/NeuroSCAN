@@ -52,13 +52,13 @@ func (s *Synapse) Parse(filePath string) error {
 
 	fileMeta := fileMetas[0]
 	ulid := toolshed.CreateULID(SynapseULIDPrefix)
-	synapseType := getSynapseType(*fileMeta.UID)
+	synapseType := getSynapseType(fileMeta.UID)
 
-	s.UID = *fileMeta.UID
+	s.UID = fileMeta.UID
 	s.ULID = ulid
-	s.Filename = *fileMeta.Filename
-	s.Timepoint = *fileMeta.Timepoint
-	s.Color = *fileMeta.Color
+	s.Filename = fileMeta.Filename
+	s.Timepoint = fileMeta.Timepoint
+	s.Color = fileMeta.Color
 	s.SynapseType = *synapseType
 
 	return nil

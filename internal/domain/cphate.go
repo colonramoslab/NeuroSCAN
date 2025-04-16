@@ -84,7 +84,7 @@ func (c *Cphate) Parse(dirPath string) error {
 		// loop over the fileMetas and create a CPHATE node for each
 		for _, fileMeta := range fileMetas {
 			// cphateNode, err := parseCphateNode(n, fileMeta.uid)
-			cphateMetaItem, err := buildCphateMetaItem(*fileMeta.UID, *fileMeta.Filename, *fileMeta.Color)
+			cphateMetaItem, err := buildCphateMetaItem(fileMeta.UID, fileMeta.Filename, fileMeta.Color)
 			if err != nil {
 				continue
 			}

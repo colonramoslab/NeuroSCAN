@@ -26,11 +26,11 @@ func (s *Scale) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 	ulid := toolshed.CreateULID(ScaleULIDPrefix)
 
-	s.UID = *fileMeta.UID
+	s.UID = fileMeta.UID
 	s.ULID = ulid
-	s.Filename = *fileMeta.Filename
-	s.Timepoint = *fileMeta.Timepoint
-	s.Color = *fileMeta.Color
+	s.Filename = fileMeta.Filename
+	s.Timepoint = fileMeta.Timepoint
+	s.Color = fileMeta.Color
 
 	return nil
 }

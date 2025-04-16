@@ -26,11 +26,11 @@ func (n *NerveRing) Parse(filePath string) error {
 	fileMeta := fileMetas[0]
 	ulid := toolshed.CreateULID(NerveRingULIDPrefix)
 
-	n.UID = *fileMeta.UID
+	n.UID = fileMeta.UID
 	n.ULID = ulid
-	n.Filename = *fileMeta.Filename
-	n.Timepoint = *fileMeta.Timepoint
-	n.Color = *fileMeta.Color
+	n.Filename = fileMeta.Filename
+	n.Timepoint = fileMeta.Timepoint
+	n.Color = fileMeta.Color
 
 	return nil
 }
