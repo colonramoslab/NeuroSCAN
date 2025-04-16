@@ -106,7 +106,6 @@ func (r *PostgresDevelopmentalStageRepository) DeleteDevelopmentalStage(ctx cont
 
 func (r *PostgresDevelopmentalStageRepository) IngestDevelopmentalStage(ctx context.Context, devStage domain.DevelopmentalStage, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.DevelopmentalStageExists(ctx, devStage.UID)
-
 	if err != nil {
 		return false, err
 	}
@@ -141,10 +140,9 @@ func (r *PostgresDevelopmentalStageRepository) TruncateDevelopmentalStages(ctx c
 	return nil
 }
 
-func (r *PostgresDevelopmentalStageRepository) ParseDevelopmentalStageAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
-
+func (r *PostgresDevelopmentalStageRepository) ParseDevelopmentalStageAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)

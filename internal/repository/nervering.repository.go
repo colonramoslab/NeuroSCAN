@@ -64,7 +64,6 @@ func (r *PostgresNerveRingRepository) NerveRingExists(ctx context.Context, timep
 
 func (r *PostgresNerveRingRepository) CreateNerveRing(ctx context.Context, nerveRing domain.NerveRing) error {
 	exists, err := r.NerveRingExists(ctx, nerveRing.Timepoint)
-
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,6 @@ func (r *PostgresNerveRingRepository) DeleteNerveRing(ctx context.Context, uid s
 
 func (r *PostgresNerveRingRepository) IngestNerveRing(ctx context.Context, nerveRing domain.NerveRing, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.NerveRingExists(ctx, nerveRing.Timepoint)
-
 	if err != nil {
 		return false, err
 	}

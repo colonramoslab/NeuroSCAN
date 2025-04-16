@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 
 	"neuroscan/internal/domain"
+	"neuroscan/internal/toolshed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,8 +22,33 @@ type NeuronRepository interface {
 	CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateNeuron(ctx context.Context, neuron domain.Neuron) error
 	DeleteNeuron(ctx context.Context, uid string, timepoint int) error
+	UpdateNeuron(ctx context.Context, neuron domain.Neuron) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
 	TruncateNeurons(ctx context.Context) error
+}
+
+type Neuron struct {
+	ID          int             `db:"id"`
+	ULID        string          `db:"ulid"`
+	UID         string          `db:"uid"`
+	Timepoint   int             `db:"timepoint"`
+	Filename    string          `db:"filename"`
+	Color       toolshed.Color  `db:"color"`
+	Volume      sql.NullFloat64 `db:"volume"`
+	SurfaceArea sql.NullFloat64 `db:"surface_area"`
+}
+
+func (n *Neuron) ToDomain() domain.Neuron {
+	return domain.Neuron{
+		ID:          n.ID,
+		ULID:        n.ULID,
+		UID:         n.UID,
+		Timepoint:   n.Timepoint,
+		Filename:    n.Filename,
+		Color:       n.Color,
+		Volume:      &n.Volume.Float64,
+		SurfaceArea: &n.SurfaceArea.Float64,
+	}
 }
 
 type PostgresNeuronRepository struct {
@@ -37,8 +64,8 @@ func NewPostgresNeuronRepository(db *pgxpool.Pool) *PostgresNeuronRepository {
 func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error) {
 	query := "SELECT * FROM neurons WHERE ulid = $1"
 
-	var neuron domain.Neuron
-	err := r.DB.QueryRow(ctx, query, id).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	var neuron Neuron
+	err := r.DB.QueryRow(ctx, query, id).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color, &neuron.Volume, &neuron.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Neuron{}, nil
@@ -47,14 +74,14 @@ func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron, nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
-	query := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT * FROM neurons WHERE uid = $1 AND timepoint = $2"
 
-	var neuron domain.Neuron
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	var neuron Neuron
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.ULID, &neuron.UID, &neuron.Timepoint, &neuron.Filename, &neuron.Color, &neuron.Volume, &neuron.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Neuron{}, nil
@@ -63,7 +90,7 @@ func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron, nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -83,7 +110,7 @@ func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string,
 }
 
 func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error) {
-	q := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons "
+	q := "SELECT * FROM neurons "
 
 	parsedQuery, args := r.ParseNeuronAPIV1Request(ctx, query)
 
@@ -91,7 +118,7 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	neurons, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Neuron])
+	neurons, err := pgx.CollectRows(rows, pgx.RowToStructByName[Neuron])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.Neuron{}, nil
@@ -100,7 +127,13 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 		return nil, err
 	}
 
-	return neurons, err
+	domainNeurons := make([]domain.Neuron, len(neurons))
+
+	for i := range neurons {
+		domainNeurons[i] = neurons[i].ToDomain()
+	}
+
+	return domainNeurons, err
 }
 
 func (r *PostgresNeuronRepository) CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error) {
@@ -134,6 +167,43 @@ func (r *PostgresNeuronRepository) CreateNeuron(ctx context.Context, neuron doma
 
 	_, err = r.DB.Exec(ctx, query, neuron.UID, neuron.ULID, neuron.Timepoint, neuron.Filename, neuron.Color)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateNeuron takes a neuron and updates the fields accordingly
+func (r *PostgresNeuronRepository) UpdateNeuron(ctx context.Context, neuron domain.Neuron) error {
+	query := `UPDATE neurons SET `
+	var args []any
+	args = append(args, neuron.ULID)
+
+	if neuron.Volume != nil {
+		args = append(args, *neuron.Volume)
+		query += fmt.Sprintf("volume = $%d, ", len(args))
+	}
+
+	if neuron.SurfaceArea != nil {
+		args = append(args, *neuron.SurfaceArea)
+		query += fmt.Sprintf("surface_area = $%d, ", len(args))
+	}
+
+	if len(args) == 1 {
+		return nil
+	}
+
+	query = strings.TrimSuffix(query, ", ")
+	query = strings.TrimSuffix(query, ",")
+	if !strings.HasSuffix(query, " ") {
+		query += " "
+	}
+
+	query += `where ulid = $1`
+
+	_, err := r.DB.Exec(ctx, query, args...)
+	if err != nil {
+		fmt.Printf("%v", err.Error())
 		return err
 	}
 
@@ -187,9 +257,9 @@ func (r *PostgresNeuronRepository) TruncateNeurons(ctx context.Context) error {
 	return nil
 }
 
-func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)

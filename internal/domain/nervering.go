@@ -19,18 +19,18 @@ type NerveRing struct {
 
 func (n *NerveRing) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing nerve ring file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(NerveRingULIDPrefix)
 
-	n.UID = fileMeta.UID
-	n.ULID = toolshed.CreateULID(NerveRingULIDPrefix)
-	n.Filename = fileMeta.Filename
-	n.Timepoint = fileMeta.Timepoint
-	n.Color = fileMeta.Color
+	n.UID = *fileMeta.UID
+	n.ULID = ulid
+	n.Filename = *fileMeta.Filename
+	n.Timepoint = *fileMeta.Timepoint
+	n.Color = *fileMeta.Color
 
 	return nil
 }
@@ -50,4 +50,3 @@ func (n *NerveRing) Validate() error {
 
 	return nil
 }
-

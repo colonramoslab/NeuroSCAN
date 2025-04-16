@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"neuroscan/internal/domain"
@@ -187,9 +188,9 @@ func (r *PostgresSynapseRepository) TruncateSynapses(ctx context.Context) error 
 	return nil
 }
 
-func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)
@@ -211,11 +212,8 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		containsChemical := false
 		args = append(args, req.Types)
 
-		for _, synapseType := range synapseTypes {
-			if synapseType == "chemical" {
-				containsChemical = true
-				break
-			}
+		if slices.Contains(synapseTypes, "chemical") {
+			containsChemical = true
 		}
 
 		if containsChemical {

@@ -22,12 +22,12 @@ import (
 )
 
 type NeuroscanFilepathData struct {
-	UID                string
-	Filename           string
-	Filehash           string
-	Timepoint          int
-	DevelopmentalStage string
-	Color              Color
+	UID                *string
+	Filename           *string
+	Filehash           *string
+	Timepoint          *int
+	DevelopmentalStage *string
+	Color              *Color
 }
 
 type Color [4]float64
@@ -75,10 +75,10 @@ func GetTimepoint(filePath string) (int, error) {
 	// it's based on the name of a folder somewhere in the middle of the path
 
 	// split the path into parts
-	parts := strings.Split(filePath, "/")
+	parts := strings.SplitSeq(filePath, "/")
 
 	// iterate over the parts
-	for _, part := range parts {
+	for part := range parts {
 		// if the part is a number, return it
 		if tp, err := strconv.Atoi(part); err == nil {
 			log.Debug().Int("timepoint", tp).Msg("Getting timepoint")
@@ -96,10 +96,10 @@ func GetDevStage(filePath string) (string, error) {
 	// it's based on the name of a folder somewhere in the middle of the path
 
 	// split the path into parts
-	parts := strings.Split(filePath, "/")
+	parts := strings.SplitSeq(filePath, "/")
 
 	// iterate over the parts
-	for _, part := range parts {
+	for part := range parts {
 		// if the part is one of the development stages, return it
 		if part == "L1" || part == "L2" || part == "L3" || part == "L4" || part == "Adult" {
 			log.Debug().Str("stage", part).Msg("Getting development stage")
@@ -118,12 +118,12 @@ func GetEntityType(filePath string) (string, error) {
 	// it's based on the name of a folder somewhere in the middle of the path
 
 	// split the path into parts
-	parts := strings.Split(filePath, "/")
+	parts := strings.SplitSeq(filePath, "/")
 
 	// iterate over the parts
-	for _, part := range parts {
+	for part := range parts {
 		// if the part is one of the entity types, return it
-		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" || part == "scale" || part == "promoters" || part == "dev_stages" {
+		if part == "neurons" || part == "synapses" || part == "contacts" || part == "cphate" || part == "nerveRing" || part == "scale" || part == "promoters" || part == "dev_stages" || part == "meta" {
 			log.Debug().Str("type", part).Msg("Getting entity type")
 			return part, nil
 		}
@@ -195,19 +195,20 @@ func FilePathParse(filePath string) ([]NeuroscanFilepathData, error) {
 		return []NeuroscanFilepathData{}, err
 	}
 
-	color := doc.Materials[0].PBRMetallicRoughness.BaseColorFactor
+	colors := doc.Materials[0].PBRMetallicRoughness.BaseColorFactor
+	color := Color(*colors)
 
 	for _, node := range doc.Nodes {
 		// we need to make sure any spaces are replaced with underscores
 		uid := strings.ReplaceAll(node.Name, " ", "_")
 
 		parsedFile := NeuroscanFilepathData{
-			UID:                uid,
-			Filename:           filename,
-			Filehash:           filehash,
-			Timepoint:          timepoint,
-			DevelopmentalStage: devStageUID,
-			Color:              *color,
+			UID:                &uid,
+			Filename:           &filename,
+			Filehash:           &filehash,
+			Timepoint:          &timepoint,
+			DevelopmentalStage: &devStageUID,
+			Color:              &color,
 		}
 
 		parsedFiles = append(parsedFiles, parsedFile)

@@ -9,17 +9,17 @@ import (
 const ContactULIDPrefix = "cntct"
 
 type Contact struct {
-	ID        int            `json:"-"`
-	ULID      string         `json:"id"`
-	UID       string         `json:"uid"`
-	Timepoint int            `json:"timepoint"`
-	Filename  string         `json:"filename"`
-	Color     toolshed.Color `json:"color"`
+	ID          int            `json:"-"`
+	ULID        string         `json:"id"`
+	UID         string         `json:"uid"`
+	Timepoint   int            `json:"timepoint"`
+	Filename    string         `json:"filename"`
+	Color       toolshed.Color `json:"color"`
+	SurfaceArea *float64       `json:"surface_area"`
 }
 
 func (c *Contact) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing contact file path: " + err.Error())
 	}
@@ -27,11 +27,11 @@ func (c *Contact) Parse(filePath string) error {
 	ulid := toolshed.CreateULID(ContactULIDPrefix)
 	fileMeta := fileMetas[0]
 
-	c.UID = fileMeta.UID
+	c.UID = *fileMeta.UID
 	c.ULID = ulid
-	c.Filename = fileMeta.Filename
-	c.Timepoint = fileMeta.Timepoint
-	c.Color = fileMeta.Color
+	c.Filename = *fileMeta.Filename
+	c.Timepoint = *fileMeta.Timepoint
+	c.Color = *fileMeta.Color
 
 	return nil
 }

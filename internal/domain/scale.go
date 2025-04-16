@@ -19,18 +19,18 @@ type Scale struct {
 
 func (s *Scale) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing scale file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(ScaleULIDPrefix)
 
-	s.UID = fileMeta.UID
-	s.ULID = toolshed.CreateULID(ScaleULIDPrefix)
-	s.Filename = fileMeta.Filename
-	s.Timepoint = fileMeta.Timepoint
-	s.Color = fileMeta.Color
+	s.UID = *fileMeta.UID
+	s.ULID = ulid
+	s.Filename = *fileMeta.Filename
+	s.Timepoint = *fileMeta.Timepoint
+	s.Color = *fileMeta.Color
 
 	return nil
 }

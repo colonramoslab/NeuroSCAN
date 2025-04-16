@@ -12,7 +12,7 @@ type SynapseType string
 const (
 	SynapseTypeChemical   SynapseType = "chemical"
 	SynapseTypeElectrical SynapseType = "electrical"
-	SynapseULIDPrefix                  = "syn"
+	SynapseULIDPrefix                 = "syn"
 )
 
 var ValidSynapseType = map[SynapseType]bool{
@@ -25,7 +25,7 @@ type Synapse struct {
 	ULID        string         `json:"id"`
 	UID         string         `json:"uid"`
 	Timepoint   int            `json:"timepoint"`
-	SynapseType *SynapseType   `json:"type"`
+	SynapseType SynapseType    `json:"type"`
 	Filename    string         `json:"filename"`
 	Color       toolshed.Color `json:"color"`
 }
@@ -46,19 +46,20 @@ func getSynapseType(uid string) *SynapseType {
 
 func (s *Synapse) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing synapse file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(SynapseULIDPrefix)
+	synapseType := getSynapseType(*fileMeta.UID)
 
-	s.UID = fileMeta.UID
-	s.ULID = toolshed.CreateULID(SynapseULIDPrefix)
-	s.Filename = fileMeta.Filename
-	s.Timepoint = fileMeta.Timepoint
-	s.Color = fileMeta.Color
-	s.SynapseType = getSynapseType(fileMeta.UID)
+	s.UID = *fileMeta.UID
+	s.ULID = ulid
+	s.Filename = *fileMeta.Filename
+	s.Timepoint = *fileMeta.Timepoint
+	s.Color = *fileMeta.Color
+	s.SynapseType = *synapseType
 
 	return nil
 }

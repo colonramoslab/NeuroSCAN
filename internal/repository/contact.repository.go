@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 
 	"neuroscan/internal/domain"
+	"neuroscan/internal/toolshed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,8 +21,31 @@ type ContactRepository interface {
 	SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error)
 	CountContacts(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateContact(ctx context.Context, contact domain.Contact) error
+	UpdateContact(ctx context.Context, contact domain.Contact) error
 	IngestContact(ctx context.Context, contact domain.Contact, skipExisting bool, force bool) (bool, error)
 	TruncateContacts(ctx context.Context) error
+}
+
+type Contact struct {
+	ID          int             `db:"id"`
+	ULID        string          `db:"ulid"`
+	UID         string          `db:"uid"`
+	Timepoint   int             `db:"timepoint"`
+	Filename    string          `db:"filename"`
+	Color       toolshed.Color  `db:"color"`
+	SurfaceArea sql.NullFloat64 `db:"surface_area"`
+}
+
+func (c *Contact) ToDomain() domain.Contact {
+	return domain.Contact{
+		ID:          c.ID,
+		ULID:        c.ULID,
+		UID:         c.UID,
+		Timepoint:   c.Timepoint,
+		Filename:    c.Filename,
+		Color:       c.Color,
+		SurfaceArea: &c.SurfaceArea.Float64,
+	}
 }
 
 type PostgresContactRepository struct {
@@ -36,8 +61,8 @@ func NewPostgresContactRepository(db *pgxpool.Pool) *PostgresContactRepository {
 func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id string) (domain.Contact, error) {
 	query := "SELECT * FROM contacts WHERE ulid = $1"
 
-	var contact domain.Contact
-	err := r.DB.QueryRow(ctx, query, id).Scan(&contact.ID, &contact.UID, &contact.ULID, &contact.Timepoint, &contact.Filename, &contact.Color)
+	var contact Contact
+	err := r.DB.QueryRow(ctx, query, id).Scan(&contact.ID, &contact.ULID, &contact.UID, &contact.Timepoint, &contact.Filename, &contact.Color, &contact.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Contact{}, nil
@@ -46,14 +71,14 @@ func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id str
 		return domain.Contact{}, err
 	}
 
-	return contact, nil
+	return contact.ToDomain(), nil
 }
 
 func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {
-	query := "SELECT id, uid, ulid, timepoint, filename, color FROM contacts WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT * FROM contacts WHERE uid = $1 AND timepoint = $2"
 
-	var contact domain.Contact
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&contact.ID, &contact.UID, &contact.ULID, &contact.Timepoint, &contact.Filename, &contact.Color)
+	var contact Contact
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&contact.ID, &contact.ULID, &contact.UID, &contact.Timepoint, &contact.Filename, &contact.Color, &contact.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Contact{}, nil
@@ -62,7 +87,7 @@ func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid str
 		return domain.Contact{}, err
 	}
 
-	return contact, nil
+	return contact.ToDomain(), nil
 }
 
 func (r *PostgresContactRepository) ContactExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -82,7 +107,7 @@ func (r *PostgresContactRepository) ContactExists(ctx context.Context, uid strin
 }
 
 func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error) {
-	q := "SELECT id, uid, ulid, timepoint, filename, color FROM contacts "
+	q := "SELECT * FROM contacts "
 
 	parsedQuery, args := r.ParseContactAPIV1Request(ctx, query)
 
@@ -90,7 +115,7 @@ func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query do
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	contacts, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Contact])
+	contacts, err := pgx.CollectRows(rows, pgx.RowToStructByName[Contact])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.Contact{}, nil
@@ -99,7 +124,13 @@ func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query do
 		return nil, err
 	}
 
-	return contacts, err
+	domainContacts := make([]domain.Contact, len(contacts))
+
+	for i := range contacts {
+		domainContacts[i] = contacts[i].ToDomain()
+	}
+
+	return domainContacts, err
 }
 
 func (r *PostgresContactRepository) CountContacts(ctx context.Context, query domain.APIV1Request) (int, error) {
@@ -133,6 +164,38 @@ func (r *PostgresContactRepository) CreateContact(ctx context.Context, contact d
 
 	_, err = r.DB.Exec(ctx, query, contact.UID, contact.ULID, contact.Timepoint, contact.Filename, contact.Color)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateContact takes a contact and updates the fields accordingly
+func (r *PostgresContactRepository) UpdateContact(ctx context.Context, contact domain.Contact) error {
+	query := `UPDATE contacts SET `
+	var args []any
+	args = append(args, contact.ULID)
+
+	if contact.SurfaceArea != nil {
+		args = append(args, *contact.SurfaceArea)
+		query += fmt.Sprintf("surface_area = $%d, ", len(args))
+	}
+
+	if len(args) == 1 {
+		return nil
+	}
+
+	query = strings.TrimSuffix(query, ", ")
+	query = strings.TrimSuffix(query, ",")
+	if !strings.HasSuffix(query, " ") {
+		query += " "
+	}
+
+	query += `where ulid = $1`
+
+	_, err := r.DB.Exec(ctx, query, args...)
+	if err != nil {
+		fmt.Printf("%v", err.Error())
 		return err
 	}
 
@@ -186,9 +249,9 @@ func (r *PostgresContactRepository) TruncateContacts(ctx context.Context) error 
 	return nil
 }
 
-func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)
