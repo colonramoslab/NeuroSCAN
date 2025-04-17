@@ -21,13 +21,20 @@ var ValidSynapseType = map[SynapseType]bool{
 }
 
 type Synapse struct {
-	ID          int            `json:"-"`
-	ULID        string         `json:"id"`
-	UID         string         `json:"uid"`
-	Timepoint   int            `json:"timepoint"`
-	SynapseType SynapseType    `json:"type"`
-	Filename    string         `json:"filename"`
-	Color       toolshed.Color `json:"color"`
+	ID              int            `json:"-"`
+	ULID            string         `json:"id"`
+	UID             string         `json:"uid"`
+	Timepoint       int            `json:"timepoint"`
+	SynapseType     SynapseType    `json:"type"`
+	Filename        string         `json:"filename"`
+	Color           toolshed.Color `json:"color"`
+	TotalNRSynapses *int           `json:"total_nr_synapses"`
+	Synapses        *[]SynapseItem `json:"synapses"`
+}
+
+type SynapseItem struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
 }
 
 func getSynapseType(uid string) *SynapseType {

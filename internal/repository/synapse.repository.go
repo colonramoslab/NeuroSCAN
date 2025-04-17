@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -9,6 +10,7 @@ import (
 
 	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
+	"neuroscan/internal/toolshed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,6 +28,38 @@ type SynapseRepository interface {
 	TruncateSynapses(ctx context.Context) error
 }
 
+type Synapse struct {
+	ID          int                `db:"id"`
+	ULID        string             `db:"ulid"`
+	UID         string             `db:"uid"`
+	Timepoint   int                `db:"timepoint"`
+	SynapseType domain.SynapseType `db:"type"`
+	Filename    string             `db:"filename"`
+	Color       toolshed.Color     `db:"color"`
+}
+
+func (s *Synapse) ToDomain(tnrs *int, synapses *[]domain.SynapseItem) domain.Synapse {
+	synapse := domain.Synapse{
+		ID:          s.ID,
+		ULID:        s.ULID,
+		UID:         s.UID,
+		Timepoint:   s.Timepoint,
+		SynapseType: s.SynapseType,
+		Filename:    s.Filename,
+		Color:       s.Color,
+	}
+
+	if tnrs != nil {
+		synapse.TotalNRSynapses = tnrs
+	}
+
+	if synapses != nil {
+		synapse.Synapses = synapses
+	}
+
+	return synapse
+}
+
 type PostgresSynapseRepository struct {
 	cache cache.Cache
 	DB    *pgxpool.Pool
@@ -41,7 +75,7 @@ func NewPostgresSynapseRepository(db *pgxpool.Pool, c cache.Cache) *PostgresSyna
 func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error) {
 	query := "SELECT * FROM synapses WHERE ulid = $1"
 
-	var synapse domain.Synapse
+	var synapse Synapse
 	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -51,13 +85,18 @@ func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id str
 		return domain.Synapse{}, err
 	}
 
-	return synapse, nil
+	tnrs, err := r.NerveRingSynapseCount(ctx, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	return synapse.ToDomain(&tnrs), nil
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {
 	query := "SELECT id, uid, ulid, timepoint, synapse_type, filename, color FROM synapses WHERE uid = $1 AND timepoint = $2"
 
-	var synapse domain.Synapse
+	var synapse Synapse
 	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -67,7 +106,7 @@ func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid str
 		return domain.Synapse{}, err
 	}
 
-	return synapse, nil
+	return synapse.ToDomain(), nil
 }
 
 func (r *PostgresSynapseRepository) SynapseExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -95,7 +134,7 @@ func (r *PostgresSynapseRepository) SearchSynapses(ctx context.Context, query do
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	synapses, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Synapse])
+	synapses, err := pgx.CollectRows(rows, pgx.RowToStructByName[Synapse])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.Synapse{}, nil
@@ -104,7 +143,13 @@ func (r *PostgresSynapseRepository) SearchSynapses(ctx context.Context, query do
 		return nil, err
 	}
 
-	return synapses, nil
+	domainSynapses := make([]domain.Synapse, len(synapses))
+
+	for i := range synapses {
+		domainSynapses[i] = synapses[i].ToDomain(nil, nil)
+	}
+
+	return domainSynapses, nil
 }
 
 func (r *PostgresSynapseRepository) CountSynapses(ctx context.Context, query domain.APIV1Request) (int, error) {
@@ -122,6 +167,77 @@ func (r *PostgresSynapseRepository) CountSynapses(ctx context.Context, query dom
 	}
 
 	return count, nil
+}
+
+func (r *PostgresSynapseRepository) SynapseCount(ctx context.Context, uid string, timepoint int) ([]domain.SynapseItem, error) {
+	parts := strings.Split(uid, "&")
+	prefix := parts[0]
+	like := fmt.Sprintf("%s%%", prefix)
+	cacheKey := fmt.Sprintf("synapse:synapse_count:%s:%d", prefix, timepoint)
+
+	if cachedSynapseCount, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedSynapseCount.([]domain.SynapseItem); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT split_part(uid, '~', 1) AS syn_identity, COUNT(*) AS total FROM synapses WHERE uid LIKE $1 AND timepoint = $2 GROUP BY syn_identity ORDER BY syn_identity ASC;"
+
+	rows, err := r.DB.Query(ctx, query, like, timepoint)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []domain.SynapseItem{}, nil
+		}
+
+		return []domain.SynapseItem{}, err
+	}
+
+	defer rows.Close()
+
+	synapses := []domain.SynapseItem{}
+	for rows.Next() {
+		var synapse domain.SynapseItem
+		err := rows.Scan(&synapse.Name, &synapse.Count)
+		if err != nil {
+			return []domain.SynapseItem{}, err
+		}
+		synapses = append(synapses, synapse)
+	}
+
+	r.cache.Set(cacheKey, synapses)
+
+	return synapses, nil
+}
+
+func (r *PostgresSynapseRepository) NerveRingSynapseCount(ctx context.Context, timepoint int) (int, error) {
+	cacheKey := fmt.Sprintf("nervering:total_synapses:%d", timepoint)
+
+	if cachedTNRS, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedTNRS.(int); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT count(*) FROM synapses WHERE timepoint = $1;"
+
+	var total sql.NullInt64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Int64
+
+		r.cache.Set(cacheKey, count)
+
+		return int(count), nil
+	}
+
+	return 0, nil
 }
 
 func (r *PostgresSynapseRepository) CreateSynapse(ctx context.Context, synapse domain.Synapse) error {

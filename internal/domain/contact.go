@@ -16,8 +16,8 @@ type Contact struct {
 	Filename                  string         `json:"filename"`
 	Color                     toolshed.Color `json:"color"`
 	SurfaceArea               *float64       `json:"surface_area"`
-	TotalCellPacthSurfaceArea *float64       `json:"total_cell_patch_surface_area"`
-	TotalNRPatchSurfaceArea   *float64       `json:"total_nerve_ring_patch_surface_area"`
+	TotalSurfaceArea          *float64       `json:"total_surface_area"`
+	TotalNRContactSurfaceArea *float64       `json:"total_nrc_surface_area"`
 }
 
 func (c *Contact) Parse(filePath string) error {

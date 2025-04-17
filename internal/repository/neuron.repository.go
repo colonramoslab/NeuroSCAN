@@ -39,7 +39,7 @@ type Neuron struct {
 	SurfaceArea sql.NullFloat64 `db:"surface_area"`
 }
 
-func (n *Neuron) ToDomain(ns *[]domain.NeuronSynapse, psa *float64, nrsa *float64) domain.Neuron {
+func (n *Neuron) ToDomain(ns *[]domain.SynapseItem, psa *float64, nrsa *float64, tnrs *int) domain.Neuron {
 	neuron := domain.Neuron{
 		ID:          n.ID,
 		ULID:        n.ULID,
@@ -51,12 +51,16 @@ func (n *Neuron) ToDomain(ns *[]domain.NeuronSynapse, psa *float64, nrsa *float6
 		SurfaceArea: &n.SurfaceArea.Float64,
 	}
 
+	if tnrs != nil {
+		neuron.TotalNRSynapses = tnrs
+	}
+
 	if ns != nil {
 		neuron.Synapses = ns
 	}
 
 	if psa != nil {
-		neuron.TotalPatchSurfaceArea = psa
+		neuron.TotalContactSurfaceArea = psa
 	}
 
 	if nrsa != nil {
@@ -96,7 +100,7 @@ func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id strin
 		return domain.Neuron{}, err
 	}
 
-	psa, err := r.PatchSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
+	psa, err := r.ContactSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
 	if err != nil {
 		return domain.Neuron{}, err
 	}
@@ -106,7 +110,12 @@ func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron.ToDomain(&synapseCount, &psa, &nrsa), nil
+	tnrs, err := r.NerveRingSynapseCount(ctx, neuron.Timepoint)
+	if err != nil {
+		return domain.Neuron{}, err
+	}
+
+	return neuron.ToDomain(&synapseCount, &psa, &nrsa, &tnrs), nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
@@ -127,7 +136,7 @@ func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid strin
 		return domain.Neuron{}, err
 	}
 
-	psa, err := r.PatchSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
+	psa, err := r.ContactSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
 	if err != nil {
 		return domain.Neuron{}, err
 	}
@@ -137,7 +146,12 @@ func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron.ToDomain(&synapseCount, &psa, &nrsa), nil
+	tnrs, err := r.NerveRingSynapseCount(ctx, neuron.Timepoint)
+	if err != nil {
+		return domain.Neuron{}, err
+	}
+
+	return neuron.ToDomain(&synapseCount, &psa, &nrsa, &tnrs), nil
 }
 
 func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -177,7 +191,7 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 	domainNeurons := make([]domain.Neuron, len(neurons))
 
 	for i := range neurons {
-		domainNeurons[i] = neurons[i].ToDomain(nil, nil, nil)
+		domainNeurons[i] = neurons[i].ToDomain(nil, nil, nil, nil)
 	}
 
 	return domainNeurons, err
@@ -268,11 +282,11 @@ func (r *PostgresNeuronRepository) DeleteNeuron(ctx context.Context, uid string,
 	return nil
 }
 
-func (r *PostgresNeuronRepository) SynapseCount(ctx context.Context, uid string, timepoint int) ([]domain.NeuronSynapse, error) {
+func (r *PostgresNeuronRepository) SynapseCount(ctx context.Context, uid string, timepoint int) ([]domain.SynapseItem, error) {
 	cacheKey := fmt.Sprintf("neuron:synapse_count:%s:%d", uid, timepoint)
 
 	if cachedSynapseCount, found := r.cache.Get(cacheKey); found {
-		if cached, ok := cachedSynapseCount.([]domain.NeuronSynapse); ok {
+		if cached, ok := cachedSynapseCount.([]domain.SynapseItem); ok {
 			return cached, nil
 		}
 	}
@@ -281,25 +295,23 @@ func (r *PostgresNeuronRepository) SynapseCount(ctx context.Context, uid string,
 
 	like := fmt.Sprintf("%s%%", uid)
 
-	fmt.Printf("%s", like)
-
 	rows, err := r.DB.Query(ctx, query, like, timepoint)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return []domain.NeuronSynapse{}, nil
+			return []domain.SynapseItem{}, nil
 		}
 
-		return []domain.NeuronSynapse{}, err
+		return []domain.SynapseItem{}, err
 	}
 
 	defer rows.Close()
 
-	synapses := []domain.NeuronSynapse{}
+	synapses := []domain.SynapseItem{}
 	for rows.Next() {
-		var synapse domain.NeuronSynapse
+		var synapse domain.SynapseItem
 		err := rows.Scan(&synapse.Name, &synapse.Count)
 		if err != nil {
-			return []domain.NeuronSynapse{}, err
+			return []domain.SynapseItem{}, err
 		}
 		synapses = append(synapses, synapse)
 	}
@@ -309,8 +321,8 @@ func (r *PostgresNeuronRepository) SynapseCount(ctx context.Context, uid string,
 	return synapses, nil
 }
 
-func (r *PostgresNeuronRepository) PatchSurfaceArea(ctx context.Context, uid string, timepoint int) (float64, error) {
-	cacheKey := fmt.Sprintf("neuron:patch_surface_area:%s:%d", uid, timepoint)
+func (r *PostgresNeuronRepository) ContactSurfaceArea(ctx context.Context, uid string, timepoint int) (float64, error) {
+	cacheKey := fmt.Sprintf("neuron:contact_surface_area:%s:%d", uid, timepoint)
 
 	if cachedPSA, found := r.cache.Get(cacheKey); found {
 		if cached, ok := cachedPSA.(float64); ok {
@@ -367,6 +379,37 @@ func (r *PostgresNeuronRepository) NerveRingSurfaceArea(ctx context.Context, tim
 		r.cache.Set(cacheKey, count)
 
 		return count, nil
+	}
+
+	return 0, nil
+}
+
+func (r *PostgresNeuronRepository) NerveRingSynapseCount(ctx context.Context, timepoint int) (int, error) {
+	cacheKey := fmt.Sprintf("nervering:total_synapses:%d", timepoint)
+
+	if cachedTNRS, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedTNRS.(int); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT count(*) FROM synapses WHERE timepoint = $1;"
+
+	var total sql.NullInt64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Int64
+
+		r.cache.Set(cacheKey, count)
+
+		return int(count), nil
 	}
 
 	return 0, nil
