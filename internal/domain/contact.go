@@ -16,7 +16,6 @@ type Contact struct {
 	Filename                  string         `json:"filename"`
 	Color                     toolshed.Color `json:"color"`
 	SurfaceArea               *float64       `json:"surface_area"`
-	TotalSurfaceArea          *float64       `json:"total_surface_area"`
 	TotalNRContactSurfaceArea *float64       `json:"total_nrc_surface_area"`
 }
 

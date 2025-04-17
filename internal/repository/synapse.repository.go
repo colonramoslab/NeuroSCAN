@@ -29,24 +29,36 @@ type SynapseRepository interface {
 }
 
 type Synapse struct {
-	ID          int                `db:"id"`
-	ULID        string             `db:"ulid"`
-	UID         string             `db:"uid"`
-	Timepoint   int                `db:"timepoint"`
-	SynapseType domain.SynapseType `db:"type"`
-	Filename    string             `db:"filename"`
-	Color       toolshed.Color     `db:"color"`
+	ID          int            `db:"id"`
+	ULID        string         `db:"ulid"`
+	UID         string         `db:"uid"`
+	Timepoint   int            `db:"timepoint"`
+	SynapseType sql.NullString `db:"synapse_type"`
+	Filename    string         `db:"filename"`
+	Color       toolshed.Color `db:"color"`
 }
 
 func (s *Synapse) ToDomain(tnrs *int, synapses *[]domain.SynapseItem) domain.Synapse {
 	synapse := domain.Synapse{
-		ID:          s.ID,
-		ULID:        s.ULID,
-		UID:         s.UID,
-		Timepoint:   s.Timepoint,
-		SynapseType: s.SynapseType,
-		Filename:    s.Filename,
-		Color:       s.Color,
+		ID:        s.ID,
+		ULID:      s.ULID,
+		UID:       s.UID,
+		Timepoint: s.Timepoint,
+		Filename:  s.Filename,
+		Color:     s.Color,
+	}
+
+	if s.SynapseType.Valid {
+		switch s.SynapseType.String {
+		case "chemical":
+			synapse.SynapseType = domain.SynapseTypeChemical
+			break
+		case "electrical":
+			synapse.SynapseType = domain.SynapseTypeElectrical
+			break
+		default:
+			break
+		}
 	}
 
 	if tnrs != nil {
@@ -76,7 +88,7 @@ func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id str
 	query := "SELECT * FROM synapses WHERE ulid = $1"
 
 	var synapse Synapse
-	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.ULID, &synapse.UID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Synapse{}, nil
@@ -90,14 +102,19 @@ func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id str
 		return domain.Synapse{}, err
 	}
 
-	return synapse.ToDomain(&tnrs), nil
+	synapses, err := r.SynapseCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	return synapse.ToDomain(&tnrs, &synapses), nil
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {
-	query := "SELECT id, uid, ulid, timepoint, synapse_type, filename, color FROM synapses WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT * FROM synapses WHERE uid = $1 AND timepoint = $2"
 
 	var synapse Synapse
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.ULID, &synapse.UID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Synapse{}, nil
@@ -106,7 +123,17 @@ func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid str
 		return domain.Synapse{}, err
 	}
 
-	return synapse.ToDomain(), nil
+	tnrs, err := r.NerveRingSynapseCount(ctx, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	synapses, err := r.SynapseCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	return synapse.ToDomain(&tnrs, &synapses), nil
 }
 
 func (r *PostgresSynapseRepository) SynapseExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -188,7 +215,6 @@ func (r *PostgresSynapseRepository) SynapseCount(ctx context.Context, uid string
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.SynapseItem{}, nil
 		}
-
 		return []domain.SynapseItem{}, err
 	}
 

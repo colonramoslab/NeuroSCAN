@@ -37,7 +37,7 @@ type Contact struct {
 	SurfaceArea sql.NullFloat64 `db:"surface_area"`
 }
 
-func (c *Contact) ToDomain(tsa *float64, tnrcsa *float64) domain.Contact {
+func (c *Contact) ToDomain(tnrcsa *float64) domain.Contact {
 	contact := domain.Contact{
 		ID:          c.ID,
 		ULID:        c.ULID,
@@ -46,10 +46,6 @@ func (c *Contact) ToDomain(tsa *float64, tnrcsa *float64) domain.Contact {
 		Filename:    c.Filename,
 		Color:       c.Color,
 		SurfaceArea: &c.SurfaceArea.Float64,
-	}
-
-	if tsa != nil {
-		contact.TotalSurfaceArea = tsa
 	}
 
 	if tnrcsa != nil {
@@ -84,17 +80,12 @@ func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id str
 		return domain.Contact{}, err
 	}
 
-	tsa, err := r.ContactSurfaceArea(ctx, contact.UID, contact.Timepoint)
-	if err != nil {
-		return domain.Contact{}, err
-	}
-
 	tnrcsa, err := r.NerveRingContactSurfaceArea(ctx, contact.Timepoint)
 	if err != nil {
 		return domain.Contact{}, err
 	}
 
-	return contact.ToDomain(&tsa, &tnrcsa), nil
+	return contact.ToDomain(&tnrcsa), nil
 }
 
 func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {
@@ -110,17 +101,12 @@ func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid str
 		return domain.Contact{}, err
 	}
 
-	tsa, err := r.ContactSurfaceArea(ctx, contact.UID, contact.Timepoint)
-	if err != nil {
-		return domain.Contact{}, err
-	}
-
 	tnrcsa, err := r.NerveRingContactSurfaceArea(ctx, contact.Timepoint)
 	if err != nil {
 		return domain.Contact{}, err
 	}
 
-	return contact.ToDomain(&tsa, &tnrcsa), nil
+	return contact.ToDomain(&tnrcsa), nil
 }
 
 func (r *PostgresContactRepository) ContactExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -160,7 +146,7 @@ func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query do
 	domainContacts := make([]domain.Contact, len(contacts))
 
 	for i := range contacts {
-		domainContacts[i] = contacts[i].ToDomain(nil, nil)
+		domainContacts[i] = contacts[i].ToDomain(nil)
 	}
 
 	return domainContacts, err
@@ -247,8 +233,8 @@ func (r *PostgresContactRepository) ContactSurfaceArea(ctx context.Context, uid 
 	query := "SELECT sum(surface_area) FROM contacts WHERE uid like $1 AND timepoint = $2;"
 	like := fmt.Sprintf("%s%%", uid)
 
-	var total float64
-	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(total)
+	var total sql.NullFloat64
+	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(&total)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, nil
@@ -256,9 +242,15 @@ func (r *PostgresContactRepository) ContactSurfaceArea(ctx context.Context, uid 
 		return 0, err
 	}
 
-	r.cache.Set(cacheKey, total)
+	if total.Valid {
+		count := total.Float64
 
-	return total, nil
+		r.cache.Set(cacheKey, count)
+
+		return count, nil
+	}
+
+	return 0, nil
 }
 
 func (r *PostgresContactRepository) NerveRingContactSurfaceArea(ctx context.Context, timepoint int) (float64, error) {
@@ -272,8 +264,8 @@ func (r *PostgresContactRepository) NerveRingContactSurfaceArea(ctx context.Cont
 
 	query := "SELECT sum(surface_area) FROM neurons WHERE timepoint = $1;"
 
-	var total float64
-	err := r.DB.QueryRow(ctx, query, timepoint).Scan(total)
+	var total sql.NullFloat64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&total)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, nil
@@ -281,9 +273,15 @@ func (r *PostgresContactRepository) NerveRingContactSurfaceArea(ctx context.Cont
 		return 0, err
 	}
 
-	r.cache.Set(cacheKey, total)
+	if total.Valid {
+		count := total.Float64
 
-	return total, nil
+		r.cache.Set(cacheKey, count)
+
+		return count, nil
+	}
+
+	return 0, nil
 }
 
 func (r *PostgresContactRepository) DeleteContact(ctx context.Context, uid string, timepoint int) error {
