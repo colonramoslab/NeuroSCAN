@@ -17,12 +17,11 @@ type DevelopmentalStage struct {
 	Begin      int    `json:"begin"`
 	End        int    `json:"end"`
 	Order      int    `json:"order"`
-	PromoterDB *bool  `json:"promoterDB"`
+	PromoterDB bool   `json:"promoterDB"`
 	Timepoints []int  `json:"timepoints"`
 }
 
 func (ds *DevelopmentalStage) ParseCSV(row []string) error {
-
 	if len(row) != 6 {
 		return errors.New("developmental stage file is invalid")
 	}
@@ -33,17 +32,17 @@ func (ds *DevelopmentalStage) ParseCSV(row []string) error {
 	promoterDB, _ := strconv.ParseBool(row[4])
 
 	timepoints := toolshed.ParseTimepointIntArray(row[5])
+	ulid := toolshed.CreateULID(DevelopmentalStageULIDPrefix)
 
 	ds.UID = row[0]
-	ds.ULID = toolshed.CreateULID(DevelopmentalStageULIDPrefix)
+	ds.ULID = ulid
 	ds.Begin = begin
 	ds.End = end
 	ds.Order = order
-	ds.PromoterDB = &promoterDB
+	ds.PromoterDB = promoterDB
 	ds.Timepoints = timepoints
 
 	err := ds.Validate()
-
 	if err != nil {
 		return fmt.Errorf("developmental stage file is invalid: %w", err)
 	}

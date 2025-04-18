@@ -20,3 +20,19 @@ clean:
 test:
 	@echo "Running tests..."
 	go test -v ./...
+
+modernize:
+	@echo "Running gopls modernize..."
+	go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
+
+lint:
+	@echo "Running golangci-lint..."
+	golangci-lint run ./...
+
+sec:
+	@echo "Running gosec..."
+	gosec ./...
+
+vuln:
+	@echo "Running gosec..."
+	govulncheck ./...

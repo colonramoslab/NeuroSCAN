@@ -75,7 +75,7 @@ func processDownloadBucketPrefix(bucket string, destination string, prefix strin
 
 	totalItems := int64(0)
 
-	for i := 0; i < workers; i++ {
+	for range workers {
 
 		go func() {
 

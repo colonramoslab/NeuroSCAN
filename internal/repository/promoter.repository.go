@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -24,12 +25,14 @@ type PromoterRepository interface {
 }
 
 type PostgresPromoterRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresPromoterRepository(db *pgxpool.Pool) *PostgresPromoterRepository {
+func NewPostgresPromoterRepository(db *pgxpool.Pool, c cache.Cache) *PostgresPromoterRepository {
 	return &PostgresPromoterRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
@@ -105,7 +108,6 @@ func (r *PostgresPromoterRepository) CountPromoters(ctx context.Context, query d
 
 func (r *PostgresPromoterRepository) CreatePromoter(ctx context.Context, promoter domain.Promoter) error {
 	exists, err := r.PromoterExists(ctx, promoter.UID)
-
 	if err != nil {
 		return err
 	}
@@ -148,7 +150,6 @@ func (r *PostgresPromoterRepository) TruncatePromoters(ctx context.Context) erro
 
 func (r *PostgresPromoterRepository) IngestPromoter(ctx context.Context, promoter domain.Promoter, skipExisting bool, force bool) (bool, error) {
 	exists, err := r.PromoterExists(ctx, promoter.UID)
-
 	if err != nil {
 		return false, err
 	}
@@ -172,10 +173,9 @@ func (r *PostgresPromoterRepository) IngestPromoter(ctx context.Context, promote
 	return true, nil
 }
 
-func (r *PostgresPromoterRepository) ParsePromoterAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
-
+func (r *PostgresPromoterRepository) ParsePromoterAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)

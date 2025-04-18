@@ -9,25 +9,31 @@ import (
 const NeuronULIDPrefix = "neu"
 
 type Neuron struct {
-	ID        int            `json:"-"`
-	ULID      string         `json:"id"`
-	UID       string         `json:"uid"`
-	Timepoint int            `json:"timepoint"`
-	Filename  string         `json:"filename"`
-	Color     toolshed.Color `json:"color"`
+	ID                      int            `json:"-"`
+	ULID                    string         `json:"id"`
+	UID                     string         `json:"uid"`
+	Timepoint               int            `json:"timepoint"`
+	Filename                string         `json:"filename"`
+	Color                   toolshed.Color `json:"color"`
+	Volume                  *float64       `json:"volume"`
+	SurfaceArea             *float64       `json:"surface_area"`
+	TotalContactSurfaceArea *float64       `json:"total_contact_surface_area"`
+	TotalNRSurfaceArea      *float64       `json:"total_nr_surface_area"`
+	TotalNRSynapses         *int           `json:"total_nr_synapses"`
+	Synapses                *[]SynapseItem `json:"synapses"`
 }
 
 func (n *Neuron) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing neuron file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(NeuronULIDPrefix)
 
 	n.UID = fileMeta.UID
-	n.ULID = toolshed.CreateULID(NeuronULIDPrefix)
+	n.ULID = ulid
 	n.Filename = fileMeta.Filename
 	n.Timepoint = fileMeta.Timepoint
 	n.Color = fileMeta.Color

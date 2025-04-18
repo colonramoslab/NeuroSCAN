@@ -10,12 +10,14 @@ import (
 	"neuroscan/internal/toolshed"
 )
 
-const CphateULIDPrefix = "cph"
-const CphateMetaItemULIDPrefix = "cph_mi"
+const (
+	CphateULIDPrefix         = "cph"
+	CphateMetaItemULIDPrefix = "cph_mi"
+)
 
 type CphateNode struct {
 	id             int
-	ulid string
+	ulid           string
 	uid            string
 	cphateId       int
 	cluster        int
@@ -34,7 +36,7 @@ type CphateMetaItem struct {
 	Neurons []string       `json:"neurons"`
 	ObjFile string         `json:"objFile"`
 	Color   toolshed.Color `json:"color"`
-	ULID 	string         `json:"ulid"`
+	ULID    string         `json:"ulid"`
 }
 
 type Cphate struct {
@@ -46,7 +48,6 @@ type Cphate struct {
 }
 
 func (c *Cphate) Parse(dirPath string) error {
-
 	timepoint, err := toolshed.GetTimepoint(dirPath)
 	if err != nil {
 		return errors.New("error getting timepoint: " + err.Error())
@@ -76,28 +77,25 @@ func (c *Cphate) Parse(dirPath string) error {
 		}
 
 		fileMetas, err := toolshed.FilePathParse(path)
-
 		if err != nil {
 			return errors.New("error parsing file path: " + err.Error())
 		}
 
 		// loop over the fileMetas and create a CPHATE node for each
 		for _, fileMeta := range fileMetas {
-			//cphateNode, err := parseCphateNode(n, fileMeta.uid)
+			// cphateNode, err := parseCphateNode(n, fileMeta.uid)
 			cphateMetaItem, err := buildCphateMetaItem(fileMeta.UID, fileMeta.Filename, fileMeta.Color)
-
 			if err != nil {
 				continue
 			}
 
 			cphateMetaItems = append(cphateMetaItems, cphateMetaItem)
 
-			//cphateNodes = append(cphateNodes, cphateNode)
+			// cphateNodes = append(cphateNodes, cphateNode)
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return errors.New("error walking directory: " + err.Error())
 	}

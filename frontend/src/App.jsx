@@ -20,9 +20,11 @@ import '@metacell/geppetto-meta-ui/flex-layout/style/dark.scss';
 import './flexLayout.css';
 import { CANVAS_STARTED } from './utilities/constants';
 
-posthog.init('phc_cuoRrQDAJFfkKureV66PysaW5hkbrmsuzC4A1SRDAtk', {
-  api_host: 'https://us.i.posthog.com',
-});
+if (window.location.host === 'promoters.wormguides.org' || window.location.host === 'neuroscan.net') {
+  posthog.init('phc_cuoRrQDAJFfkKureV66PysaW5hkbrmsuzC4A1SRDAtk', {
+    api_host: 'https://us.i.posthog.com',
+  });
+}
 
 const Manager = require('@metacell/geppetto-meta-client/common/Manager').default;
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -21,12 +22,14 @@ type ScaleRepository interface {
 }
 
 type PostgresScaleRepository struct {
-	DB *pgxpool.Pool
+	cache cache.Cache
+	DB    *pgxpool.Pool
 }
 
-func NewPostgresScaleRepository(db *pgxpool.Pool) *PostgresScaleRepository {
+func NewPostgresScaleRepository(db *pgxpool.Pool, c cache.Cache) *PostgresScaleRepository {
 	return &PostgresScaleRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
