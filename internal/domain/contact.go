@@ -15,7 +15,7 @@ type Contact struct {
 	Timepoint                 int            `json:"timepoint"`
 	Filename                  string         `json:"filename"`
 	Color                     toolshed.Color `json:"color"`
-	SurfaceArea               *float64       `json:"surface_area"`
+	SurfaceArea               *float64       `json:"contact_surface_area"`
 	TotalNRContactSurfaceArea *float64       `json:"total_nrc_surface_area"`
 }
 

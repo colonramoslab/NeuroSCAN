@@ -39,13 +39,16 @@ type Contact struct {
 
 func (c *Contact) ToDomain(tnrcsa *float64) domain.Contact {
 	contact := domain.Contact{
-		ID:          c.ID,
-		ULID:        c.ULID,
-		UID:         c.UID,
-		Timepoint:   c.Timepoint,
-		Filename:    c.Filename,
-		Color:       c.Color,
-		SurfaceArea: &c.SurfaceArea.Float64,
+		ID:        c.ID,
+		ULID:      c.ULID,
+		UID:       c.UID,
+		Timepoint: c.Timepoint,
+		Filename:  c.Filename,
+		Color:     c.Color,
+	}
+
+	if c.SurfaceArea.Valid {
+		contact.SurfaceArea = &c.SurfaceArea.Float64
 	}
 
 	if tnrcsa != nil {

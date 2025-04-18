@@ -187,8 +187,10 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   // Add the last Selected instances uid
   const newSelectedUid = instances.find((item) => (item.selected === false)
       && selectedUids.includes(item.uid));
-  store.dispatch(getDataOverlay(newSelectedUid));
-  store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
+  if (newSelectedUid) {
+    store.dispatch(getDataOverlay(newSelectedUid));
+    store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
+  }
 };
 
 export const deleteSelectedInstances = (viewerId, selectedUids) => {

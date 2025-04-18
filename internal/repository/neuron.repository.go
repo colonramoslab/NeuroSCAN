@@ -41,14 +41,20 @@ type Neuron struct {
 
 func (n *Neuron) ToDomain(ns *[]domain.SynapseItem, psa *float64, nrsa *float64, tnrs *int) domain.Neuron {
 	neuron := domain.Neuron{
-		ID:          n.ID,
-		ULID:        n.ULID,
-		UID:         n.UID,
-		Timepoint:   n.Timepoint,
-		Filename:    n.Filename,
-		Color:       n.Color,
-		Volume:      &n.Volume.Float64,
-		SurfaceArea: &n.SurfaceArea.Float64,
+		ID:        n.ID,
+		ULID:      n.ULID,
+		UID:       n.UID,
+		Timepoint: n.Timepoint,
+		Filename:  n.Filename,
+		Color:     n.Color,
+	}
+
+	if n.Volume.Valid {
+		neuron.Volume = &n.Volume.Float64
+	}
+
+	if n.SurfaceArea.Valid {
+		neuron.SurfaceArea = &n.SurfaceArea.Float64
 	}
 
 	if tnrs != nil {
