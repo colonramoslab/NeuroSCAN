@@ -2,14 +2,19 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import {
   makeStyles,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Box,
   Button,
   Typography,
   Divider,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import CHEVRON from '../../images/chevron-right.svg';
 import { resetDataOverlay } from '../../services/instanceHelpers';
 import vars from '../../styles/constants';
+import { formatSynapseUID } from '../../utilities/functions';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -52,6 +57,123 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const CellStats = ({ dataOverlay }) => (
+  <Accordion>
+    <AccordionSummary
+      expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
+      IconButtonProps={{ disableRipple: true }}
+    >
+      <Typography variant="h5">Cell Stats</Typography>
+    </AccordionSummary>
+    <AccordionDetails>
+      <Box className="data-overlay-body">
+        {dataOverlay.volume && (
+          <p>
+            <strong>Volume: </strong>
+            {`${Math.round(dataOverlay.volume).toLocaleString()}nm`}
+            <sup>3</sup>
+          </p>
+        )}
+        {dataOverlay.surface_area && (
+          <p>
+            <strong>Cell surface area: </strong>
+            {`${Math.round(dataOverlay.surface_area).toLocaleString()}nm`}
+            <sup>2</sup>
+          </p>
+        )}
+      </Box>
+    </AccordionDetails>
+  </Accordion>
+);
+
+const PatchStats = ({ dataOverlay }) => (
+  <Accordion>
+    <AccordionSummary
+      expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
+      IconButtonProps={{ disableRipple: true }}
+    >
+      <Typography variant="h5">Cell Stats</Typography>
+    </AccordionSummary>
+    <AccordionDetails>
+      <Box className="data-overlay-body">
+        {dataOverlay.volume && (
+          <p>
+            <strong>Volume: </strong>
+            {`${Math.round(dataOverlay.volume).toLocaleString()}nm`}
+            <sup>3</sup>
+          </p>
+        )}
+        {dataOverlay.surface_area && (
+          <p>
+            <strong>Cell surface area: </strong>
+            {`${Math.round(dataOverlay.surface_area).toLocaleString()}nm`}
+            <sup>2</sup>
+          </p>
+        )}
+      </Box>
+    </AccordionDetails>
+  </Accordion>
+);
+
+const SynapseStats = ({ dataOverlay }) => (
+  <Accordion>
+    <AccordionSummary
+      expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
+      IconButtonProps={{ disableRipple: true }}
+    >
+      <Typography variant="h5">Cell Stats</Typography>
+    </AccordionSummary>
+    <AccordionDetails>
+      <Box className="data-overlay-body">
+        {dataOverlay.volume && (
+          <p>
+            <strong>Volume: </strong>
+            {`${Math.round(dataOverlay.volume).toLocaleString()}nm`}
+            <sup>3</sup>
+          </p>
+        )}
+        {dataOverlay.surface_area && (
+          <p>
+            <strong>Cell surface area: </strong>
+            {`${Math.round(dataOverlay.surface_area).toLocaleString()}nm`}
+            <sup>2</sup>
+          </p>
+        )}
+      </Box>
+    </AccordionDetails>
+  </Accordion>
+);
+
+const dataOverlayAccordion = (dataOverlay) => {
+  if (!dataOverlay) {
+    return <></>;
+  }
+
+  if (dataOverlay?.instanceType === 'neuron') {
+    return <CellStats dataOverlay={dataOverlay} />;
+  }
+
+  if (dataOverlay?.instanceType === 'contact') {
+    return (
+      <>
+        <CellStats dataOverlay={dataOverlay} />
+        <PatchStats dataOverlay={dataOverlay} />
+      </>
+    );
+  }
+
+  if (dataOverlay?.instanceType === 'synapse') {
+    return (
+      <>
+        <CellStats dataOverlay={dataOverlay} />
+        <SynapseStats dataOverlay={dataOverlay} />
+      </>
+    );
+  }
+
+  return <></>;
+};
+
 const sumSynapses = (synapses) => synapses.reduce((acc, curr) => acc + curr.count, 0);
 
 const DataOverlay = () => {
@@ -64,13 +186,14 @@ const DataOverlay = () => {
       <Box className={classes.root}>
         <Box className="data-overlay">
           <Box className="data-overlay-header">
-            <Typography component="h3" className="data-overlay-title">{dataOverlay.uid}</Typography>
+            <Typography component="h3" className="data-overlay-title">{ formatSynapseUID(dataOverlay) }</Typography>
             <Button onClick={() => resetDataOverlay()} fontSize="large" className="data-overlay-icon">
               <CloseIcon />
             </Button>
           </Box>
           <Divider />
           <Box className="data-overlay-body">
+            {dataOverlayAccordion(dataOverlay)}
             {dataOverlay.volume && (
               <p>
                 <strong>Volume: </strong>

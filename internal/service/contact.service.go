@@ -79,13 +79,15 @@ func (s *contactService) ParseMeta(ctx context.Context, row []string, timepoint 
 		return errors.New(errorString)
 	}
 
+	contact.PatchStats = &domain.PatchStats{}
+
 	switch dataType {
 	case "surface_area":
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err
 		}
-		contact.SurfaceArea = &value
+		contact.PatchStats.PatchSurfaceArea = &value
 	default:
 		return errors.New("unknown data type")
 	}

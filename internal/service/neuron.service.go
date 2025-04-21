@@ -78,19 +78,21 @@ func (s *neuronService) ParseMeta(ctx context.Context, row []string, timepoint i
 		return errors.New(errorString)
 	}
 
+	neuron.CellStats = &domain.CellStats{}
+
 	switch dataType {
 	case "surface_area":
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err
 		}
-		neuron.SurfaceArea = &value
+		neuron.CellStats.SurfaceArea = &value
 	case "volume":
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err
 		}
-		neuron.Volume = &value
+		neuron.CellStats.Volume = &value
 
 	default:
 		return errors.New("unknown data type")

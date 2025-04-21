@@ -39,7 +39,7 @@ type Neuron struct {
 	SurfaceArea sql.NullFloat64 `db:"surface_area"`
 }
 
-func (n *Neuron) ToDomain(ns *[]domain.SynapseItem, psa *float64, nrsa *float64, tnrs *int) domain.Neuron {
+func (n *Neuron) ToDomain() domain.Neuron {
 	neuron := domain.Neuron{
 		ID:        n.ID,
 		ULID:      n.ULID,
@@ -47,30 +47,15 @@ func (n *Neuron) ToDomain(ns *[]domain.SynapseItem, psa *float64, nrsa *float64,
 		Timepoint: n.Timepoint,
 		Filename:  n.Filename,
 		Color:     n.Color,
+		CellStats: &domain.CellStats{},
 	}
 
 	if n.Volume.Valid {
-		neuron.Volume = &n.Volume.Float64
+		neuron.CellStats.Volume = &n.Volume.Float64
 	}
 
 	if n.SurfaceArea.Valid {
-		neuron.SurfaceArea = &n.SurfaceArea.Float64
-	}
-
-	if tnrs != nil {
-		neuron.TotalNRSynapses = tnrs
-	}
-
-	if ns != nil {
-		neuron.Synapses = ns
-	}
-
-	if psa != nil {
-		neuron.TotalContactSurfaceArea = psa
-	}
-
-	if nrsa != nil {
-		neuron.TotalNRSurfaceArea = nrsa
+		neuron.CellStats.SurfaceArea = &n.SurfaceArea.Float64
 	}
 
 	return neuron
@@ -101,27 +86,7 @@ func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id strin
 		return domain.Neuron{}, err
 	}
 
-	synapseCount, err := r.SynapseCount(ctx, neuron.UID, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	psa, err := r.ContactSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	nrsa, err := r.NerveRingSurfaceArea(ctx, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	tnrs, err := r.NerveRingSynapseCount(ctx, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	return neuron.ToDomain(&synapseCount, &psa, &nrsa, &tnrs), nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
@@ -137,27 +102,7 @@ func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid strin
 		return domain.Neuron{}, err
 	}
 
-	synapseCount, err := r.SynapseCount(ctx, neuron.UID, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	psa, err := r.ContactSurfaceArea(ctx, neuron.UID, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	nrsa, err := r.NerveRingSurfaceArea(ctx, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	tnrs, err := r.NerveRingSynapseCount(ctx, neuron.Timepoint)
-	if err != nil {
-		return domain.Neuron{}, err
-	}
-
-	return neuron.ToDomain(&synapseCount, &psa, &nrsa, &tnrs), nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -197,7 +142,7 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 	domainNeurons := make([]domain.Neuron, len(neurons))
 
 	for i := range neurons {
-		domainNeurons[i] = neurons[i].ToDomain(nil, nil, nil, nil)
+		domainNeurons[i] = neurons[i].ToDomain()
 	}
 
 	return domainNeurons, err
@@ -246,14 +191,16 @@ func (r *PostgresNeuronRepository) UpdateNeuron(ctx context.Context, neuron doma
 	var args []any
 	args = append(args, neuron.ULID)
 
-	if neuron.Volume != nil {
-		args = append(args, *neuron.Volume)
-		query += fmt.Sprintf("volume = $%d, ", len(args))
-	}
+	if neuron.CellStats != nil {
+		if neuron.CellStats.Volume != nil {
+			args = append(args, *neuron.CellStats.Volume)
+			query += fmt.Sprintf("volume = $%d, ", len(args))
+		}
 
-	if neuron.SurfaceArea != nil {
-		args = append(args, *neuron.SurfaceArea)
-		query += fmt.Sprintf("surface_area = $%d, ", len(args))
+		if neuron.CellStats.SurfaceArea != nil {
+			args = append(args, *neuron.CellStats.SurfaceArea)
+			query += fmt.Sprintf("surface_area = $%d, ", len(args))
+		}
 	}
 
 	if len(args) == 1 {

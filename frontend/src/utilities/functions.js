@@ -41,6 +41,18 @@ export const widgetFromViewerSpec = (viewerSpec) => ({
   },
 });
 
+export const formatSynapseUID = (uid) => {
+  let formatted = '';
+
+  [formatted] = uid.split('~');
+  formatted = formatted.replace('&', ', ');
+  formatted = formatted.replace('undefined', '<sup>u</sup> :: ');
+  formatted = formatted.replace('chemical', '<sup>c</sup> :: ');
+  formatted = formatted.replace('electrical', '<sup>e</sup> :: ');
+
+  return formatted;
+};
+
 export const addToWidget = (
   widget = null,
   instances,
