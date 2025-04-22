@@ -13,6 +13,7 @@ import {
   GREY_OUT_MESH_COLOR,
   VIEWERS,
 } from '../../utilities/constants';
+import { formatSynapseUID } from '../../utilities/functions';
 import neuronService from '../../services/NeuronService';
 import AddToViewerMenu from '../Sidebar/AddToViewerMenu';
 
@@ -30,6 +31,21 @@ const styles = () => ({
     height: '100%',
   },
 });
+
+const tooltipText = (instance) => {
+  let title = '';
+  if (!instance?.o?.instanceType) {
+    return title;
+  }
+
+  if (instance.o.instanceType === 'synapse') {
+    title = formatSynapseUID(instance.o.uidFromDb);
+  } else {
+    title = instance.o.uidFromDb;
+  }
+
+  return title;
+};
 
 const CanvasToolTip = forwardRef((props, ref) => {
   const {
@@ -50,6 +66,8 @@ const CanvasToolTip = forwardRef((props, ref) => {
       },
     }),
   );
+
+  console.log({ intersected });
 
   return (
     <>
@@ -75,9 +93,10 @@ const CanvasToolTip = forwardRef((props, ref) => {
                 transition: 'opacity 0.25s linear',
                 borderRadius: '3px',
               }}
-            >
-              {intersected?.o?.name}
-            </div>
+              dangerouslySetInnerHTML={{
+                __html: tooltipText(intersected),
+              }}
+            />
           )}
     </>
   );
