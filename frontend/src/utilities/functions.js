@@ -41,11 +41,25 @@ export const widgetFromViewerSpec = (viewerSpec) => ({
   },
 });
 
-export const formatSynapseUID = (uid) => {
+export const formatSynapseUID = (uid, trimTilde = false) => {
   let formatted = '';
-
   [formatted] = uid.split('~');
-  formatted = formatted.replace('&', ', ');
+
+  if (trimTilde) {
+    const parts = uid.split('~');
+    let tail = parts[1];
+    if (tail) {
+      tail = tail.replace('_', ' ');
+      // if the last character is a digit, separate by a space
+      if (tail.match(/\d$/)) {
+        tail = tail.replace(/(\d)$/, ' $1');
+      }
+
+      formatted = `${formatted} (${tail})`;
+    }
+  }
+
+  formatted = formatted.replaceAll('&', ', ');
   formatted = formatted.replace('undefined', '<sup>u</sup> :: ');
   formatted = formatted.replace('chemical', '<sup>c</sup> :: ');
   formatted = formatted.replace('electrical', '<sup>e</sup> :: ');
