@@ -159,6 +159,19 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   const newInstances = updateInstanceSelected(
     instances, selectedUids,
   );
+
+  const selected = instances.find((instance) => selectedUids.includes(instance.uid));
+
+  if (selected && selected.instanceType === 'scale') {
+    return;
+  }
+
+  const canShowDataOverlay = ['neuron', 'contact', 'synapse'];
+
+  if (selected && canShowDataOverlay.includes(selected.instanceType)) {
+    store.dispatch(getDataOverlay(selected));
+  }
+
   const colorPickerColor = selectedUids.length > 0
     ? newInstances.find((i) => i.uid === selectedUids[selectedUids.length - 1]).colorOriginal
     : null;
@@ -188,7 +201,6 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   const newSelectedUid = instances.find((item) => (item.selected === false)
       && selectedUids.includes(item.uid));
   if (newSelectedUid) {
-    store.dispatch(getDataOverlay(newSelectedUid));
     store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
   }
 };

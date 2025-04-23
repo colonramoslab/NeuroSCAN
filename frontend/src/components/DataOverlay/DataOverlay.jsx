@@ -76,6 +76,7 @@ const CellStats = ({ dataOverlay }) => (
           <p>
             <strong>Volume: </strong>
             {`${Math.round(dataOverlay.cell_stats.volume).toLocaleString()}nm`}
+            <sup>3</sup>
           </p>
         )}
         {dataOverlay.cell_stats.surface_area && (
@@ -100,27 +101,20 @@ const PatchStats = ({ dataOverlay }) => (
     </AccordionSummary>
     <AccordionDetails>
       <Box className="data-overlay-body">
-        {dataOverlay.patch_stats.total_count && (
-          <p>
-            <strong>Total patches: </strong>
-            {`${dataOverlay.patch_stats.total_count}`}
-          </p>
-        )}
-        {dataOverlay.patch_stats.surface_area && (
+        {dataOverlay.patch_stats.patch_surface_area && (
           <p>
             <strong>Total surface area: </strong>
-            {`${Math.round(dataOverlay.patch_stats.surface_area).toLocaleString()}nm`}
+            {`${Math.round(dataOverlay.patch_stats.patch_surface_area).toLocaleString()}nm`}
             <sup>2</sup>
-            {dataOverlay.patch_stats.total_cell_patch_surface_area && (
+            {dataOverlay.cell_stats.surface_area && (
               <>
                 &nbsp;(
-                {`${Math.round(
-                  (
-                    dataOverlay.patch_stats.surface_area
-                    / dataOverlay.patch_stats.total_cell_patch_surface_area
-                  )
-                  * 100,
-                )}%` }
+                {`${((
+                  dataOverlay.patch_stats.patch_surface_area
+                    / dataOverlay.cell_stats.surface_area
+                )
+                  * 100
+                ).toExponential(2)}%` }
                 )
               </>
             )}
@@ -189,7 +183,6 @@ const dataOverlayAccordion = (dataOverlay) => {
   if (dataOverlay?.instanceType === 'contact') {
     return (
       <>
-        <CellStats dataOverlay={dataOverlay} />
         <PatchStats dataOverlay={dataOverlay} />
       </>
     );
@@ -198,7 +191,6 @@ const dataOverlayAccordion = (dataOverlay) => {
   if (dataOverlay?.instanceType === 'synapse') {
     return (
       <>
-        <CellStats dataOverlay={dataOverlay} />
         <SynapseStats dataOverlay={dataOverlay} />
       </>
     );

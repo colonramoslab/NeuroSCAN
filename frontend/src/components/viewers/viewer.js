@@ -67,8 +67,6 @@ const CanvasToolTip = forwardRef((props, ref) => {
     }),
   );
 
-  console.log({ intersected });
-
   return (
     <>
       { intersected && intersected.o
