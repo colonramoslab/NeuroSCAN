@@ -8,6 +8,7 @@ import {
   deleteSelectedInstances,
   mapToInstance,
   setSelectedInstances,
+  resetDataOverlay,
 } from '../../services/instanceHelpers';
 import {
   GREY_OUT_MESH_COLOR,
@@ -130,10 +131,12 @@ class Viewer extends React.Component {
   }
 
   componentWillUnmount() {
+    resetDataOverlay();
     window.removeEventListener('keydown', this.handleDeleteKeyPress);
   }
 
   onMount(scene) {
+    resetDataOverlay();
     // eslint-disable-next-line no-console
     // console.log(scene);
   }
