@@ -7,11 +7,14 @@ import {
   AccordionDetails,
   Box,
   Button,
+  Tooltip,
   Typography,
   Divider,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 import CHEVRON from '../../images/chevron-right.svg';
+import HTMLTooltip from '../HTMLTooltip';
 import { resetDataOverlay } from '../../services/instanceHelpers';
 import vars from '../../styles/constants';
 import { formatSynapseUID } from '../../utilities/functions';
@@ -60,6 +63,9 @@ const useStyles = makeStyles((theme) => ({
       },
     },
   },
+  tooltip: {
+    marginLeft: '4px',
+  },
 }));
 
 const CellStats = ({ dataOverlay }) => (
@@ -91,7 +97,7 @@ const CellStats = ({ dataOverlay }) => (
   </Accordion>
 );
 
-const PatchStats = ({ dataOverlay }) => (
+const PatchStats = ({ dataOverlay, classname }) => (
   <Accordion>
     <AccordionSummary
       expandIcon={<img src={CHEVRON} width="auto" height="auto" alt="CHEVRON" />}
@@ -118,6 +124,16 @@ const PatchStats = ({ dataOverlay }) => (
                 )
               </>
             )}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <>
+                  <Typography color="inherit">Total Patch Surface Area = The summed surface area of all patches of this contact identity across the nerve ring. (Percent of total contact surface area of this identity to the surface area of the primary cell).</Typography>
+                </>
+            )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
           </p>
         )}
       </Box>
@@ -171,7 +187,7 @@ const SynapseStats = ({ dataOverlay }) => (
   </Accordion>
 );
 
-const dataOverlayAccordion = (dataOverlay) => {
+const dataOverlayAccordion = (dataOverlay, patchClass) => {
   if (!dataOverlay) {
     return <></>;
   }
@@ -183,7 +199,7 @@ const dataOverlayAccordion = (dataOverlay) => {
   if (dataOverlay?.instanceType === 'contact') {
     return (
       <>
-        <PatchStats dataOverlay={dataOverlay} />
+        <PatchStats dataOverlay={dataOverlay} classname={patchClass} />
       </>
     );
   }
@@ -248,7 +264,7 @@ const DataOverlay = () => {
           </Box>
           <Divider />
           <Box className="data-overlay-body">
-            {dataOverlayAccordion(dataOverlay)}
+            {dataOverlayAccordion(dataOverlay, classes.tooltip)}
             {dataOverlay.synapses && dataOverlay.synapses.length > 0 && (
               <p>
                 <strong>Synapse count: </strong>
