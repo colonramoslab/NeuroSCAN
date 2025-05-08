@@ -27,7 +27,7 @@ type RowOpts struct {
 type ContactRepository interface {
 	GetContactByULID(ctx context.Context, id string) (domain.Contact, error)
 	GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error)
-	ContactRanking(ctx context.Context, opts RowOpts) (domain.Ranking, error)
+	ContactRanking(ctx context.Context, timepoint int, uid string) (domain.Ranking, error)
 	ContactExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error)
 	CountContacts(ctx context.Context, query domain.APIV1Request) (int, error)
@@ -125,7 +125,7 @@ func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id str
 		return domain.Contact{}, err
 	}
 
-	ranking, err := r.ContactRanking(ctx, RowOpts{ulid: &contact.ULID, timepoint: &contact.Timepoint})
+	ranking, err := r.ContactRanking(ctx, contact.Timepoint, contact.UID)
 	if err != nil {
 		return domain.Contact{}, err
 	}
@@ -161,7 +161,7 @@ func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid str
 		return domain.Contact{}, err
 	}
 
-	ranking, err := r.ContactRanking(ctx, RowOpts{ulid: &contact.ULID, timepoint: &contact.Timepoint})
+	ranking, err := r.ContactRanking(ctx, contact.Timepoint, contact.UID)
 	if err != nil {
 		return domain.Contact{}, err
 	}
@@ -453,20 +453,12 @@ func (r *PostgresContactRepository) TruncateContacts(ctx context.Context) error 
 	return nil
 }
 
-func (r *PostgresContactRepository) ContactRanking(ctx context.Context, opts RowOpts) (domain.Ranking, error) {
-	// if we don't have a timepoint, we can't do anything
-	if opts.timepoint == nil {
-		return domain.Ranking{}, errors.New("timepoint is required")
-	}
-
-	// if we don't have an id, uid or ulid, we can't do anything
-	if opts.id == nil && opts.uid == nil && opts.ulid == nil {
-		return domain.Ranking{}, errors.New("uid or ulid is required")
-	}
-
-	identified := false
-	args := []any{*opts.timepoint}
-	query := `
+func (r *PostgresContactRepository) ContactRanking(ctx context.Context, timepoint int, uid string) (domain.Ranking, error) {
+	args := []any{timepoint, uid}
+	parts := strings.Split(uid, "by")
+	refCellUID := parts[0]
+	whereClause := fmt.Sprintf("AND LOWER(uid) LIKE '%s%%'", strings.ToLower(refCellUID))
+	query := fmt.Sprintf(`
 	SELECT surface_area_rank, total_count
 		FROM (
 		    SELECT
@@ -478,26 +470,10 @@ func (r *PostgresContactRepository) ContactRanking(ctx context.Context, opts Row
 		        COUNT(*) OVER () AS total_count
 		    FROM contacts
 		    WHERE timepoint = $1
+			%s
 		) ranked
-		`
-
-	if opts.uid != nil {
-		identified = true
-		args = append(args, *opts.uid)
-		query += "WHERE uid = $2"
-	}
-
-	if opts.ulid != nil && identified == false {
-		identified = true
-		args = append(args, *opts.ulid)
-		query += "WHERE ulid = $2"
-	}
-
-	if opts.id != nil && identified == false {
-		identified = true
-		args = append(args, *opts.id)
-		query += "WHERE id = $2"
-	}
+		WHERE uid = $2;
+		`, whereClause)
 
 	var ranking domain.Ranking
 
