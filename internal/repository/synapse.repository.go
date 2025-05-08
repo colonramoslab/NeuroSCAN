@@ -529,14 +529,13 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 	}
 
 	if req.PreNeuron != "" {
-		args = append(args, strings.ToLower(req.PreNeuron))
-		queryParts = append(queryParts, fmt.Sprintf("AND LOWER(uid) LIKE '$%d%%'", len(args)))
+		// args = append(args, strings.ToLower(req.PreNeuron))
+		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) LIKE '%s%%'", strings.ToLower(req.PreNeuron)))
 	}
 
 	if req.PostNeuron != "" {
-		args = append(args, strings.Join(req.Types, "|"))
-		args = append(args, strings.ToLower(req.PostNeuron))
-		queryParts = append(queryParts, fmt.Sprintf("AND LOWER(uid) SIMILAR TO '%%($%d%%$%d)%%|~%%)'", len(args)-1, len(args)))
+		// args = append(args, strings.ToLower(req.PostNeuron))
+		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) SIMILAR TO '%%(undefined|chemical|electrical)%%%s%%'", strings.ToLower(req.PostNeuron)))
 	}
 
 	query := strings.Join(queryParts, " AND ")
@@ -572,6 +571,12 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		args = append(args, req.Offset)
 		query += fmt.Sprintf(" offset $%d", len(args))
 	}
+
+	// print the query for debugging
+	fmt.Println(query)
+
+	// print the args for debugging
+	fmt.Println(args)
 
 	return query, args
 }
