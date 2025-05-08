@@ -15,19 +15,25 @@ type Neuron struct {
 	Timepoint int            `json:"timepoint"`
 	Filename  string         `json:"filename"`
 	Color     toolshed.Color `json:"color"`
+	CellStats *CellStats     `json:"cell_stats"`
+}
+
+type CellStats struct {
+	Volume      *float64 `json:"volume"`
+	SurfaceArea *float64 `json:"surface_area"`
 }
 
 func (n *Neuron) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing neuron file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(NeuronULIDPrefix)
 
 	n.UID = fileMeta.UID
-	n.ULID = toolshed.CreateULID(NeuronULIDPrefix)
+	n.ULID = ulid
 	n.Filename = fileMeta.Filename
 	n.Timepoint = fileMeta.Timepoint
 	n.Color = fileMeta.Color

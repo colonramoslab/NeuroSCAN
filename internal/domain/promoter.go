@@ -25,16 +25,16 @@ type Promoter struct {
 }
 
 func (p *Promoter) ParseCSV(row []string) error {
-
 	if len(row) != 8 {
 		return errors.New("promoter file is invalid")
 	}
 
 	timepointStart, _ := strconv.Atoi(row[3])
 	timepointEnd, _ := strconv.Atoi(row[4])
+	ulid := toolshed.CreateULID(PromoterULIDPrefix)
 
 	p.UID = row[0]
-	p.ULID = toolshed.CreateULID(PromoterULIDPrefix)
+	p.ULID = ulid
 	p.Wormbase = row[1]
 	p.TimepointStart = timepointStart
 	p.TimepointEnd = timepointEnd

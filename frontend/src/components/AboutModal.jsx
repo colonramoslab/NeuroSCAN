@@ -44,7 +44,7 @@ const AboutModal = (props) => {
           ))}
           <h3>Website design and development:</h3>
           <Typography>
-            {`${title} was initially developed by MetaCell and is currently maintained by Bilte Co.`}
+            {`${title} was originally developed by MetaCell and has since been further advanced and maintained by Bilte Co.`}
           </Typography>
         </Box>
         <Box className="modal-footer">

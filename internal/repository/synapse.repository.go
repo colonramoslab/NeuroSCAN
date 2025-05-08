@@ -2,11 +2,15 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
+	"neuroscan/internal/toolshed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,21 +28,86 @@ type SynapseRepository interface {
 	TruncateSynapses(ctx context.Context) error
 }
 
-type PostgresSynapseRepository struct {
-	DB *pgxpool.Pool
+type Synapse struct {
+	ID          int            `db:"id"`
+	ULID        string         `db:"ulid"`
+	UID         string         `db:"uid"`
+	Timepoint   int            `db:"timepoint"`
+	SynapseType sql.NullString `db:"synapse_type"`
+	Filename    string         `db:"filename"`
+	Color       toolshed.Color `db:"color"`
 }
 
-func NewPostgresSynapseRepository(db *pgxpool.Pool) *PostgresSynapseRepository {
+func (s *Synapse) ToDomain(neuron *domain.Neuron, totalTypeSynapses *int, totalCellSynapses *int, synapses *[]domain.SynapseItem) domain.Synapse {
+	synapse := domain.Synapse{
+		ID:           s.ID,
+		ULID:         s.ULID,
+		UID:          s.UID,
+		Timepoint:    s.Timepoint,
+		Filename:     s.Filename,
+		Color:        s.Color,
+		CellStats:    &domain.CellStats{},
+		SynapseStats: &domain.SynapseStats{},
+	}
+
+	if s.SynapseType.Valid {
+		switch s.SynapseType.String {
+		case "chemical":
+			synapse.SynapseType = domain.SynapseTypeChemical
+			break
+		case "electrical":
+			synapse.SynapseType = domain.SynapseTypeElectrical
+			break
+		case "undefined":
+			synapse.SynapseType = domain.SynapseTypeUndefined
+			break
+		default:
+			break
+		}
+	}
+
+	if totalTypeSynapses != nil {
+		synapse.SynapseStats.TotalTypeCount = totalTypeSynapses
+	}
+
+	if totalCellSynapses != nil {
+		synapse.SynapseStats.TotalCellSynapseCount = totalCellSynapses
+	}
+
+	if neuron != nil {
+		if neuron.CellStats.Volume != nil {
+			synapse.CellStats.Volume = neuron.CellStats.Volume
+		}
+
+		if neuron.CellStats.SurfaceArea != nil {
+			synapse.CellStats.SurfaceArea = neuron.CellStats.SurfaceArea
+		}
+	}
+
+	if synapses != nil {
+		synapse.SynapseStats.Connections = synapses
+	}
+
+	return synapse
+}
+
+type PostgresSynapseRepository struct {
+	cache cache.Cache
+	DB    *pgxpool.Pool
+}
+
+func NewPostgresSynapseRepository(db *pgxpool.Pool, c cache.Cache) *PostgresSynapseRepository {
 	return &PostgresSynapseRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id string) (domain.Synapse, error) {
 	query := "SELECT * FROM synapses WHERE ulid = $1"
 
-	var synapse domain.Synapse
-	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	var synapse Synapse
+	err := r.DB.QueryRow(ctx, query, id).Scan(&synapse.ID, &synapse.ULID, &synapse.UID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Synapse{}, nil
@@ -47,14 +116,34 @@ func (r *PostgresSynapseRepository) GetSynapseByULID(ctx context.Context, id str
 		return domain.Synapse{}, err
 	}
 
-	return synapse, nil
+	neuron, err := r.SynapseCell(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	totalTypeSynapses, err := r.SynapseTypeCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	totalCellSynapses, err := r.CellSynapseCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	synapses, err := r.SynapseConnections(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	return synapse.ToDomain(&neuron, &totalTypeSynapses, &totalCellSynapses, &synapses), nil
 }
 
 func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid string, timepoint int) (domain.Synapse, error) {
-	query := "SELECT id, uid, ulid, timepoint, synapse_type, filename, color FROM synapses WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT * FROM synapses WHERE uid = $1 AND timepoint = $2"
 
-	var synapse domain.Synapse
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.UID, &synapse.ULID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
+	var synapse Synapse
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&synapse.ID, &synapse.ULID, &synapse.UID, &synapse.Timepoint, &synapse.SynapseType, &synapse.Filename, &synapse.Color)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Synapse{}, nil
@@ -63,7 +152,27 @@ func (r *PostgresSynapseRepository) GetSynapseByUID(ctx context.Context, uid str
 		return domain.Synapse{}, err
 	}
 
-	return synapse, nil
+	neuron, err := r.SynapseCell(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	totalTypeSynapses, err := r.SynapseTypeCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	totalCellSynapses, err := r.CellSynapseCount(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	synapses, err := r.SynapseConnections(ctx, synapse.UID, synapse.Timepoint)
+	if err != nil {
+		return domain.Synapse{}, err
+	}
+
+	return synapse.ToDomain(&neuron, &totalTypeSynapses, &totalCellSynapses, &synapses), nil
 }
 
 func (r *PostgresSynapseRepository) SynapseExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -91,7 +200,7 @@ func (r *PostgresSynapseRepository) SearchSynapses(ctx context.Context, query do
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	synapses, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Synapse])
+	synapses, err := pgx.CollectRows(rows, pgx.RowToStructByName[Synapse])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.Synapse{}, nil
@@ -100,7 +209,13 @@ func (r *PostgresSynapseRepository) SearchSynapses(ctx context.Context, query do
 		return nil, err
 	}
 
-	return synapses, nil
+	domainSynapses := make([]domain.Synapse, len(synapses))
+
+	for i := range synapses {
+		domainSynapses[i] = synapses[i].ToDomain(nil, nil, nil, nil)
+	}
+
+	return domainSynapses, nil
 }
 
 func (r *PostgresSynapseRepository) CountSynapses(ctx context.Context, query domain.APIV1Request) (int, error) {
@@ -118,6 +233,197 @@ func (r *PostgresSynapseRepository) CountSynapses(ctx context.Context, query dom
 	}
 
 	return count, nil
+}
+
+func (r *PostgresSynapseRepository) SynapseCount(ctx context.Context, uid string, timepoint int) ([]domain.SynapseItem, error) {
+	parts := strings.Split(uid, "&")
+	prefix := parts[0]
+	like := fmt.Sprintf("%s%%", prefix)
+	cacheKey := fmt.Sprintf("synapse:synapse_count:%s:%d", prefix, timepoint)
+
+	if cachedSynapseCount, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedSynapseCount.([]domain.SynapseItem); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT split_part(uid, '~', 1) AS syn_identity, COUNT(*) AS total FROM synapses WHERE uid LIKE $1 AND timepoint = $2 GROUP BY syn_identity ORDER BY syn_identity ASC;"
+
+	rows, err := r.DB.Query(ctx, query, like, timepoint)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []domain.SynapseItem{}, nil
+		}
+		return []domain.SynapseItem{}, err
+	}
+
+	defer rows.Close()
+
+	synapses := []domain.SynapseItem{}
+	for rows.Next() {
+		var synapse domain.SynapseItem
+		err := rows.Scan(&synapse.Name, &synapse.Count)
+		if err != nil {
+			return []domain.SynapseItem{}, err
+		}
+		synapses = append(synapses, synapse)
+	}
+
+	r.cache.Set(cacheKey, synapses)
+
+	return synapses, nil
+}
+
+func (r *PostgresSynapseRepository) SynapseCell(ctx context.Context, synapseUID string, timepoint int) (domain.Neuron, error) {
+	parts := strings.Split(synapseUID, "chemical")
+
+	if len(parts) != 2 {
+		parts = strings.Split(synapseUID, "electrical")
+	}
+
+	if len(parts) != 2 {
+		parts = strings.Split(synapseUID, "undefined")
+	}
+
+	if len(parts) != 2 {
+		return domain.Neuron{}, errors.New("invalid synapse UID")
+	}
+
+	cellUID := parts[0]
+
+	if cellUID == "" {
+		return domain.Neuron{}, errors.New("invalid cell UID")
+	}
+
+	query := "SELECT * FROM neurons WHERE uid = $1 AND timepoint = $2;"
+
+	var neuron Neuron
+	err := r.DB.QueryRow(ctx, query, cellUID, timepoint).Scan(&neuron.ID, &neuron.ULID, &neuron.UID, &neuron.Timepoint, &neuron.Filename, &neuron.Color, &neuron.Volume, &neuron.SurfaceArea)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Neuron{}, nil
+		}
+		return domain.Neuron{}, err
+	}
+
+	return neuron.ToDomain(), nil
+}
+
+func (r *PostgresSynapseRepository) CellSynapseCount(ctx context.Context, synapseUID string, timepoint int) (int, error) {
+	parts := strings.Split(synapseUID, "chemical")
+
+	if len(parts) != 2 {
+		parts = strings.Split(synapseUID, "electrical")
+	}
+
+	if len(parts) != 2 {
+		parts = strings.Split(synapseUID, "undefined")
+	}
+
+	if len(parts) != 2 {
+		return 0, errors.New("invalid synapse UID")
+	}
+
+	cellUID := parts[0]
+
+	if cellUID == "" {
+		return 0, errors.New("invalid cell UID")
+	}
+
+	like := fmt.Sprintf("%s%%", cellUID)
+
+	query := "SELECT count(*) FROM synapses WHERE uid LIKE $1 AND timepoint = $2;"
+
+	var total sql.NullInt64
+	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Int64
+		return int(count), nil
+	}
+
+	return 0, nil
+}
+
+func (r *PostgresSynapseRepository) SynapseTypeCount(ctx context.Context, synapseUID string, timepoint int) (int, error) {
+	parts := strings.Split(synapseUID, "~")
+
+	if len(parts) != 2 {
+		return 0, errors.New("invalid synapse UID")
+	}
+
+	typeUID := parts[0]
+
+	if typeUID == "" {
+		return 0, errors.New("invalid synapse type UID")
+	}
+
+	like := fmt.Sprintf("%s%%", typeUID)
+
+	query := "SELECT count(*) FROM synapses WHERE uid LIKE $1 AND timepoint = $2;"
+
+	var total sql.NullInt64
+	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Int64
+		return int(count), nil
+	}
+
+	return 0, nil
+}
+
+func (r *PostgresSynapseRepository) SynapseConnections(ctx context.Context, synapseUID string, timepoint int) ([]domain.SynapseItem, error) {
+	parts := strings.Split(synapseUID, "~")
+
+	if len(parts) != 2 {
+		return []domain.SynapseItem{}, errors.New("invalid synapse UID")
+	}
+
+	typeUID := parts[0]
+
+	if typeUID == "" {
+		return []domain.SynapseItem{}, errors.New("invalid synapse type UID")
+	}
+
+	like := fmt.Sprintf("%s%%", typeUID)
+
+	query := "SELECT split_part(uid, '~', 1) AS syn_identity, COUNT(*) AS total FROM synapses WHERE uid LIKE $1 AND timepoint = $2 GROUP BY syn_identity ORDER BY syn_identity ASC;"
+
+	rows, err := r.DB.Query(ctx, query, like, timepoint)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []domain.SynapseItem{}, nil
+		}
+
+		return []domain.SynapseItem{}, err
+	}
+
+	defer rows.Close()
+
+	synapses := []domain.SynapseItem{}
+	for rows.Next() {
+		var synapse domain.SynapseItem
+		err := rows.Scan(&synapse.Name, &synapse.Count)
+		if err != nil {
+			return []domain.SynapseItem{}, err
+		}
+		synapses = append(synapses, synapse)
+	}
+
+	return synapses, nil
 }
 
 func (r *PostgresSynapseRepository) CreateSynapse(ctx context.Context, synapse domain.Synapse) error {
@@ -187,9 +493,9 @@ func (r *PostgresSynapseRepository) TruncateSynapses(ctx context.Context) error 
 	return nil
 }
 
-func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)
@@ -211,11 +517,8 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		containsChemical := false
 		args = append(args, req.Types)
 
-		for _, synapseType := range synapseTypes {
-			if synapseType == "chemical" {
-				containsChemical = true
-				break
-			}
+		if slices.Contains(synapseTypes, "chemical") {
+			containsChemical = true
 		}
 
 		if containsChemical {
@@ -226,14 +529,13 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 	}
 
 	if req.PreNeuron != "" {
-		args = append(args, strings.ToLower(req.PreNeuron))
-		queryParts = append(queryParts, fmt.Sprintf("AND LOWER(uid) LIKE '$%d%%'", len(args)))
+		// args = append(args, strings.ToLower(req.PreNeuron))
+		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) LIKE '%s%%'", strings.ToLower(req.PreNeuron)))
 	}
 
 	if req.PostNeuron != "" {
-		args = append(args, strings.Join(req.Types, "|"))
-		args = append(args, strings.ToLower(req.PostNeuron))
-		queryParts = append(queryParts, fmt.Sprintf("AND LOWER(uid) SIMILAR TO '%%($%d%%$%d)%%|~%%)'", len(args)-1, len(args)))
+		// args = append(args, strings.ToLower(req.PostNeuron))
+		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) SIMILAR TO '%%(undefined|chemical|electrical)%%%s%%'", strings.ToLower(req.PostNeuron)))
 	}
 
 	query := strings.Join(queryParts, " AND ")
@@ -269,6 +571,12 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		args = append(args, req.Offset)
 		query += fmt.Sprintf(" offset $%d", len(args))
 	}
+
+	// print the query for debugging
+	fmt.Println(query)
+
+	// print the args for debugging
+	fmt.Println(args)
 
 	return query, args
 }

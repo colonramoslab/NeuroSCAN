@@ -2,11 +2,14 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/domain"
+	"neuroscan/internal/toolshed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,25 +23,61 @@ type NeuronRepository interface {
 	CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error)
 	CreateNeuron(ctx context.Context, neuron domain.Neuron) error
 	DeleteNeuron(ctx context.Context, uid string, timepoint int) error
+	UpdateNeuron(ctx context.Context, neuron domain.Neuron) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
 	TruncateNeurons(ctx context.Context) error
 }
 
-type PostgresNeuronRepository struct {
-	DB *pgxpool.Pool
+type Neuron struct {
+	ID          int             `db:"id"`
+	ULID        string          `db:"ulid"`
+	UID         string          `db:"uid"`
+	Timepoint   int             `db:"timepoint"`
+	Filename    string          `db:"filename"`
+	Color       toolshed.Color  `db:"color"`
+	Volume      sql.NullFloat64 `db:"volume"`
+	SurfaceArea sql.NullFloat64 `db:"surface_area"`
 }
 
-func NewPostgresNeuronRepository(db *pgxpool.Pool) *PostgresNeuronRepository {
+func (n *Neuron) ToDomain() domain.Neuron {
+	neuron := domain.Neuron{
+		ID:        n.ID,
+		ULID:      n.ULID,
+		UID:       n.UID,
+		Timepoint: n.Timepoint,
+		Filename:  n.Filename,
+		Color:     n.Color,
+		CellStats: &domain.CellStats{},
+	}
+
+	if n.Volume.Valid {
+		neuron.CellStats.Volume = &n.Volume.Float64
+	}
+
+	if n.SurfaceArea.Valid {
+		neuron.CellStats.SurfaceArea = &n.SurfaceArea.Float64
+	}
+
+	return neuron
+}
+
+type PostgresNeuronRepository struct {
+	cache cache.Cache
+	DB    *pgxpool.Pool
+}
+
+func NewPostgresNeuronRepository(db *pgxpool.Pool, c cache.Cache) *PostgresNeuronRepository {
 	return &PostgresNeuronRepository{
-		DB: db,
+		cache: c,
+		DB:    db,
 	}
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id string) (domain.Neuron, error) {
 	query := "SELECT * FROM neurons WHERE ulid = $1"
 
-	var neuron domain.Neuron
-	err := r.DB.QueryRow(ctx, query, id).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	var neuron Neuron
+	err := r.DB.QueryRow(ctx, query, id).Scan(&neuron.ID, &neuron.ULID, &neuron.UID, &neuron.Timepoint, &neuron.Filename, &neuron.Color, &neuron.Volume, &neuron.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Neuron{}, nil
@@ -47,14 +86,14 @@ func (r *PostgresNeuronRepository) GetNeuronByULID(ctx context.Context, id strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron, nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid string, timepoint int) (domain.Neuron, error) {
-	query := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons WHERE uid = $1 AND timepoint = $2"
+	query := "SELECT * FROM neurons WHERE uid = $1 AND timepoint = $2"
 
-	var neuron domain.Neuron
-	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.UID, &neuron.ULID, &neuron.Timepoint, &neuron.Filename, &neuron.Color)
+	var neuron Neuron
+	err := r.DB.QueryRow(ctx, query, uid, timepoint).Scan(&neuron.ID, &neuron.ULID, &neuron.UID, &neuron.Timepoint, &neuron.Filename, &neuron.Color, &neuron.Volume, &neuron.SurfaceArea)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Neuron{}, nil
@@ -63,7 +102,7 @@ func (r *PostgresNeuronRepository) GetNeuronByUID(ctx context.Context, uid strin
 		return domain.Neuron{}, err
 	}
 
-	return neuron, nil
+	return neuron.ToDomain(), nil
 }
 
 func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -83,7 +122,7 @@ func (r *PostgresNeuronRepository) NeuronExists(ctx context.Context, uid string,
 }
 
 func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query domain.APIV1Request) ([]domain.Neuron, error) {
-	q := "SELECT id, uid, ulid, timepoint, filename, color FROM neurons "
+	q := "SELECT * FROM neurons "
 
 	parsedQuery, args := r.ParseNeuronAPIV1Request(ctx, query)
 
@@ -91,7 +130,7 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 
 	rows, _ := r.DB.Query(ctx, q, args...)
 
-	neurons, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Neuron])
+	neurons, err := pgx.CollectRows(rows, pgx.RowToStructByName[Neuron])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []domain.Neuron{}, nil
@@ -100,7 +139,13 @@ func (r *PostgresNeuronRepository) SearchNeurons(ctx context.Context, query doma
 		return nil, err
 	}
 
-	return neurons, err
+	domainNeurons := make([]domain.Neuron, len(neurons))
+
+	for i := range neurons {
+		domainNeurons[i] = neurons[i].ToDomain()
+	}
+
+	return domainNeurons, err
 }
 
 func (r *PostgresNeuronRepository) CountNeurons(ctx context.Context, query domain.APIV1Request) (int, error) {
@@ -140,6 +185,45 @@ func (r *PostgresNeuronRepository) CreateNeuron(ctx context.Context, neuron doma
 	return nil
 }
 
+// UpdateNeuron takes a neuron and updates the fields accordingly
+func (r *PostgresNeuronRepository) UpdateNeuron(ctx context.Context, neuron domain.Neuron) error {
+	query := `UPDATE neurons SET `
+	var args []any
+	args = append(args, neuron.ULID)
+
+	if neuron.CellStats != nil {
+		if neuron.CellStats.Volume != nil {
+			args = append(args, *neuron.CellStats.Volume)
+			query += fmt.Sprintf("volume = $%d, ", len(args))
+		}
+
+		if neuron.CellStats.SurfaceArea != nil {
+			args = append(args, *neuron.CellStats.SurfaceArea)
+			query += fmt.Sprintf("surface_area = $%d, ", len(args))
+		}
+	}
+
+	if len(args) == 1 {
+		return nil
+	}
+
+	query = strings.TrimSuffix(query, ", ")
+	query = strings.TrimSuffix(query, ",")
+	if !strings.HasSuffix(query, " ") {
+		query += " "
+	}
+
+	query += `where ulid = $1`
+
+	_, err := r.DB.Exec(ctx, query, args...)
+	if err != nil {
+		fmt.Printf("%v", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func (r *PostgresNeuronRepository) DeleteNeuron(ctx context.Context, uid string, timepoint int) error {
 	query := "DELETE FROM neurons WHERE uid = $1 AND timepoint = $2"
 
@@ -149,6 +233,139 @@ func (r *PostgresNeuronRepository) DeleteNeuron(ctx context.Context, uid string,
 	}
 
 	return nil
+}
+
+func (r *PostgresNeuronRepository) SynapseCount(ctx context.Context, uid string, timepoint int) ([]domain.SynapseItem, error) {
+	cacheKey := fmt.Sprintf("neuron:synapse_count:%s:%d", uid, timepoint)
+
+	if cachedSynapseCount, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedSynapseCount.([]domain.SynapseItem); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT split_part(uid, '~', 1) AS syn_identity, COUNT(*) AS total FROM synapses WHERE uid LIKE $1 AND timepoint = $2 GROUP BY syn_identity ORDER BY syn_identity ASC;"
+
+	like := fmt.Sprintf("%s%%", uid)
+
+	rows, err := r.DB.Query(ctx, query, like, timepoint)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []domain.SynapseItem{}, nil
+		}
+
+		return []domain.SynapseItem{}, err
+	}
+
+	defer rows.Close()
+
+	synapses := []domain.SynapseItem{}
+	for rows.Next() {
+		var synapse domain.SynapseItem
+		err := rows.Scan(&synapse.Name, &synapse.Count)
+		if err != nil {
+			return []domain.SynapseItem{}, err
+		}
+		synapses = append(synapses, synapse)
+	}
+
+	r.cache.Set(cacheKey, synapses)
+
+	return synapses, nil
+}
+
+func (r *PostgresNeuronRepository) ContactSurfaceArea(ctx context.Context, uid string, timepoint int) (float64, error) {
+	cacheKey := fmt.Sprintf("neuron:contact_surface_area:%s:%d", uid, timepoint)
+
+	if cachedPSA, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedPSA.(float64); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT sum(surface_area) FROM contacts WHERE uid like $1 AND timepoint = $2;"
+	like := fmt.Sprintf("%s%%", uid)
+
+	var total sql.NullFloat64
+	err := r.DB.QueryRow(ctx, query, like, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Float64
+
+		r.cache.Set(cacheKey, count)
+
+		return count, nil
+	}
+
+	return 0, nil
+}
+
+func (r *PostgresNeuronRepository) NerveRingSurfaceArea(ctx context.Context, timepoint int) (float64, error) {
+	cacheKey := fmt.Sprintf("nervering:surface_area:%d", timepoint)
+
+	if cachedNRSA, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedNRSA.(float64); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT sum(surface_area) FROM neurons WHERE timepoint = $1;"
+
+	var total sql.NullFloat64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Float64
+
+		r.cache.Set(cacheKey, count)
+
+		return count, nil
+	}
+
+	return 0, nil
+}
+
+func (r *PostgresNeuronRepository) NerveRingSynapseCount(ctx context.Context, timepoint int) (int, error) {
+	cacheKey := fmt.Sprintf("nervering:total_synapses:%d", timepoint)
+
+	if cachedTNRS, found := r.cache.Get(cacheKey); found {
+		if cached, ok := cachedTNRS.(int); ok {
+			return cached, nil
+		}
+	}
+
+	query := "SELECT count(*) FROM synapses WHERE timepoint = $1;"
+
+	var total sql.NullInt64
+	err := r.DB.QueryRow(ctx, query, timepoint).Scan(&total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if total.Valid {
+		count := total.Int64
+
+		r.cache.Set(cacheKey, count)
+
+		return int(count), nil
+	}
+
+	return 0, nil
 }
 
 func (r *PostgresNeuronRepository) IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error) {
@@ -187,9 +404,9 @@ func (r *PostgresNeuronRepository) TruncateNeurons(ctx context.Context) error {
 	return nil
 }
 
-func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []interface{}) {
+func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {
 	queryParts := []string{"where 1=1"}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.Timepoint != nil {
 		args = append(args, req.Timepoint)

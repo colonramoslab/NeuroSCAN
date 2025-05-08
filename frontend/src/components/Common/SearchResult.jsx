@@ -18,6 +18,7 @@ import CHEVRON from '../../images/chevron-right.svg';
 import * as search from '../../redux/actions/search';
 import vars from '../../styles/constants';
 import { getAll } from '../../redux/actions/search';
+import { formatSynapseUID } from '../../utilities/functions';
 
 const useStyles = makeStyles(() => ({
   fade: {
@@ -194,7 +195,7 @@ const SearchResult = (props) => {
                   </ListItemIcon>
                   <ListItemText primary={(
                     <HTMLViewer
-                      content={item.uid}
+                      content={formatSynapseUID(item.uid, true)}
                       style={{
                         width: '100%', height: '100%', float: 'center', wordWrap: 'break-word',
                       }}

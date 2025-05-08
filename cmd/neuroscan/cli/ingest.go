@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 
+	"neuroscan/internal/cache"
 	"neuroscan/internal/database"
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -34,6 +36,7 @@ type Ingestor struct {
 	scales       int64
 	promoters    int64
 	devStages    int64
+	meta         int64
 	skipExisting bool
 	debug        bool
 	clean        bool
@@ -51,6 +54,7 @@ type ingestChannels struct {
 	scales     chan string
 	promoters  chan string
 	devStages  chan string
+	meta       chan string
 }
 
 type ingestWaitGroups struct {
@@ -62,6 +66,7 @@ type ingestWaitGroups struct {
 	scales     sync.WaitGroup
 	promoters  sync.WaitGroup
 	devStages  sync.WaitGroup
+	meta       sync.WaitGroup
 }
 
 // createIngestChannels creates the ingest channels
@@ -75,6 +80,7 @@ func createIngestChannels() *ingestChannels {
 		scales:     make(chan string, 20),
 		promoters:  make(chan string, 500),
 		devStages:  make(chan string, 100),
+		meta:       make(chan string, 100_000),
 	}
 }
 
@@ -89,6 +95,7 @@ func createIngestWaitGroups() *ingestWaitGroups {
 		scales:     sync.WaitGroup{},
 		promoters:  sync.WaitGroup{},
 		devStages:  sync.WaitGroup{},
+		meta:       sync.WaitGroup{},
 	}
 }
 
@@ -107,6 +114,12 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 		return err
 	}
 
+	cache, err := cache.NewCache(cntx)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to connect to cache")
+		return err
+	}
+
 	defer db.Close(cntx)
 
 	n := &Ingestor{
@@ -118,6 +131,7 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 		scales:       0,
 		promoters:    0,
 		devStages:    0,
+		meta:         0,
 		skipExisting: cmd.SkipExisting,
 		debug:        cmd.Verbose,
 		clean:        cmd.Clean,
@@ -137,28 +151,28 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	// get the max number of routines to use
 	maxRoutines := toolshed.MaxParallelism()
 
-	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool)
+	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
 
-	contactRepo := repository.NewPostgresContactRepository(db.Pool)
+	contactRepo := repository.NewPostgresContactRepository(db.Pool, cache)
 	contactService := service.NewContactService(contactRepo)
 
-	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool)
+	synapseRepo := repository.NewPostgresSynapseRepository(db.Pool, cache)
 	synapseService := service.NewSynapseService(synapseRepo)
 
-	cphateRepo := repository.NewPostgresCphateRepository(db.Pool)
+	cphateRepo := repository.NewPostgresCphateRepository(db.Pool, cache)
 	cphateService := service.NewCphateService(cphateRepo)
 
-	nerveRingRepo := repository.NewPostgresNerveRingRepository(db.Pool)
+	nerveRingRepo := repository.NewPostgresNerveRingRepository(db.Pool, cache)
 	nerveRingService := service.NewNerveRingService(nerveRingRepo)
 
-	scaleRepo := repository.NewPostgresScaleRepository(db.Pool)
+	scaleRepo := repository.NewPostgresScaleRepository(db.Pool, cache)
 	scaleService := service.NewScaleService(scaleRepo)
 
-	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool)
+	promoterRepo := repository.NewPostgresPromoterRepository(db.Pool, cache)
 	promoterService := service.NewPromoterService(promoterRepo)
 
-	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool)
+	devStageRepo := repository.NewPostgresDevelopmentalStageRepository(db.Pool, cache)
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 
 	if n.clean {
@@ -415,6 +429,56 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 
 				waitGroups.devStages.Done()
 			}
+
+			for metaPath := range channels.meta {
+				csvRows, err := toolshed.GetCSVRows(metaPath)
+				if err != nil {
+					logger.Error().Err(err).Str("path", metaPath).Msg("Error getting CSV rows")
+					waitGroups.meta.Done()
+					continue
+				}
+
+				timepoint, err := toolshed.GetTimepoint(metaPath)
+				if err != nil {
+					logger.Error().Err(err).Msg("Error getting meta timepoint")
+					waitGroups.meta.Done()
+					continue
+				}
+
+				// we have 3 different files, cell_sa, cell_vol, and patch_sa. We need to parse them seperately based on the filename
+				filename := filepath.Base(metaPath)
+
+				for i, row := range csvRows {
+					if i == 0 {
+						continue
+					}
+
+					// if the row length is less than 2, continue
+					if len(row) < 2 {
+						logger.Error().Msg("Malformed meta data row")
+						continue
+					}
+
+					if strings.Contains(filename, "cell_sa") {
+						err = neuronService.ParseMeta(cntx, row, timepoint, "surface_area")
+					}
+
+					if strings.Contains(filename, "cell_vol") {
+						err = neuronService.ParseMeta(cntx, row, timepoint, "volume")
+					}
+
+					if strings.Contains(filename, "patch_sa") {
+						err = contactService.ParseMeta(cntx, row, timepoint, "surface_area")
+					}
+
+					if err != nil {
+						logger.Error().Err(err).Msg("Error parsing meta data")
+						continue
+					}
+				}
+
+				waitGroups.meta.Done()
+			}
 		}()
 	}
 
@@ -447,6 +511,9 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	waitGroups.devStages.Wait()
 	close(channels.devStages)
 
+	waitGroups.meta.Wait()
+	close(channels.meta)
+
 	logger.Info().Msg("Done processing entities")
 	logger.Info().Int64("count", n.neurons).Msg("Neurons ingested")
 	logger.Info().Int64("count", n.contacts).Msg("Contacts ingested")
@@ -456,6 +523,7 @@ func (cmd *IngestCmd) Run(ctx *context.Context) error {
 	logger.Info().Int64("count", n.scales).Msg("Scales ingested")
 	logger.Info().Int64("count", n.promoters).Msg("Promoters ingested")
 	logger.Info().Int64("count", n.devStages).Msg("DevelopmentalStages ingested")
+	logger.Info().Int64("count", n.meta).Msg("Meta files ingested")
 
 	return nil
 }
@@ -472,7 +540,6 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 
 		// depending on the type of file, we want to process it differently
 		currentEntity, err := toolshed.GetEntityType(path)
-
 		if err != nil {
 			logger.Error().Err(err).Str("path", path).Msg("Error getting entity type, skipping")
 		}
@@ -529,6 +596,10 @@ func (n *Ingestor) walkDirFolder(ctx context.Context, path string, channels *ing
 			logger.Debug().Str("path", path).Msg("Adding devStage to channel")
 			waitGroups.devStages.Add(1)
 			channels.devStages <- path
+		case "meta":
+			logger.Debug().Str("path", path).Msg("Adding meta to channel")
+			waitGroups.meta.Add(1)
+			channels.meta <- path
 		default:
 			logger.Error().Str("type", currentEntity).Msg("Unknown entity type")
 		}

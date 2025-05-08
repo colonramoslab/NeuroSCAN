@@ -12,7 +12,8 @@ type SynapseType string
 const (
 	SynapseTypeChemical   SynapseType = "chemical"
 	SynapseTypeElectrical SynapseType = "electrical"
-	SynapseULIDPrefix                  = "syn"
+	SynapseTypeUndefined  SynapseType = "undefined"
+	SynapseULIDPrefix                 = "syn"
 )
 
 var ValidSynapseType = map[SynapseType]bool{
@@ -21,13 +22,26 @@ var ValidSynapseType = map[SynapseType]bool{
 }
 
 type Synapse struct {
-	ID          int            `json:"-"`
-	ULID        string         `json:"id"`
-	UID         string         `json:"uid"`
-	Timepoint   int            `json:"timepoint"`
-	SynapseType *SynapseType   `json:"type"`
-	Filename    string         `json:"filename"`
-	Color       toolshed.Color `json:"color"`
+	ID           int            `json:"-"`
+	ULID         string         `json:"id"`
+	UID          string         `json:"uid"`
+	Timepoint    int            `json:"timepoint"`
+	SynapseType  SynapseType    `json:"type"`
+	Filename     string         `json:"filename"`
+	Color        toolshed.Color `json:"color"`
+	CellStats    *CellStats     `json:"cell_stats"`
+	SynapseStats *SynapseStats  `json:"synapse_stats"`
+}
+
+type SynapseStats struct {
+	TotalTypeCount        *int           `json:"total_type_count"`
+	TotalCellSynapseCount *int           `json:"total_cell_synapse_count"`
+	Connections           *[]SynapseItem `json:"connections"`
+}
+
+type SynapseItem struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
 }
 
 func getSynapseType(uid string) *SynapseType {
@@ -46,19 +60,20 @@ func getSynapseType(uid string) *SynapseType {
 
 func (s *Synapse) Parse(filePath string) error {
 	fileMetas, err := toolshed.FilePathParse(filePath)
-
 	if err != nil {
 		return errors.New("error parsing synapse file path: " + err.Error())
 	}
 
 	fileMeta := fileMetas[0]
+	ulid := toolshed.CreateULID(SynapseULIDPrefix)
+	synapseType := getSynapseType(fileMeta.UID)
 
 	s.UID = fileMeta.UID
-	s.ULID = toolshed.CreateULID(SynapseULIDPrefix)
+	s.ULID = ulid
 	s.Filename = fileMeta.Filename
 	s.Timepoint = fileMeta.Timepoint
 	s.Color = fileMeta.Color
-	s.SynapseType = getSynapseType(fileMeta.UID)
+	s.SynapseType = *synapseType
 
 	return nil
 }
