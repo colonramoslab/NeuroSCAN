@@ -17,6 +17,7 @@ type Contact struct {
 	Color      toolshed.Color `json:"color"`
 	CellStats  *CellStats     `json:"cell_stats"`
 	PatchStats *PatchStats    `json:"patch_stats"`
+	Ranking    *Ranking       `json:"ranking"`
 }
 
 type PatchStats struct {

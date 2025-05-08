@@ -15,9 +15,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type ContactRank struct{}
+
+type RowOpts struct {
+	id        *int
+	uid       *string
+	ulid      *string
+	timepoint *int
+}
+
 type ContactRepository interface {
 	GetContactByULID(ctx context.Context, id string) (domain.Contact, error)
 	GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error)
+	ContactRanking(ctx context.Context, opts RowOpts) (domain.Ranking, error)
 	ContactExists(ctx context.Context, uid string, timepoint int) (bool, error)
 	SearchContacts(ctx context.Context, query domain.APIV1Request) ([]domain.Contact, error)
 	CountContacts(ctx context.Context, query domain.APIV1Request) (int, error)
@@ -37,7 +47,7 @@ type Contact struct {
 	SurfaceArea sql.NullFloat64 `db:"surface_area"`
 }
 
-func (c *Contact) ToDomain(neuron *domain.Neuron, totalPatches *int, totalCellPatchSA *float64) domain.Contact {
+func (c *Contact) ToDomain(neuron *domain.Neuron, totalPatches *int, totalCellPatchSA *float64, ranking *domain.Ranking) domain.Contact {
 	contact := domain.Contact{
 		ID:         c.ID,
 		ULID:       c.ULID,
@@ -47,6 +57,7 @@ func (c *Contact) ToDomain(neuron *domain.Neuron, totalPatches *int, totalCellPa
 		Color:      c.Color,
 		CellStats:  &domain.CellStats{},
 		PatchStats: &domain.PatchStats{},
+		Ranking:    ranking,
 	}
 
 	if c.SurfaceArea.Valid {
@@ -114,7 +125,12 @@ func (r *PostgresContactRepository) GetContactByULID(ctx context.Context, id str
 		return domain.Contact{}, err
 	}
 
-	return contact.ToDomain(&neuron, &totalPatches, &totalCellPatchSA), nil
+	ranking, err := r.ContactRanking(ctx, RowOpts{ulid: &contact.ULID, timepoint: &contact.Timepoint})
+	if err != nil {
+		return domain.Contact{}, err
+	}
+
+	return contact.ToDomain(&neuron, &totalPatches, &totalCellPatchSA, &ranking), nil
 }
 
 func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid string, timepoint int) (domain.Contact, error) {
@@ -145,7 +161,12 @@ func (r *PostgresContactRepository) GetContactByUID(ctx context.Context, uid str
 		return domain.Contact{}, err
 	}
 
-	return contact.ToDomain(&neuron, &totalPatches, &totalCellPatchSA), nil
+	ranking, err := r.ContactRanking(ctx, RowOpts{ulid: &contact.ULID, timepoint: &contact.Timepoint})
+	if err != nil {
+		return domain.Contact{}, err
+	}
+
+	return contact.ToDomain(&neuron, &totalPatches, &totalCellPatchSA, &ranking), nil
 }
 
 func (r *PostgresContactRepository) ContactExists(ctx context.Context, uid string, timepoint int) (bool, error) {
@@ -185,7 +206,7 @@ func (r *PostgresContactRepository) SearchContacts(ctx context.Context, query do
 	domainContacts := make([]domain.Contact, len(contacts))
 
 	for i := range contacts {
-		domainContacts[i] = contacts[i].ToDomain(nil, nil, nil)
+		domainContacts[i] = contacts[i].ToDomain(nil, nil, nil, nil)
 	}
 
 	return domainContacts, err
@@ -430,6 +451,65 @@ func (r *PostgresContactRepository) TruncateContacts(ctx context.Context) error 
 	}
 
 	return nil
+}
+
+func (r *PostgresContactRepository) ContactRanking(ctx context.Context, opts RowOpts) (domain.Ranking, error) {
+	// if we don't have a timepoint, we can't do anything
+	if opts.timepoint == nil {
+		return domain.Ranking{}, errors.New("timepoint is required")
+	}
+
+	// if we don't have an id, uid or ulid, we can't do anything
+	if opts.id == nil && opts.uid == nil && opts.ulid == nil {
+		return domain.Ranking{}, errors.New("uid or ulid is required")
+	}
+
+	identified := false
+	args := []any{*opts.timepoint}
+	query := `
+	SELECT surface_area_rank, total_count
+		FROM (
+		    SELECT
+				id,
+				ulid,
+		        uid,
+		        surface_area,
+		        RANK() OVER (ORDER BY surface_area DESC NULLS LAST) AS surface_area_rank,
+		        COUNT(*) OVER () AS total_count
+		    FROM contacts
+		    WHERE timepoint = $1
+		) ranked
+		`
+
+	if opts.uid != nil {
+		identified = true
+		args = append(args, *opts.uid)
+		query += "WHERE uid = $2"
+	}
+
+	if opts.ulid != nil && identified == false {
+		identified = true
+		args = append(args, *opts.ulid)
+		query += "WHERE ulid = $2"
+	}
+
+	if opts.id != nil && identified == false {
+		identified = true
+		args = append(args, *opts.id)
+		query += "WHERE id = $2"
+	}
+
+	var ranking domain.Ranking
+
+	err := r.DB.QueryRow(ctx, query, args...).Scan(&ranking.Rank, &ranking.Total)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Ranking{}, nil
+		}
+		return domain.Ranking{}, err
+	}
+
+	return ranking, nil
 }
 
 func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context, req domain.APIV1Request) (string, []any) {

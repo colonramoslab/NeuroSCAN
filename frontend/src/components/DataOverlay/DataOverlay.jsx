@@ -117,6 +117,12 @@ const PatchStats = ({ dataOverlay, classname }) => (
     </AccordionSummary>
     <AccordionDetails>
       <Box className="data-overlay-body">
+        {dataOverlay.ranking?.rank && dataOverlay.ranking?.total && (
+          <p>
+            <strong>Rank: </strong>
+            {`${dataOverlay.ranking.rank} of ${dataOverlay.ranking.total}`}
+          </p>
+        )}
         {dataOverlay.patch_stats.patch_surface_area ? (
           <p>
             <strong>Total surface area: </strong>
