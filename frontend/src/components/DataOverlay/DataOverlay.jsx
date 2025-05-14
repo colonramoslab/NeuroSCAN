@@ -121,6 +121,19 @@ const PatchStats = ({ dataOverlay, classname }) => (
           <p>
             <strong>Rank: </strong>
             {`${dataOverlay.ranking.rank} of ${dataOverlay.ranking.total}`}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <Typography color="inherit">
+                  Rank compares the summed surface area of contacts (&ldquo;patches&rdquo;)
+                  between these two neurons relative to all other contact
+                  relationships for the primary neuron. A rank of 1 means
+                  this neuron pair shares the largest contact area.
+                </Typography>
+              )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
           </p>
         )}
         {dataOverlay.patch_stats.patch_surface_area ? (
@@ -130,28 +143,13 @@ const PatchStats = ({ dataOverlay, classname }) => (
               dataOverlay.patch_stats.patch_surface_area,
             ).toLocaleString()}nm`}
             <sup>2</sup>
-            {dataOverlay.cell_stats.surface_area && (
-              <>
-                &nbsp;(
-                {`${(
-                  (dataOverlay.patch_stats.patch_surface_area
-                    / dataOverlay.cell_stats.surface_area)
-                  * 100
-                ).toExponential(2)}%`}
-                )
-              </>
-            )}
             <HTMLTooltip
               className={classname}
               title={(
-                <>
-                  <Typography color="inherit">
-                    Total Patch Surface Area = The summed surface area of all
-                    patches of this contact identity across the nerve ring.
-                    (Percent of total contact surface area of this identity to
-                    the surface area of the primary cell).
-                  </Typography>
-                </>
+                <Typography color="inherit">
+                  Total Patch Surface Area = The summed surface area of all
+                  patches of this contact identity across the nerve ring.
+                </Typography>
               )}
             >
               <HelpOutlineIcon />
