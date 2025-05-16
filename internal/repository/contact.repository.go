@@ -459,25 +459,40 @@ func (r *PostgresContactRepository) ContactRanking(ctx context.Context, timepoin
 	refCellUID := parts[0]
 	whereClause := fmt.Sprintf("AND LOWER(uid) LIKE '%s%%'", strings.ToLower(refCellUID))
 	query := fmt.Sprintf(`
-	SELECT surface_area_rank, total_count
-		FROM (
+		WITH cell_ranks AS (
 		    SELECT
-				id,
-				ulid,
 		        uid,
-		        surface_area,
-		        RANK() OVER (ORDER BY surface_area DESC NULLS LAST) AS surface_area_rank,
-		        COUNT(*) OVER () AS total_count
+		        RANK() OVER (ORDER BY surface_area DESC NULLS LAST) AS cell_sa_rank,
+		        COUNT(*) OVER () AS total_cell,
+				SUM(surface_area) OVER () AS cell_sa
 		    FROM contacts
 		    WHERE timepoint = $1
-			%s
-		) ranked
-		WHERE uid = $2;
+      		%s
+		),
+		brain_ranks AS (
+		    SELECT
+		        uid,
+		        RANK() OVER (ORDER BY surface_area DESC NULLS LAST) AS brain_sa_rank,
+		        COUNT(*) OVER () AS total_brain,
+				SUM(surface_area) OVER () AS brain_sa
+		    FROM contacts
+		    WHERE timepoint = $1
+		)
+		SELECT
+		    c.cell_sa_rank,
+		    c.total_cell,
+			c.cell_sa,
+		    b.brain_sa_rank,
+		    b.total_brain,
+			b.brain_sa
+		FROM cell_ranks c
+		JOIN brain_ranks b ON c.uid = b.uid
+		WHERE c.uid = $2;
 		`, whereClause)
 
 	var ranking domain.Ranking
 
-	err := r.DB.QueryRow(ctx, query, args...).Scan(&ranking.Rank, &ranking.Total)
+	err := r.DB.QueryRow(ctx, query, args...).Scan(&ranking.CellRank, &ranking.CellTotal, &ranking.CellSAAggregate, &ranking.BrainRank, &ranking.BrainTotal, &ranking.BrainSAAggregate)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Ranking{}, nil

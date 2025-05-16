@@ -103,7 +103,7 @@ const CellStats = ({ dataOverlay }) => (
   </Accordion>
 );
 
-const PatchStats = ({ dataOverlay, classname }) => (
+const ContactStats = ({ dataOverlay, classname }) => (
   <Accordion>
     <AccordionSummary
       expandIcon={
@@ -112,22 +112,41 @@ const PatchStats = ({ dataOverlay, classname }) => (
       IconButtonProps={{ disableRipple: true }}
     >
       <Typography variant="h5" class="stat-title">
-        Patch Stats
+        Contact Stats
       </Typography>
     </AccordionSummary>
     <AccordionDetails>
       <Box className="data-overlay-body">
-        {dataOverlay.ranking?.rank && dataOverlay.ranking?.total && (
+        {dataOverlay.ranking?.cell_rank && dataOverlay.ranking?.cell_total && (
           <p>
-            <strong>Rank: </strong>
-            {`${dataOverlay.ranking.rank} of ${dataOverlay.ranking.total}`}
+            <strong>Cell Rank: </strong>
+            {`${dataOverlay.ranking.cell_rank} of ${dataOverlay.ranking.cell_total}`}
             <HTMLTooltip
               className={classname}
               title={(
                 <Typography color="inherit">
-                  Rank compares the summed surface area of contacts (&ldquo;patches&rdquo;)
+                  Cell Rank compares the summed surface area of contacts (&ldquo;patches&rdquo;)
                   between these two neurons relative to all other contact
                   relationships for the primary neuron. A rank of 1 means
+                  this neuron pair shares the largest contact area.
+                </Typography>
+              )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
+          </p>
+        )}
+        {dataOverlay.ranking?.brain_rank && dataOverlay.ranking?.brain_total && (
+          <p>
+            <strong>Nerve Ring Rank: </strong>
+            {`${dataOverlay.ranking.brain_rank} of ${dataOverlay.ranking.brain_total}`}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <Typography color="inherit">
+                  Nerve Ring Rank compares the summed surface area of contacts
+                  (&ldquo;patches&rdquo;) between these two neurons relative to all other contact
+                  relationships for the whole nerve ring. A rank of 1 means
                   this neuron pair shares the largest contact area.
                 </Typography>
               )}
@@ -146,10 +165,66 @@ const PatchStats = ({ dataOverlay, classname }) => (
             <HTMLTooltip
               className={classname}
               title={(
-                <Typography color="inherit">
-                  Total Patch Surface Area = The summed surface area of all
-                  patches of this contact identity across the nerve ring.
-                </Typography>
+                <>
+                  <Typography color="inherit">
+                    Total Contact Surface Area = The summed surface area of all
+                    patches of this contact identity across the nerve ring.
+                  </Typography>
+                </>
+              )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
+          </p>
+        ) : (
+          <p>Below threshold</p>
+        )}
+        {(dataOverlay.patch_stats.patch_surface_area && dataOverlay.ranking.cell_sa_aggregate) ? (
+          <p>
+            <strong>% Cell surface area: </strong>
+            {dataOverlay.ranking.cell_sa_aggregate && (
+              <>
+                {`${(
+                  (dataOverlay.patch_stats.patch_surface_area
+                    / dataOverlay.ranking.cell_sa_aggregate)
+                  * 100
+                ).toExponential(2)}%`}
+              </>
+            )}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <>
+                  <Typography color="inherit">
+                    Percent of cell surface area is the surface area of this identity to
+                    the surface area of the primary cell.
+                  </Typography>
+                </>
+              )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
+          </p>
+        ) : (
+          <p>Below threshold</p>
+        )}
+        {(dataOverlay.patch_stats.patch_surface_area && dataOverlay.ranking.brain_sa_aggregate) ? (
+          <p>
+            <strong>% Nerve Ring surface area: </strong>
+            {`${(
+              (dataOverlay.patch_stats.patch_surface_area
+                / dataOverlay.ranking.brain_sa_aggregate)
+              * 100
+            ).toExponential(2)}%`}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <>
+                  <Typography color="inherit">
+                    Percent of brnerve ring ain surface area is the surface
+                    area of this identity to the surface area of the nerve ring.
+                  </Typography>
+                </>
               )}
             >
               <HelpOutlineIcon />
@@ -224,7 +299,7 @@ const dataOverlayAccordion = (dataOverlay, patchClass) => {
   if (dataOverlay?.instanceType === 'contact') {
     return (
       <>
-        <PatchStats dataOverlay={dataOverlay} classname={patchClass} />
+        <ContactStats dataOverlay={dataOverlay} classname={patchClass} />
       </>
     );
   }
