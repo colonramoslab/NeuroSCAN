@@ -41,7 +41,7 @@ const useStyles = makeStyles((theme) => ({
       },
       '&-title': {
         padding: '10px 16px',
-        fontWeight: 700,
+        // fontWeight: 700,
         overflowX: 'hidden',
         textOverflow: 'ellipsis',
         maxWidth: 'calc(100% - 40px)',
@@ -103,6 +103,8 @@ const CellStats = ({ dataOverlay }) => (
   </Accordion>
 );
 
+const contactPrimaryNeuron = (contact) => (contact.split('by')[0]);
+
 const ContactStats = ({ dataOverlay, classname }) => (
   <Accordion>
     <AccordionSummary
@@ -119,7 +121,12 @@ const ContactStats = ({ dataOverlay, classname }) => (
       <Box className="data-overlay-body">
         {dataOverlay.ranking?.cell_rank && dataOverlay.ranking?.cell_total && (
           <p>
-            <strong>Cell Rank: </strong>
+            <strong>
+              Contact Rank (per&nbsp;
+              {contactPrimaryNeuron(dataOverlay.uid)}
+              ):
+              {' '}
+            </strong>
             {`${dataOverlay.ranking.cell_rank} of ${dataOverlay.ranking.cell_total}`}
             <HTMLTooltip
               className={classname}
@@ -127,7 +134,10 @@ const ContactStats = ({ dataOverlay, classname }) => (
                 <Typography color="inherit">
                   Cell Rank compares the summed surface area of contacts (&ldquo;patches&rdquo;)
                   between these two neurons relative to all other contact
-                  relationships for the primary neuron. A rank of 1 means
+                  relationships across the surface of
+                  {' '}
+                  <strong>{contactPrimaryNeuron(dataOverlay.uid)}</strong>
+                  . A rank of 1 means
                   this neuron pair shares the largest contact area.
                 </Typography>
               )}
@@ -138,7 +148,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
         )}
         {dataOverlay.ranking?.brain_rank && dataOverlay.ranking?.brain_total && (
           <p>
-            <strong>Nerve Ring Rank: </strong>
+            <strong>Contact Rank (per nerve ring): </strong>
             {`${dataOverlay.ranking.brain_rank} of ${dataOverlay.ranking.brain_total}`}
             <HTMLTooltip
               className={classname}
@@ -157,7 +167,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
         )}
         {dataOverlay.patch_stats.patch_surface_area ? (
           <p>
-            <strong>Total surface area: </strong>
+            <strong>Total area: </strong>
             {`${Math.round(
               dataOverlay.patch_stats.patch_surface_area,
             ).toLocaleString()}nm`}
@@ -167,8 +177,8 @@ const ContactStats = ({ dataOverlay, classname }) => (
               title={(
                 <>
                   <Typography color="inherit">
-                    Total Contact Surface Area = The summed surface area of all
-                    patches of this contact identity across the nerve ring.
+                    Total Area = The summed surface area of all
+                    contact patches between these two cells.
                   </Typography>
                 </>
               )}
@@ -196,8 +206,11 @@ const ContactStats = ({ dataOverlay, classname }) => (
               title={(
                 <>
                   <Typography color="inherit">
-                    Percent of cell surface area is the surface area of this identity to
-                    the surface area of the primary cell.
+                    Percent of cell surface area is the contact area of this cell pair to
+                    the surface area of
+                    {' '}
+                    <strong>{contactPrimaryNeuron(dataOverlay.uid)}</strong>
+                    .
                   </Typography>
                 </>
               )}
@@ -221,8 +234,8 @@ const ContactStats = ({ dataOverlay, classname }) => (
               title={(
                 <>
                   <Typography color="inherit">
-                    Percent of brnerve ring ain surface area is the surface
-                    area of this identity to the surface area of the nerve ring.
+                    Percent of nerve ring surface area is the contact
+                    area of this cell pair to the surface area of the nerve ring.
                   </Typography>
                 </>
               )}
@@ -317,6 +330,7 @@ const dataOverlayAccordion = (dataOverlay, patchClass) => {
 
 const dataOverlayTitle = (dataOverlay) => {
   let title = '';
+  let parts = [];
 
   if (!dataOverlay) {
     return title;
@@ -331,12 +345,16 @@ const dataOverlayTitle = (dataOverlay) => {
   switch (dataOverlay.instanceType) {
     case 'neuron':
       title = dataOverlay.uid;
+      title = `<strong>${title}</strong>`;
       break;
     case 'contact':
       title = dataOverlay.uid;
+      parts = title.split('by');
+      title = `<strong>${parts[0]}</strong> by ${parts[1]}`;
       break;
     case 'synapse':
       title = formatSynapseUID(dataOverlay.uid);
+      title = `<strong>${title}</strong>`;
       break;
     default:
       break;
