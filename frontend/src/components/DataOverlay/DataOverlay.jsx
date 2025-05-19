@@ -124,7 +124,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
             <strong>
               Contact Rank (per&nbsp;
               {contactPrimaryNeuron(dataOverlay.uid)}
-              ):
+              &nbsp;cell):
               {' '}
             </strong>
             {`${dataOverlay.ranking.cell_rank} of ${dataOverlay.ranking.cell_total}`}
@@ -191,7 +191,12 @@ const ContactStats = ({ dataOverlay, classname }) => (
         )}
         {(dataOverlay.patch_stats.patch_surface_area && dataOverlay.ranking.cell_sa_aggregate) ? (
           <p>
-            <strong>% Cell surface area: </strong>
+            <strong>
+              Contact % (per&nbsp;
+              {contactPrimaryNeuron(dataOverlay.uid)}
+              &nbsp;cell):
+              {' '}
+            </strong>
             {dataOverlay.ranking.cell_sa_aggregate && (
               <>
                 {`${(
@@ -223,7 +228,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
         )}
         {(dataOverlay.patch_stats.patch_surface_area && dataOverlay.ranking.brain_sa_aggregate) ? (
           <p>
-            <strong>% Nerve Ring surface area: </strong>
+            <strong>Contact % (per nerve ring): </strong>
             {`${(
               (dataOverlay.patch_stats.patch_surface_area
                 / dataOverlay.ranking.brain_sa_aggregate)
