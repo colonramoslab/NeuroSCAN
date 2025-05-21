@@ -73,12 +73,14 @@ func (c *Contact) ToDomain(neuron *domain.Neuron, totalPatches *int, totalCellPa
 	}
 
 	if neuron != nil {
-		if neuron.CellStats.Volume != nil {
-			contact.CellStats.Volume = neuron.CellStats.Volume
-		}
+		if neuron.CellStats != nil {
+			if neuron.CellStats.Volume != nil {
+				contact.CellStats.Volume = neuron.CellStats.Volume
+			}
 
-		if neuron.CellStats.SurfaceArea != nil {
-			contact.CellStats.SurfaceArea = neuron.CellStats.SurfaceArea
+			if neuron.CellStats.SurfaceArea != nil {
+				contact.CellStats.SurfaceArea = neuron.CellStats.SurfaceArea
+			}
 		}
 	}
 
@@ -492,12 +494,43 @@ func (r *PostgresContactRepository) ContactRanking(ctx context.Context, timepoin
 
 	var ranking domain.Ranking
 
-	err := r.DB.QueryRow(ctx, query, args...).Scan(&ranking.CellRank, &ranking.CellTotal, &ranking.CellSAAggregate, &ranking.BrainRank, &ranking.BrainTotal, &ranking.BrainSAAggregate)
+	var cellRank sql.NullInt64
+	var cellTotal sql.NullInt64
+	var cellSAAgg sql.NullFloat64
+	var brainRank sql.NullInt64
+	var brainTotal sql.NullInt64
+	var brainSAAgg sql.NullFloat64
+
+	err := r.DB.QueryRow(ctx, query, args...).Scan(&cellRank, &cellTotal, &cellSAAgg, &brainRank, &brainTotal, &brainSAAgg)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Ranking{}, nil
 		}
 		return domain.Ranking{}, err
+	}
+
+	if cellRank.Valid {
+		ranking.CellRank = int(cellRank.Int64)
+	}
+
+	if brainRank.Valid {
+		ranking.BrainRank = int(brainRank.Int64)
+	}
+
+	if cellTotal.Valid {
+		ranking.CellTotal = int(cellTotal.Int64)
+	}
+
+	if brainTotal.Valid {
+		ranking.BrainTotal = int(brainTotal.Int64)
+	}
+
+	if cellSAAgg.Valid {
+		ranking.CellSAAggregate = cellSAAgg.Float64
+	}
+
+	if brainSAAgg.Valid {
+		ranking.BrainSAAggregate = brainSAAgg.Float64
 	}
 
 	return ranking, nil

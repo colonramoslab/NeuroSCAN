@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -83,6 +84,7 @@ func (s *contactService) ParseMeta(ctx context.Context, row []string, timepoint 
 
 	switch dataType {
 	case "surface_area":
+		val = strings.TrimSpace(val)
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err

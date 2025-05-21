@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -82,12 +83,15 @@ func (s *neuronService) ParseMeta(ctx context.Context, row []string, timepoint i
 
 	switch dataType {
 	case "surface_area":
+		// trim spaces around value
+		val = strings.TrimSpace(val)
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err
 		}
 		neuron.CellStats.SurfaceArea = &value
 	case "volume":
+		val = strings.TrimSpace(val)
 		value, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			return err
