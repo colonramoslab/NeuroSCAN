@@ -48,7 +48,10 @@ export const formatSynapseUID = (uid, trimTilde = false) => {
   formatted = formatted.replace('undefined', '<sup>u</sup> &rarr; [');
   formatted = formatted.replace('chemical', '<sup>c</sup> &rarr; [');
   formatted = formatted.replace('electrical', '<sup>e</sup> &harr; [');
-  formatted += ']';
+
+  if (formatted.includes('<sup>')) {
+    formatted += ']';
+  }
 
   if (trimTilde) {
     const parts = uid.split('~');
