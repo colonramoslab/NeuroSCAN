@@ -203,7 +203,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
                   (dataOverlay.patch_stats.patch_surface_area
                     / dataOverlay.ranking.cell_sa_aggregate)
                   * 100
-                ).toExponential(2)}%`}
+                ).toFixed(6)}%`}
               </>
             )}
             <HTMLTooltip
@@ -233,7 +233,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
               (dataOverlay.patch_stats.patch_surface_area
                 / dataOverlay.ranking.brain_sa_aggregate)
               * 100
-            ).toExponential(2)}%`}
+            ).toFixed(6)}%`}
             <HTMLTooltip
               className={classname}
               title={(
@@ -268,7 +268,7 @@ const synapseItems = (synapses) => synapses.map((synapse) => (
   </p>
 ));
 
-const SynapseStats = ({ dataOverlay }) => (
+const SynapseStats = ({ dataOverlay, classname }) => (
   <Accordion>
     <AccordionSummary
       expandIcon={
@@ -297,6 +297,18 @@ const SynapseStats = ({ dataOverlay }) => (
                 )
               </>
             )}
+            <HTMLTooltip
+              className={classname}
+              title={(
+                <>
+                  <Typography color="inherit">
+                    Number of synapse similarly configured on this cell.
+                  </Typography>
+                </>
+              )}
+            >
+              <HelpOutlineIcon />
+            </HTMLTooltip>
           </p>
         )}
         {synapseItems(dataOverlay.synapse_stats.connections)}
@@ -325,7 +337,7 @@ const dataOverlayAccordion = (dataOverlay, patchClass) => {
   if (dataOverlay?.instanceType === 'synapse') {
     return (
       <>
-        <SynapseStats dataOverlay={dataOverlay} />
+        <SynapseStats dataOverlay={dataOverlay} classname={patchClass} />
       </>
     );
   }
@@ -368,7 +380,7 @@ const dataOverlayTitle = (dataOverlay) => {
   return title;
 };
 
-const sumSynapses = (synapses) => synapses.reduce((acc, curr) => acc + curr.count, 0);
+// const sumSynapses = (synapses) => synapses.reduce((acc, curr) => acc + curr.count, 0);
 
 const DataOverlay = () => {
   const classes = useStyles();
@@ -397,7 +409,7 @@ const DataOverlay = () => {
         <Divider />
         <Box className="data-overlay-body">
           {dataOverlayAccordion(dataOverlay, classes.tooltip)}
-          {dataOverlay.synapses && dataOverlay.synapses.length > 0 && (
+          {/* {dataOverlay.synapses && dataOverlay.synapses.length > 0 && (
             <p>
               <strong>Synapse count: </strong>
               {`${sumSynapses(dataOverlay.synapses)}`}
@@ -405,7 +417,7 @@ const DataOverlay = () => {
               {dataOverlay.total_nr_synapses}
               &nbsp;whole nerve ring )
             </p>
-          )}
+          )} */}
         </Box>
       </Box>
     </Box>

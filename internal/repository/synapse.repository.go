@@ -400,7 +400,7 @@ func (r *PostgresSynapseRepository) SynapseConnections(ctx context.Context, syna
 
 	like := fmt.Sprintf("%s%%", typeUID)
 
-	query := "SELECT split_part(uid, '~', 1) AS syn_identity, COUNT(*) AS total FROM synapses WHERE uid LIKE $1 AND timepoint = $2 GROUP BY syn_identity ORDER BY syn_identity ASC;"
+	query := "SELECT split_part(uid, '~', 1) AS synapse_group, COUNT(DISTINCT split_part(split_part(uid, '~', 2), '_', 1)) AS distinct_suffix_count FROM synapses WHERE uid LIKE $1 and timepoint = $2 GROUP BY synapse_group ORDER BY synapse_group;"
 
 	rows, err := r.DB.Query(ctx, query, like, timepoint)
 	if err != nil {

@@ -44,6 +44,11 @@ export const widgetFromViewerSpec = (viewerSpec) => ({
 export const formatSynapseUID = (uid, trimTilde = false) => {
   let formatted = '';
   [formatted] = uid.split('~');
+  formatted = formatted.replaceAll('&', ', ');
+  formatted = formatted.replace('undefined', '<sup>u</sup> &rarr; [');
+  formatted = formatted.replace('chemical', '<sup>c</sup> &rarr; [');
+  formatted = formatted.replace('electrical', '<sup>e</sup> &harr; [');
+  formatted += ']';
 
   if (trimTilde) {
     const parts = uid.split('~');
@@ -58,11 +63,6 @@ export const formatSynapseUID = (uid, trimTilde = false) => {
       formatted = `${formatted} (${tail})`;
     }
   }
-
-  formatted = formatted.replaceAll('&', ', ');
-  formatted = formatted.replace('undefined', '<sup>u</sup> :: ');
-  formatted = formatted.replace('chemical', '<sup>c</sup> :: ');
-  formatted = formatted.replace('electrical', '<sup>e</sup> :: ');
 
   return formatted;
 };
