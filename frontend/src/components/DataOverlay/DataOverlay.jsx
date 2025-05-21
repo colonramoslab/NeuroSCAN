@@ -256,7 +256,7 @@ const ContactStats = ({ dataOverlay, classname }) => (
   </Accordion>
 );
 
-const synapseItems = (synapses) => synapses.map((synapse) => (
+const synapseItems = (synapses, classname) => synapses.map((synapse) => (
   <p>
     <strong
       dangerouslySetInnerHTML={{
@@ -265,6 +265,18 @@ const synapseItems = (synapses) => synapses.map((synapse) => (
     />
     :&nbsp;
     {synapse.count}
+    <HTMLTooltip
+      className={classname}
+      title={(
+        <>
+          <Typography color="inherit">
+            Number of synapse similarly configured on this cell.
+          </Typography>
+        </>
+      )}
+    >
+      <HelpOutlineIcon />
+    </HTMLTooltip>
   </p>
 ));
 
@@ -297,21 +309,9 @@ const SynapseStats = ({ dataOverlay, classname }) => (
                 )
               </>
             )}
-            <HTMLTooltip
-              className={classname}
-              title={(
-                <>
-                  <Typography color="inherit">
-                    Number of synapse similarly configured on this cell.
-                  </Typography>
-                </>
-              )}
-            >
-              <HelpOutlineIcon />
-            </HTMLTooltip>
           </p>
         )}
-        {synapseItems(dataOverlay.synapse_stats.connections)}
+        {synapseItems(dataOverlay.synapse_stats.connections, classname)}
       </Box>
     </AccordionDetails>
   </Accordion>
