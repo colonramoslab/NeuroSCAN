@@ -20,7 +20,7 @@ import {
   CPHATE_TYPE,
   NERVE_RING_TYPE,
 } from '../../../utilities/constants';
-import { getViewersFromWidgets } from '../../../utilities/functions';
+import { getViewersFromWidgets, formatSynapseUID } from '../../../utilities/functions';
 import {
   getGroupsFromInstances,
   groupBy, handleSelect, sortedGroupedIterations,
@@ -37,6 +37,41 @@ const EXPLORER_IMGS = {
   CONTACT,
   GROUP,
   MORPHOLOGY,
+};
+
+const dataOverlayTitle = (dataOverlay) => {
+  let title = '';
+  let parts = [];
+
+  if (!dataOverlay) {
+    return title;
+  }
+
+  const { name } = dataOverlay;
+
+  if (!name || name.length === 0) {
+    return title;
+  }
+
+  switch (dataOverlay.instanceType) {
+    case 'neuron':
+      title = dataOverlay.name;
+      title = `${title}`;
+      break;
+    case 'contact':
+      title = dataOverlay.name;
+      parts = title.split('by');
+      title = `${parts[0]} by ${parts[1]}`;
+      break;
+    case 'synapse':
+      title = formatSynapseUID(dataOverlay.name);
+      title = `${title}`;
+      break;
+    default:
+      break;
+  }
+
+  return title;
 };
 
 const Explorer = () => {
@@ -70,7 +105,7 @@ const Explorer = () => {
           <StyledTreeItem
             key={`${viewerId}_${treeType}_${instance.id}`}
             nodeId={`${viewerId}_${instance.instanceType}_${instance.id}`}
-            labelText={`${instance.name}`}
+            labelText={`${dataOverlayTitle(instance)}`}
             labelIcon={EXPLORER_IMGS[instance.instanceType]}
             instance={instance}
             viewerId={viewerId}

@@ -104,6 +104,7 @@ const CellStats = ({ dataOverlay }) => (
 );
 
 const contactPrimaryNeuron = (contact) => (contact.split('by')[0]);
+const contactSecondaryNeuron = (contact) => (contact.split('by')[1]);
 
 const ContactStats = ({ dataOverlay, classname }) => (
   <Accordion>
@@ -239,8 +240,10 @@ const ContactStats = ({ dataOverlay, classname }) => (
               title={(
                 <>
                   <Typography color="inherit">
-                    Percent of nerve ring surface area is the contact
-                    area of this cell pair to the surface area of the nerve ring.
+                    Percent of total contactable surface area on all nerve ring cells
+                    that lies in contact with
+                    {' '}
+                    <strong>{contactPrimaryNeuron(dataOverlay.uid)}</strong>
                   </Typography>
                 </>
               )}
