@@ -549,7 +549,7 @@ func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context
 		// we need to build a query where UID is like or, looping over the UIDs, wrapping them in % and adding them to the array[]
 		uidArray := []string{}
 		for _, uid := range req.UIDs {
-			uidArray = append(uidArray, fmt.Sprintf("%%%s%%", strings.ToLower(uid)))
+			uidArray = append(uidArray, fmt.Sprintf("%s%%", strings.ToLower(uid)))
 		}
 		args = append(args, uidArray)
 		queryParts = append(queryParts, fmt.Sprintf("LOWER(uid) ILIKE ANY($%d)", len(args)))

@@ -64,7 +64,7 @@ const dataOverlayTitle = (dataOverlay) => {
       title = `${parts[0]} by ${parts[1]}`;
       break;
     case 'synapse':
-      title = formatSynapseUID(dataOverlay.name);
+      title = formatSynapseUID(dataOverlay.name, true);
       title = `${title}`;
       break;
     default:
