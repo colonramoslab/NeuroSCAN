@@ -1,6 +1,6 @@
 module neuroscan
 
-go 1.24.0
+go 1.24.3
 
 require (
 	github.com/alecthomas/kong v1.6.1
