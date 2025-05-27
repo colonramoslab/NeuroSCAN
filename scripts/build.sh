@@ -1,11 +1,10 @@
 #!/bin/bash
-cd /home/inghamemerson/code/neuroscan || exit 1
-
-echo "Pulling latest changes"
-git fetch --all
-git reset --hard origin/main
-
-echo "Fetch complete"
+# heck if we are in the root of the neuroscan repository
+    # if not, exit with an error message
+if [ ! -d ".git" ]; then
+    echo "This script must be run from the root of the neuroscan repository."
+    exit 1
+fi
 
 echo "Building frontend"
 cd frontend || exit 1
@@ -20,13 +19,8 @@ echo "Frontend build complete"
 
 echo "Starting backend build"
 
-cd /home/inghamemerson/code/neuroscan || exit 1
+cd ../ || exit 1
 
-go build -o ./neuroscan -ldflags="-w -s" cmd/neuroscan/main.go
+go build -o ./neuroscan -ldflags="-w -s" cmd/main.go
 
 echo "Build complete"
-
-echo "Restarting neuroscan service"
-sudo systemctl restart neuroscan
-
-echo "Service restarted"

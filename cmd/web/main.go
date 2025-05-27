@@ -1,4 +1,4 @@
-package cli
+package web
 
 import (
 	"context"
@@ -20,7 +20,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-type WebCmd struct{}
+type WebCmd struct {
+	Port string `help:"Port to run the web server on." default:"8080"`
+}
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
 	logger := logging.NewLoggerFromEnv()
@@ -33,9 +35,15 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 
 	cntx := logging.WithLogger(*ctx, logger)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	port := "8080"
+
+	envPort := os.Getenv("PORT")
+	if envPort != "" {
+		port = envPort
+	}
+
+	if cmd.Port != "" {
+		port = cmd.Port
 	}
 
 	appEnv := os.Getenv("APP_ENV")
