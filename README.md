@@ -65,6 +65,7 @@ To run the API server, you can use the following command:
 
 ```bash
 go run cmd/main.go web
+# a port can be specified in the .env file or by using the --port(-p) flag. The flag will override the .env file. The default port is 8080.
 ```
 
 ## TODO
@@ -72,11 +73,3 @@ go run cmd/main.go web
 - [ ] Set up a CI/CD pipeline to automate the build and deployment process.
 - [ ] Add unit tests for the backend code.
 - [ ] Set up docker for easier deployment and development.
-
-```
-
-```
-
-```
-
-```

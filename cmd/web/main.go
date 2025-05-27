@@ -21,7 +21,7 @@ import (
 )
 
 type WebCmd struct {
-	Port string `help:"Port to run the web server on." default:"8080"`
+	Port string `optional:"" help:"Port to run the web server on." default:"8080" short:"p"`
 }
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
