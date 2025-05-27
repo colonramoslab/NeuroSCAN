@@ -7,9 +7,9 @@ We use [craco](https://www.npmjs.com/package/@craco/craco) to extend the CRA set
 
 ## Getting Started
 
-We recommend using Node version 14.x.x to match the version declared in the Dockerfile.
+This project uses Node version `14.21.3`. Node updates a major version roughly every 6 months so use a tool like [NVM](https://github.com/nvm-sh/nvm) to install the specified version. It is stipulated in the `.nvmrc` file.
 
-We use yarn as package manager.
+We use yarn as package manager. Once you have the correct Node version installed, you can follow these steps to get started:
 
 Install yarn
 
@@ -23,111 +23,22 @@ Install dependencies
 yarn
 ```
 
-Start development server
+We have to overwrite a couple of vendor files, run the below to do do:
 
-```bash
-yarn start
+````bash
+cp ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/
+cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
 ```
 
 ### Configure Backend URL
 
 Environment variable: `REACT_APP_BACKEND_URL`
 
-To run the frontend on your computer and connect to a local/remote backend:
+When building, we need to specify the backend URL that the frontend will use to communicate with the backend API. This can be done by setting the `REACT_APP_BACKEND_URL` environment variable.
 
 ```bash
-cd frontend
-# for using the local strapi server
-REACT_APP_BACKEND_URL=http://localhost:1337 npm run start
-
-#or for using the production strapie server
-REACT_APP_BACKEND_URL=https://neurosc.net npm run start
+REACT_APP_BACKEND_URL=http://localhost:8123/ cross-env craco build
 ```
 
-### Test changes made in geppetto-meta repository
-
-Use `yalc` to test changes without publishing a new version on npm.
-
-Install required tools
-
-```bash
-yarn global add yalc
-yarn global add typescript
-```
-
-Clone specific branch of repository (with `--branch` option)
-
-```bash
-git clone https://github.com/MetaCell/geppetto-meta.git --branch development
-```
-
-Example for building geppetto-ui
-
-```
-cd geppetto-ui
-yarn && yarn build && yarn publish:yalc
-cd ../geppetto-core
-yarn && yarn build && yarn publish:yalc
-cd ../geppetto-client
-yarn && yarn build && yarn publish:yalc
-```
-
-In your frontend directory run
-
-```bash
-yalc link @metacell/geppetto-meta-ui
-yalc link @metacell/geppetto-meta-core
-yalc link @metacell/geppetto-meta-client
-```
-
-It will now use the linked version over the published npm version.
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `yarn start`
-
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
-
-### `yarn test`
-
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more
-information.
-
-### `yarn build`
-
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `yarn eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will
-remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right
-into your project so you have full control over them. All of the commands except `eject` will still work, but they will
-point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you
-shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t
-customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in
-the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+This should output static files to the `fronted/build/` directory.
+````
