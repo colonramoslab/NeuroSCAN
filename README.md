@@ -19,8 +19,11 @@ The root directory serves as the main entrypoint for the backend, specifically t
 The core backend logic is inside `internal` with files named after the entities they relate to (neurons, contacts, synapses, etc). The structure is as follows:
 
 **domain** - Contains the core domain model along with any pertinent logic relating to the model.
+
 **repository** - Contains the database queries and converting the database model to the domain model.
+
 **service** - Contains the business logic and orchestrates the interaction between the repository and handlers.
+
 **handler** - Contains the HTTP handlers that respond to API requests.
 
 ## Building the frontend
