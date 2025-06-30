@@ -7,16 +7,20 @@ async function postData(url = '', data = {}) {
     method: 'POST',
     cache: 'no-cache',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'video/webm',
     },
-    redirect: 'follow',
     referrerPolicy: 'no-referrer',
-    body: JSON.stringify(data),
+    body: data,
   });
-  return response.json(); // parses JSON response into native JavaScript objects
+
+  if (!response.ok) {
+    throw new Error(`Server error: ${response.status}`);
+  }
+
+  return response.arrayBuffer(); // <- important!
 }
 
 export default async (webmData) => {
-  const result = await postData(`${backendURL}/metacell/webm2avi`, { webmData });
-  return result.result.data;
+  const result = await postData(`${backendURL}webmtomp4`, webmData);
+  return result;
 };
