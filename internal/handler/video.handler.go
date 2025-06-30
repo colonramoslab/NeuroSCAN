@@ -59,7 +59,7 @@ func ConvertWebmToMp4(webmPath string) ([]byte, error) {
 	defer os.Remove(mp4File.Name())
 	mp4File.Close()
 
-	cmd := exec.Command("ffmpeg", "-y", "-i", webmPath, "-c:v", "libx264", "-preset", "fast", "-movflags", "+faststart", mp4File.Name())
+	cmd := exec.Command("ffmpeg", "-y", "-i", webmPath, "-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-movflags", "+faststart", mp4File.Name())
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
