@@ -21,7 +21,7 @@ import (
 )
 
 type WebCmd struct {
-	Port string `optional:"" help:"Port to run the web server on." default:"8080" short:"p"`
+	Port string `optional:"" help:"Port to run the web server on." short:"p"`
 }
 
 func (cmd *WebCmd) Run(ctx *context.Context) error {
@@ -44,6 +44,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 
 	if cmd.Port != "" {
 		port = cmd.Port
+	}
+
+	// if no port is set, default to 8080
+	if port == "" {
+		port = "8080"
 	}
 
 	appEnv := os.Getenv("APP_ENV")
