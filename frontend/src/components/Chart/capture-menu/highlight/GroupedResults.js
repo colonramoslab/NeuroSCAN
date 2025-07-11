@@ -12,7 +12,6 @@ import {
 } from '@material-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import CHEVRON from '../../../../images/chevron-right.svg';
-import { ReactComponent as NeuronIcon } from '../../../../images/neuron.svg';
 import { toggleInstanceHighlight } from '../../../../redux/actions/widget';
 import vars from '../../../../styles/constants';
 

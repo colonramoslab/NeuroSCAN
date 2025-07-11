@@ -17,10 +17,10 @@ async function postData(url = '', data = {}) {
     throw new Error(`Server error: ${response.status}`);
   }
 
-  return response.arrayBuffer(); // <- important!
+  return response.json(); // parses JSON response into native JavaScript objects
 }
 
 export default async (webmData) => {
-  const result = await postData(`${backendURL}webmtomp4`, webmData);
+  const result = await postData(`${backendURL}videos/webmtomp4`, webmData);
   return result;
 };

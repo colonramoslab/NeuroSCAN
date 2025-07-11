@@ -109,8 +109,8 @@ export const addToWidget = (
         recorderOptions: {
           mediaRecorderOptions: {
             mimeType: 'video/webm;codecs=vp8,opus',
-            videoBitsPerSecond: 640_000,
-            audioBitsPerSecond: 64_000,
+            // videoBitsPerSecond: 640_000,
+            // audioBitsPerSecond: 64_000,
           },
           blobOptions: {
             type: 'video/mp4',

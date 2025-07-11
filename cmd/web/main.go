@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"neuroscan/internal/cache"
@@ -121,8 +122,16 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		Timeout: 30 * time.Second,
 	}))
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	envDir := os.Getenv("VIDEO_STORAGE_PATH")
+
 	e.Static("/files", os.Getenv("APP_GLTF_DIR"))
 	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
+	e.Static("/videos/files", filepath.Join(homeDir, envDir))
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
@@ -156,7 +165,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
 
-	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler)
+	videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
+	videoService := service.NewVideoRepository(videoRepo)
+	videoHandler := handler.NewVideoHandler(videoService)
+
+	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler, videoHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 

@@ -11,8 +11,7 @@ import DELETE_WHITE from '../../../images/delete-white.svg';
 
 import webmToMp4 from '../../../utilities/webmToMp4';
 
-export const downloadBlob = (blob, filename) => {
-  const url = window.URL.createObjectURL(blob);
+export const downloadVideo = (url, filename) => {
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = url;
@@ -30,17 +29,61 @@ const RecordControlModal = (props) => {
     open, handleClose, videoBlob, widgetName,
   } = props;
   const [deleteOption, setDeleteOption] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
   const [showDownload, setShowDownload] = useState(true);
   const downloadRecording = async () => {
+    setProcessing(true);
     setShowDownload(false);
     // const mp4 = Buffer.from(await webmToMp4(Buffer.from(await videoBlob.arrayBuffer())));
     const videoBuffer = await videoBlob.arrayBuffer();
-    const mp4ArrayBuffer = await webmToMp4(videoBuffer);
-    // const mp4 = Buffer.from(await webmToMp4(videoBuffer));
-    const mp4Blob = new Blob([mp4ArrayBuffer], { type: 'video/mp4' });
-    downloadBlob(mp4Blob, `${widgetName}_${formatDate(new Date())}.mp4`);
-    setShowDownload(true);
-    handleClose();
+    const videoMeta = await webmToMp4(videoBuffer);
+    const videoUUID = videoMeta.id;
+
+    // poll the server to check if the mp4 is ready at /videos/status/:id every 2 seconds
+
+    const checkStatus = async (retries = 15) => {
+      if (retries === 0) {
+        console.error('Max retries reached');
+        return null;
+      }
+
+      // wait for 2 seconds
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}videos/status/${videoUUID}`);
+      if (response.status === 200) {
+        const data = await response.json();
+        if (data.status === 'completed') {
+          return data;
+        }
+
+        if (data.status === 'failed') {
+          console.error('Video conversion failed');
+          setError('Video conversion failed');
+          return null;
+        }
+
+        return checkStatus(retries - 1);
+      }
+
+      console.error('Error checking status:', response.status);
+      return null;
+    };
+
+    const status = await checkStatus();
+
+    if (!status) {
+      setShowDownload(true);
+      return;
+    }
+
+    if (status.status === 'completed') {
+      downloadVideo(`${process.env.REACT_APP_BACKEND_URL}videos/files/${videoUUID}.mp4`, `${videoUUID}.mp4`);
+      setShowDownload(true);
+      handleClose();
+    } else {
+      setError('Video conversion failed');
+    }
   };
 
   const videoSrc = videoBlob ? window.URL.createObjectURL(videoBlob) : null;
@@ -90,6 +133,18 @@ const RecordControlModal = (props) => {
               </Button>
             )
             : null}
+          { processing
+            && (
+              <Typography>
+                Processing...
+              </Typography>
+            ) }
+          { Error
+            && (
+              <Typography>
+                { error }
+              </Typography>
+            ) }
         </Box>
       </Box>
     </Modal>

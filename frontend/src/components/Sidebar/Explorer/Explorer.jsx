@@ -93,6 +93,8 @@ const Explorer = () => {
       ...other
     } = props;
 
+    instances.sort((a, b) => a.name.localeCompare(b.name));
+
     return (
       <StyledTreeItem
         nodeId={nodeId || `${viewerId}_${treeType}`}
