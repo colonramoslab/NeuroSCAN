@@ -156,7 +156,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	devStageService := service.NewDevelopmentalStageService(devStageRepo)
 	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
 
-	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler)
+	videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
+	videoService := service.NewVideoRepository(videoRepo)
+	videoHandler := handler.NewVideoHandler(videoService)
+
+	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler, videoHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
 
