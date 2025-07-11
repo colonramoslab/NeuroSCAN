@@ -77,7 +77,7 @@ func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) e
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
+		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
 	if v.ID == "" {
@@ -142,7 +142,7 @@ func (s *videoService) Notify(ctx context.Context, v domain.Video) error {
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
+		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
 	natsURL := os.Getenv("NATS_SERVER")
