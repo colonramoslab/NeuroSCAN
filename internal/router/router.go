@@ -31,7 +31,8 @@ func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandle
 	e.GET("/developmental-stages", developmentalStageHandler.SearchDevelopmentalStages)
 	e.GET("/developmental-stages/count", developmentalStageHandler.CountDevelopmentalStages)
 
-	e.POST("/webmtomp4", videoHandler.UploadWebm)
+	e.POST("/videos/webmtomp4", videoHandler.UploadWebm)
+	e.GET("/videos/status/:uuid", videoHandler.UploadStatus)
 
 	return e
 }

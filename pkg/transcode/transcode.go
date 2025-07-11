@@ -6,21 +6,45 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"neuroscan/pkg/logging"
+
 	"github.com/h2non/filetype"
+	"github.com/joho/godotenv"
 )
 
-func ConvertWebmToMp4(ctx context.Context, webmPath string) error {
-	// the mp4 file needs to be stored in the same directory as the webm file with the same name, but with the .mp4 extension
-	mp4Filename := strings.Replace(webmPath, ".webm", ".mp4", 1)
+func ConvertWebmToMp4(ctx context.Context, uuid string) error {
+	logger := logging.NewLoggerFromEnv()
 
-	// if the mp4 file already exists, return an error
-	if _, err := os.Stat(mp4Filename); err == nil {
-		return fmt.Errorf("mp4 file already exists: %s", mp4Filename)
+	err := godotenv.Load()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
-	cmd := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", webmPath, "-c:v", "libx264", "-preset", "fast", "-movflags", "+faststart", mp4Filename)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	videoDir := os.Getenv("VIDEO_STORAGE_PATH")
+
+	if videoDir == "" {
+		return fmt.Errorf("VIDEO_STORAGE_PATH environment variable is not set")
+	}
+
+	filename := filepath.Join(homeDir, videoDir, uuid+".webm")
+
+	// if the mp4 file does not exist, return an error
+	_, err = os.Stat(filename)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("webm file does not exist: %s", filename)
+	}
+
+	mp4Filename := strings.TrimSuffix(filename, filepath.Ext(filename)) + ".mp4"
+
+	cmd := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", filename, "-c:v", "libx264", "-preset", "fast", "-movflags", "+faststart", mp4Filename)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {

@@ -48,25 +48,35 @@ func (h *VideoHandler) UploadWebm(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to create video: %v", err))
 	}
 
-	newVideo, err := h.videoService.CreateVideo(c.Request().Context(), video)
-	if err != nil {
+	newVideo, errr := h.videoService.CreateVideo(c.Request().Context(), video)
+	if errr != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video metadata: %v", err))
 	}
 
 	// store it in the filesystem
 	err = h.videoService.Store(c.Request().Context(), newVideo, data)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video: %v", err))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video file: %v", err))
 	}
 
-	// // Call conversion
-	// mp4Bytes, err := ConvertWebmToMp4(c.Request().Context(), webmFile.Name())
-	// if err != nil {
-	// 	return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to convert to mp4: %v", err))
-	// }
+	err = h.videoService.Notify(c.Request().Context(), newVideo)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to notify of video: %v", err))
+	}
 
-	// // Do something with mp4Bytes (store it, forward it, etc.)
-	// return c.Blob(http.StatusOK, "video/mp4", mp4Bytes)
-	//
 	return c.JSON(http.StatusOK, newVideo)
+}
+
+func (h *VideoHandler) UploadStatus(c echo.Context) error {
+	uuid := c.Param("uuid")
+	if uuid == "" {
+		return c.String(http.StatusBadRequest, "invalid video ID")
+	}
+
+	video, err := h.videoService.GetVideoByUUID(c.Request().Context(), uuid)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to get video: %v", err))
+	}
+
+	return c.JSON(http.StatusOK, video)
 }

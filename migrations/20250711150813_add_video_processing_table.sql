@@ -5,10 +5,10 @@
 create table videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ulid varchar(255) unique not null,
-  status TEXT NOT NULL CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'queued', 'processing', 'completed', 'failed')),
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  started_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ
 );
 

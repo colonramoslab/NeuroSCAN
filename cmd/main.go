@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"neuroscan/cmd/ingest"
+	"neuroscan/cmd/transcode"
 	"neuroscan/cmd/web"
 	"neuroscan/pkg/logging"
 
@@ -12,8 +13,9 @@ import (
 )
 
 type Cli struct {
-	Web    web.WebCmd       `cmd:"" help:"Start the web server."`
-	Ingest ingest.IngestCmd `cmd:"" help:"Ingest files into the database."`
+	Web       web.WebCmd             `cmd:"" help:"Start the web server."`
+	Ingest    ingest.IngestCmd       `cmd:"" help:"Ingest files into the database."`
+	Transcode transcode.TranscodeCmd `cmd:"" help:"Listen for videos and transcode."`
 }
 
 func main() {

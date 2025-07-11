@@ -19,6 +19,9 @@ type VideoRepository interface {
 	DeleteVideo(ctx context.Context, uuid string) error
 	UpdateVideo(ctx context.Context, video domain.Video) (domain.Video, error)
 	TruncateVideos(ctx context.Context) error
+	TranscodeProcessing(ctx context.Context, uuid string) error
+	TranscodeSuccess(ctx context.Context, uuid string) error
+	TranscodeError(ctx context.Context, uuid string, err string) error
 }
 
 type Video struct {
@@ -87,8 +90,8 @@ func (r *PostgresVideoRepository) GetVideoByUUID(ctx context.Context, uuid strin
 
 func (r *PostgresVideoRepository) CreateVideo(ctx context.Context, video domain.Video) (domain.Video, error) {
 	query := `
-		INSERT INTO videos (ulid, status, created_at, NOW())
-		VALUES ($1, $2)
+		INSERT INTO videos (ulid, status, created_at)
+		VALUES ($1, $2, NOW())
 		RETURNING id, ulid, status, error_message, created_at, updated_at, completed_at
 	`
 
@@ -115,7 +118,7 @@ func (r *PostgresVideoRepository) DeleteVideo(ctx context.Context, uuid string) 
 
 func (r *PostgresVideoRepository) UpdateVideo(ctx context.Context, video domain.Video) (domain.Video, error) {
 	query := `
-	UPDATE videos SET status = $1, error_message = $2, updated_at = NOW(), completed_at = $4 WHERE ulid = $5
+	UPDATE videos SET status = $1, error_message = $2, updated_at = NOW(), completed_at = $3 WHERE ulid = $4
 	RETURNING id, ulid, status, error_message, created_at, updated_at, completed_at
 	`
 
@@ -133,6 +136,45 @@ func (r *PostgresVideoRepository) TruncateVideos(ctx context.Context) error {
 	query := "TRUNCATE TABLE videos RESTART IDENTITY CASCADE"
 
 	_, err := r.DB.Exec(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresVideoRepository) TranscodeProcessing(ctx context.Context, uuid string) error {
+	query := `
+		UPDATE videos SET status = $1, error_message = NULL, updated_at = NOW() WHERE id = $2
+	`
+
+	_, err := r.DB.Exec(ctx, query, domain.VideoStatusProcessing, uuid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresVideoRepository) TranscodeSuccess(ctx context.Context, uuid string) error {
+	query := `
+		UPDATE videos SET status = $1, error_message = NULL, updated_at = NOW(), completed_at = NOW() WHERE id = $2
+	`
+
+	_, err := r.DB.Exec(ctx, query, domain.VideoStatusCompleted, uuid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PostgresVideoRepository) TranscodeError(ctx context.Context, uuid string, errMsg string) error {
+	query := `
+		UPDATE videos SET status = $1, error_message = $2, updated_at = NOW(), completed_at = NOW() WHERE id = $2
+	`
+
+	_, err := r.DB.Exec(ctx, query, domain.VideoStatusFailed, uuid, errMsg)
 	if err != nil {
 		return err
 	}

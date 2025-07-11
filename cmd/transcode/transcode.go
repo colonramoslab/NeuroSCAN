@@ -7,21 +7,20 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"neuroscan/internal/cache"
 	"neuroscan/internal/database"
 	"neuroscan/internal/repository"
 	"neuroscan/internal/service"
+	"neuroscan/pkg/transcode"
 
 	"github.com/joho/godotenv"
+	"github.com/nats-io/nats.go"
 
 	"neuroscan/pkg/logging"
 )
 
-type TranscodeCmd struct {
-	Interval time.Duration `optional:"" help:"Interval to check for new videos to transcode." short:"i" default:"1s"`
-}
+type TranscodeCmd struct{}
 
 func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	logger := logging.NewLoggerFromEnv()
@@ -34,6 +33,11 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	}
 
 	cntx := logging.WithLogger(ctxCancel, logger)
+
+	natsURL := os.Getenv("NATS_SERVER")
+	if natsURL == "" {
+		logger.Fatal().Msg("🤯 NATS_SERVER environment variable is not set")
+	}
 
 	db, err := database.NewFromEnv(cntx)
 	if err != nil {
@@ -64,7 +68,7 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := cmd.transcodeVideos(cntx, videoService)
+		err := cmd.videoListener(cntx, videoService)
 		if err != nil {
 			logger.Error().Err(err).Msg("Error during transcoding")
 		}
@@ -84,19 +88,54 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	return nil
 }
 
-func (cmd *TranscodeCmd) transcodeVideos(ctx context.Context, videoService service.VideoService) error {
+func (cmd *TranscodeCmd) videoListener(ctx context.Context, videoService service.VideoService) error {
 	logger := logging.FromContext(ctx)
-	ticker := time.NewTicker(cmd.Interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			// Graceful shutdown logic here
-			logger.Info().Msg("Shutting down transcoding service...")
-			return nil
-		case t := <-ticker.C:
-			logger.Info().Msgf("Checking for new videos to transcode at %v", t)
-		}
+	natsURL := os.Getenv("NATS_SERVER")
+	if natsURL == "" {
+		logger.Fatal().Msg("🤯 NATS_SERVER environment variable is not set")
 	}
+
+	nc, err := nats.Connect(natsURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to NATS server: %w", err)
+	}
+	// defer nc.Drain()
+
+	logger.Info().Msg("Connected to NATS server")
+
+	_, err = nc.Subscribe("neuroscan.videos", func(m *nats.Msg) {
+		logger.Info().Msgf("Received message for video ID: %s", string(m.Data))
+		err = cmd.transcodeVideo(ctx, videoService, string(m.Data))
+		if err != nil {
+			logger.Error().Err(err).Msg("Error transcoding video")
+			return
+		}
+		logger.Info().Msgf("Successfully processed video ID: %s", string(m.Data))
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to subject: %w", err)
+	}
+
+	return nil
+}
+
+func (cmd *TranscodeCmd) transcodeVideo(ctx context.Context, videoService service.VideoService, uuid string) error {
+	fmt.Printf("Processing video: %s\n", uuid)
+	err := videoService.TranscodeProcessing(ctx, uuid)
+	if err != nil {
+		return fmt.Errorf("error setting video %s to processing: %w", uuid, err)
+	}
+
+	err = transcode.ConvertWebmToMp4(ctx, uuid)
+	if err != nil {
+		_ = videoService.TranscodeError(ctx, uuid, err.Error())
+		return fmt.Errorf("error converting video %s: %w", uuid, err)
+	}
+
+	err = videoService.TranscodeSuccess(ctx, uuid)
+	if err != nil {
+		return fmt.Errorf("error setting video %s to success: %w", uuid, err)
+	}
+
+	return nil
 }
