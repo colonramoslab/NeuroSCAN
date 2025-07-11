@@ -20,7 +20,7 @@ func ConvertWebmToMp4(ctx context.Context, uuid string) error {
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
+		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
 	homeDir, err := os.UserHomeDir()

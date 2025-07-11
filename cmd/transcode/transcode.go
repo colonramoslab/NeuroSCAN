@@ -29,7 +29,7 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to load environment variables")
+		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
 	cntx := logging.WithLogger(ctxCancel, logger)
