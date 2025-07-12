@@ -1,9 +1,12 @@
 package transcode
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -12,7 +15,7 @@ import (
 	"neuroscan/internal/database"
 	"neuroscan/internal/repository"
 	"neuroscan/internal/service"
-	"neuroscan/pkg/transcode"
+	"neuroscan/pkg/storage"
 
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
@@ -39,6 +42,16 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 		logger.Fatal().Msg("🤯 NATS_SERVER environment variable is not set")
 	}
 
+	bucket := os.Getenv("S3_BUCKET")
+	if bucket == "" {
+		bucket = "neuroscan"
+	}
+
+	store, err := storage.NewStorage()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to create storage client")
+	}
+
 	db, err := database.NewFromEnv(cntx)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("🤯 failed to connect to database")
@@ -55,7 +68,7 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	}
 
 	videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
-	videoService := service.NewVideoRepository(videoRepo)
+	videoService := service.NewVideoService(videoRepo, *store, bucket)
 
 	// we need to capture any interrupt signal to gracefully shutdown
 	sigCh := make(chan os.Signal, 1)
@@ -126,7 +139,7 @@ func (cmd *TranscodeCmd) transcodeVideo(ctx context.Context, videoService servic
 		return fmt.Errorf("error setting video %s to processing: %w", uuid, err)
 	}
 
-	err = transcode.ConvertWebmToMp4(ctx, uuid)
+	err = cmd.convertWebmToMp4(ctx, videoService, uuid)
 	if err != nil {
 		_ = videoService.TranscodeError(ctx, uuid, err.Error())
 		return fmt.Errorf("error converting video %s: %w", uuid, err)
@@ -135,6 +148,63 @@ func (cmd *TranscodeCmd) transcodeVideo(ctx context.Context, videoService servic
 	err = videoService.TranscodeSuccess(ctx, uuid)
 	if err != nil {
 		return fmt.Errorf("error setting video %s to success: %w", uuid, err)
+	}
+
+	return nil
+}
+
+func (cmd *TranscodeCmd) convertWebmToMp4(ctx context.Context, videoService service.VideoService, uuid string) error {
+	key := fmt.Sprintf("videos/%s.webm", uuid)
+	// get the .webm from storage
+	// store in a temp location
+
+	tempFile, err := os.CreateTemp("", uuid+"-*.webm")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	defer os.Remove(tempFile.Name())
+
+	destTemp, err := os.CreateTemp("", uuid+"-*.mp4")
+	if err != nil {
+		return fmt.Errorf("failed to create dest temp file: %w", err)
+	}
+
+	defer os.Remove(destTemp.Name())
+
+	client := videoService.StorageHandle()
+
+	data, err := client.GetFile(videoService.BucketName(), key)
+	if err != nil {
+		return fmt.Errorf("failed to get file from storage: %w", err)
+	}
+
+	if _, err := io.Copy(tempFile, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("failed to write to temp file: %w", err)
+	}
+
+	tempFile.Close()
+
+	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", tempFile.Name(), "-c:v", "libx264", "-preset", "fast", "-movflags", "+faststart", destTemp.Name())
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("ffmpeg error: %w, details: %s", err, stderr.String())
+	}
+
+	if err := destTemp.Close(); err != nil {
+		return err
+	}
+
+	mp4Data, err := os.ReadFile(destTemp.Name())
+	if err != nil {
+		return fmt.Errorf("failed to read converted mp4 file: %w", err)
+	}
+
+	mp4Key := fmt.Sprintf("videos/%s.mp4", uuid)
+	err = client.PutFile(videoService.BucketName(), mp4Key, mp4Data)
+	if err != nil {
+		return fmt.Errorf("failed to upload mp4 file to storage: %w", err)
 	}
 
 	return nil

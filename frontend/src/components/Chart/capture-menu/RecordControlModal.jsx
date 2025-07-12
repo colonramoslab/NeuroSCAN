@@ -81,7 +81,7 @@ const RecordControlModal = (props) => {
     }
 
     if (status.status === 'completed') {
-      downloadVideo(`${process.env.REACT_APP_BACKEND_URL}videos/files/${videoUUID}.mp4`, `${videoUUID}.mp4`);
+      downloadVideo(`${process.env.REACT_APP_BACKEND_URL}videos/download/${videoUUID}.mp4`, `${videoUUID}.mp4`);
       setShowDownload(true);
       handleClose();
     } else {

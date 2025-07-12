@@ -33,6 +33,7 @@ func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandle
 
 	e.POST("/videos/webmtomp4", videoHandler.UploadWebm)
 	e.GET("/videos/status/:uuid", videoHandler.UploadStatus)
+	e.GET("/videos/download/:filename", videoHandler.DownloadMP4)
 
 	return e
 }

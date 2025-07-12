@@ -1,17 +1,14 @@
 package service
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
 	"neuroscan/pkg/logging"
+	"neuroscan/pkg/storage"
 
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
@@ -28,17 +25,26 @@ type VideoService interface {
 	TranscodeProcessing(ctx context.Context, uuid string) error
 	TranscodeSuccess(ctx context.Context, uuid string) error
 	TranscodeError(ctx context.Context, uuid string, err string) error
+	StorageHandle() storage.Storage
+	BucketName() string
 }
 
 type videoService struct {
-	repo repository.VideoRepository
+	repo    repository.VideoRepository
+	storage storage.Storage
+	bucket  string
 }
 
-func NewVideoRepository(repo repository.VideoRepository) VideoService {
+func NewVideoService(repo repository.VideoRepository, storage storage.Storage, bucket string) VideoService {
 	return &videoService{
-		repo: repo,
+		repo:    repo,
+		storage: storage,
+		bucket:  bucket,
 	}
 }
+
+func (s *videoService) StorageHandle() storage.Storage { return s.storage }
+func (s *videoService) BucketName() string             { return s.bucket }
 
 func (s *videoService) GetVideoByUUID(ctx context.Context, uuid string) (domain.Video, error) {
 	return s.repo.GetVideoByUUID(ctx, uuid)
@@ -75,60 +81,17 @@ func (s *videoService) TranscodeError(ctx context.Context, uuid string, err stri
 func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) error {
 	logger := logging.NewLoggerFromEnv()
 
-	err := godotenv.Load()
-	if err != nil {
-		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
-	}
-
 	if v.ID == "" {
 		return fmt.Errorf("video ID is required: %w", os.ErrInvalid)
 	}
 
-	// homeDir, err := os.UserHomeDir()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get user home directory: %w", err)
-	// }
+	key := fmt.Sprintf("videos/%s.webm", v.ID)
 
-	envDir := os.Getenv("VIDEO_STORAGE_PATH")
-
-	if envDir == "" {
-		return fmt.Errorf("VIDEO_STORAGE_PATH not set")
-	}
-
-	logger.Debug().Msgf("Storing video in %s", envDir)
-
-	if err := os.MkdirAll(envDir, 0o755); err != nil {
-		return fmt.Errorf("creating storage dir: %w", err)
-	}
-
-	// filename := filepath.Join(homeDir, envDir, v.ID+".webm")
-	filename := filepath.Join(envDir, v.ID+".webm")
-
-	logger.Debug().Msgf("Storing video as %s", filename)
-
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
-	if errors.Is(err, os.ErrExist) {
-		return err
-	}
-
-	logger.Debug().Msgf("Opened file %s for writing", f.Name())
-
+	err := s.storage.PutFile(s.bucket, key, data)
 	if err != nil {
-		return fmt.Errorf("opening file: %w", err)
-	}
-	defer f.Close()
-
-	logger.Debug().Msgf("Writing %d bytes to file %s", len(data), filename)
-	if _, err = io.Copy(f, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("writing file: %w", err)
+		return fmt.Errorf("uploading file to storage: %w", err)
 	}
 
-	logger.Debug().Msgf("Syncing file %s to disk", filename)
-	if err = f.Sync(); err != nil {
-		return fmt.Errorf("fsync: %w", err)
-	}
-
-	logger.Debug().Msgf("File %s written and synced successfully", filename)
 	v.Status = domain.VideoStatusQueued
 	if _, err = s.UpdateVideo(ctx, v); err != nil {
 		return fmt.Errorf("updating video status: %w", err)

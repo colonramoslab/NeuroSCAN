@@ -14,6 +14,7 @@ import (
 	"neuroscan/internal/router"
 	"neuroscan/internal/service"
 	"neuroscan/pkg/logging"
+	"neuroscan/pkg/storage"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -54,6 +55,16 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	appEnv := os.Getenv("APP_ENV")
 	if appEnv == "" {
 		appEnv = "development"
+	}
+
+	bucket := os.Getenv("S3_BUCKET")
+	if bucket == "" {
+		bucket = "neuroscan"
+	}
+
+	store, err := storage.NewStorage()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("🤯 failed to create storage client")
 	}
 
 	db, err := database.NewFromEnv(cntx)
@@ -121,17 +132,8 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		Timeout: 30 * time.Second,
 	}))
 
-	// homeDir, err := os.UserHomeDir()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get user home directory: %w", err)
-	// }
-
-	envDir := os.Getenv("VIDEO_STORAGE_PATH")
-
 	e.Static("/files", os.Getenv("APP_GLTF_DIR"))
 	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
-	// e.Static("/videos/files", filepath.Join(homeDir, envDir))
-	e.Static("/videos/files", envDir)
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
@@ -166,7 +168,7 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	devStageHandler := handler.NewDevelopmentalStageHandler(devStageService)
 
 	videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
-	videoService := service.NewVideoRepository(videoRepo)
+	videoService := service.NewVideoService(videoRepo, *store, bucket)
 	videoHandler := handler.NewVideoHandler(videoService)
 
 	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler, videoHandler)

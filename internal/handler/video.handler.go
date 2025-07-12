@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/service"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/h2non/filetype"
 	"github.com/labstack/echo/v4"
 )
@@ -17,7 +20,9 @@ type VideoHandler struct {
 }
 
 func NewVideoHandler(videoService service.VideoService) *VideoHandler {
-	return &VideoHandler{videoService: videoService}
+	return &VideoHandler{
+		videoService: videoService,
+	}
 }
 
 func (h *VideoHandler) UploadWebm(c echo.Context) error {
@@ -53,16 +58,10 @@ func (h *VideoHandler) UploadWebm(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video metadata: %v", err))
 	}
 
-	// store it in the filesystem
-	err = h.videoService.Store(c.Request().Context(), newVideo, data)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video file: %v", err))
-	}
-
-	err = h.videoService.Notify(c.Request().Context(), newVideo)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to notify of video: %v", err))
-	}
+	go func() {
+		_ = h.videoService.Store(c.Request().Context(), newVideo, data)
+		_ = h.videoService.Notify(c.Request().Context(), newVideo)
+	}()
 
 	return c.JSON(http.StatusOK, newVideo)
 }
@@ -79,4 +78,50 @@ func (h *VideoHandler) UploadStatus(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, video)
+}
+
+func (h *VideoHandler) DownloadMP4(c echo.Context) error {
+	filename := c.Param("filename")
+	if filename == "" {
+		return c.String(http.StatusBadRequest, "invalid video ID")
+	}
+
+	key := fmt.Sprintf("videos/%s", filename)
+
+	rangeHeader := c.Request().Header.Get("Range")
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(h.videoService.BucketName()),
+		Key:    aws.String(key),
+	}
+	if rangeHeader != "" {
+		input.Range = aws.String(rangeHeader)
+	}
+
+	obj, err := h.videoService.StorageHandle().Client.GetObject(input)
+	if err != nil {
+		// Translate common S3 errors into appropriate HTTP codes.
+		if strings.Contains(err.Error(), "NotFound") {
+			return echo.ErrNotFound
+		}
+		return echo.NewHTTPError(http.StatusBadGateway, err.Error())
+	}
+	defer obj.Body.Close()
+
+	if obj.ContentType != nil {
+		c.Response().Header().Set(echo.HeaderContentType, *obj.ContentType)
+	}
+	if obj.ContentLength != nil && rangeHeader == "" {
+		c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprint(*obj.ContentLength))
+	}
+	if obj.ETag != nil {
+		c.Response().Header().Set("ETag", *obj.ETag)
+	}
+	if rangeHeader != "" && obj.ContentRange != nil {
+		c.Response().Header().Set("Content-Range", *obj.ContentRange)
+		c.Response().WriteHeader(http.StatusPartialContent)
+	}
+
+	_, err = io.Copy(c.Response(), obj.Body)
+	return err
 }
