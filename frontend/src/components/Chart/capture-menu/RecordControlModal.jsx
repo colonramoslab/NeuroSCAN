@@ -12,13 +12,16 @@ import DELETE_WHITE from '../../../images/delete-white.svg';
 import webmToMp4 from '../../../utilities/webmToMp4';
 
 export const downloadVideo = (url, filename) => {
+  // eslint-disable-next-line no-undef
   const a = document.createElement('a');
   a.style.display = 'none';
   a.href = url;
   a.download = filename;
+  // eslint-disable-next-line no-undef
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
+    // eslint-disable-next-line no-undef
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   }, 100);

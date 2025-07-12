@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"neuroscan/internal/cache"
@@ -122,16 +121,17 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 		Timeout: 30 * time.Second,
 	}))
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
+	// homeDir, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get user home directory: %w", err)
+	// }
 
 	envDir := os.Getenv("VIDEO_STORAGE_PATH")
 
 	e.Static("/files", os.Getenv("APP_GLTF_DIR"))
 	e.Static("/", os.Getenv("APP_FRONTEND_DIR"))
-	e.Static("/videos/files", filepath.Join(homeDir, envDir))
+	// e.Static("/videos/files", filepath.Join(homeDir, envDir))
+	e.Static("/videos/files", envDir)
 
 	neuronRepo := repository.NewPostgresNeuronRepository(db.Pool, cache)
 	neuronService := service.NewNeuronService(neuronRepo)
