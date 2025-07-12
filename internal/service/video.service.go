@@ -84,10 +84,10 @@ func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) e
 		return fmt.Errorf("video ID is required: %w", os.ErrInvalid)
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
+	// homeDir, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get user home directory: %w", err)
+	// }
 
 	envDir := os.Getenv("VIDEO_STORAGE_PATH")
 
@@ -101,7 +101,8 @@ func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) e
 		return fmt.Errorf("creating storage dir: %w", err)
 	}
 
-	filename := filepath.Join(homeDir, envDir, v.ID+".webm")
+	// filename := filepath.Join(homeDir, envDir, v.ID+".webm")
+	filename := filepath.Join(envDir, v.ID+".webm")
 
 	logger.Debug().Msgf("Storing video as %s", filename)
 

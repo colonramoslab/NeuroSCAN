@@ -23,10 +23,10 @@ func ConvertWebmToMp4(ctx context.Context, uuid string) error {
 		logger.Info().Err(err).Msg("🤯 failed to load environment variables")
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
+	// homeDir, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get user home directory: %w", err)
+	// }
 
 	videoDir := os.Getenv("VIDEO_STORAGE_PATH")
 
@@ -34,7 +34,8 @@ func ConvertWebmToMp4(ctx context.Context, uuid string) error {
 		return fmt.Errorf("VIDEO_STORAGE_PATH environment variable is not set")
 	}
 
-	filename := filepath.Join(homeDir, videoDir, uuid+".webm")
+	// filename := filepath.Join(homeDir, videoDir, uuid+".webm")
+	filename := filepath.Join(videoDir, uuid+".webm")
 
 	// if the mp4 file does not exist, return an error
 	_, err = os.Stat(filename)
