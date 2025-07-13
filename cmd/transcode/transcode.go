@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -107,6 +108,11 @@ func (cmd *TranscodeCmd) videoListener(ctx context.Context, videoService service
 		logger.Fatal().Msg("🤯 NATS_SERVER environment variable is not set")
 	}
 
+	natsSubject := os.Getenv("NATS_VIDEO_SUBJECT")
+	if natsSubject == "" {
+		natsSubject = "neuroscan.videos"
+	}
+
 	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to NATS server: %w", err)
@@ -115,7 +121,7 @@ func (cmd *TranscodeCmd) videoListener(ctx context.Context, videoService service
 
 	logger.Info().Msg("Connected to NATS server")
 
-	_, err = nc.Subscribe("neuroscan.videos", func(m *nats.Msg) {
+	_, err = nc.Subscribe(natsSubject, func(m *nats.Msg) {
 		logger.Info().Msgf("Received message for video ID: %s", string(m.Data))
 		err = cmd.transcodeVideo(ctx, videoService, string(m.Data))
 		if err != nil {
@@ -154,38 +160,43 @@ func (cmd *TranscodeCmd) transcodeVideo(ctx context.Context, videoService servic
 
 func (cmd *TranscodeCmd) convertWebmToMp4(ctx context.Context, videoService service.VideoService, uuid string) error {
 	key := fmt.Sprintf("videos/%s.webm", uuid)
+	remote := fmt.Sprintf("https://neuroscan-spaces.nyc3.digitaloceanspaces.com/%s", key)
 
-	remoteFile := fmt.Sprintf("https://neuroscan-spaces.nyc3.digitaloceanspaces.com/%s", key)
+	// ---------- ffmpeg setup ----------
+	ff := exec.CommandContext(
+		ctx,
+		"ffmpeg",
+		"-i", remote, // input
+		"-vf", "scale=-2:1080", // resize preserving aspect ratio
+		"-r", "24", // 24 fps
+		"-f", "mp4", // raw MP4 muxer to stdout
+		"-movflags", "frag_keyframe+empty_moov+default_base_moof",
+		"pipe:1", // write to stdout
+	)
 
-	destTemp, err := os.CreateTemp("", uuid+"-*.mp4")
-	if err != nil {
-		return fmt.Errorf("failed to create dest temp file: %w", err)
-	}
+	// command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", remoteFile, "-vf", "scale=-2:1080", "-r", "24", destTemp.Name())
+	var ffErr bytes.Buffer
+	ff.Stderr = &ffErr
 
-	defer os.Remove(destTemp.Name())
+	// ---------- pipe ffmpeg → S3 ----------
+	pr, pw := io.Pipe() // in-memory streaming pipe
 
-	client := videoService.StorageHandle()
+	// 1. ffmpeg goroutine: write MP4 bytes to pw
+	go func() {
+		defer pw.Close()
+		ff.Stdout = pw
+		if err := ff.Run(); err != nil {
+			pw.CloseWithError(
+				fmt.Errorf("ffmpeg:%w – %s", err, ffErr.String()))
+		}
+	}()
 
-	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", remoteFile, "-vf", "scale=-2:1080", "-r", "24", destTemp.Name())
-	var stderr bytes.Buffer
-	command.Stderr = &stderr
-	if err := command.Run(); err != nil {
-		return fmt.Errorf("ffmpeg error: %w, details: %s", err, stderr.String())
-	}
-
-	if err := destTemp.Close(); err != nil {
-		return err
-	}
-
-	mp4Data, err := os.ReadFile(destTemp.Name())
-	if err != nil {
-		return fmt.Errorf("failed to read converted mp4 file: %w", err)
-	}
-
+	// 2. uploader goroutine (optional: could run inline)
 	mp4Key := fmt.Sprintf("videos/%s.mp4", uuid)
-	err = client.PutFile(videoService.BucketName(), mp4Key, mp4Data)
-	if err != nil {
-		return fmt.Errorf("failed to upload mp4 file to storage: %w", err)
+
+	storageHandler := videoService.StorageHandle()
+	if err := storageHandler.PutFile(videoService.BucketName(), mp4Key, pr); err != nil {
+		return fmt.Errorf("upload mp4: %w", err)
 	}
 
 	return nil

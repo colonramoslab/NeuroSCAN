@@ -1,17 +1,18 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/service"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/h2non/filetype"
 	"github.com/labstack/echo/v4"
 )
 
@@ -26,42 +27,32 @@ func NewVideoHandler(videoService service.VideoService) *VideoHandler {
 }
 
 func (h *VideoHandler) UploadWebm(c echo.Context) error {
-	data, err := io.ReadAll(c.Request().Body)
-	if err != nil {
-		return c.String(http.StatusBadRequest, "failed to read body")
-	}
-
-	// max size is 100MB
-	if len(data) > 100*1024*1024 {
-		return c.String(http.StatusBadRequest, "file size exceeds limit")
-	}
-
-	kind, err := filetype.Match(data)
-	if err != nil {
-		return c.String(http.StatusBadRequest, fmt.Sprintf("error detecting file type: %v", err))
-	}
-	if kind == filetype.Unknown {
-		return c.String(http.StatusBadRequest, "unknown file type")
-	}
-	if kind.MIME.Value != "video/webm" {
-		return c.String(http.StatusBadRequest, "unsupported file type")
-	}
+	// Limit request body to 100MB
+	maxSize := int64(100 * 1024 * 1024)
+	req := c.Request()
+	req.Body = http.MaxBytesReader(c.Response(), req.Body, maxSize)
 
 	video := domain.Video{}
-	err = video.New()
+	err := video.New()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to create video: %v", err))
 	}
 
-	newVideo, errr := h.videoService.CreateVideo(c.Request().Context(), video)
-	if errr != nil {
+	newVideo, err := h.videoService.CreateVideo(c.Request().Context(), video)
+	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video metadata: %v", err))
 	}
 
-	go func() {
-		_ = h.videoService.Store(c.Request().Context(), newVideo, data)
-		_ = h.videoService.Notify(c.Request().Context(), newVideo)
-	}()
+	go func(ctx context.Context, body io.Reader, v domain.Video) {
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute) // independent of client
+		defer cancel()
+
+		if err := h.videoService.Store(ctx, v, body); err != nil {
+			_ = h.videoService.TranscodeError(ctx, newVideo.ID, err.Error())
+		} else {
+			_ = h.videoService.Notify(ctx, v)
+		}
+	}(req.Context(), req.Body, newVideo)
 
 	return c.JSON(http.StatusOK, newVideo)
 }

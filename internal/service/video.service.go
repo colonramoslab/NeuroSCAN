@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -21,7 +22,7 @@ type VideoService interface {
 	DeleteVideo(ctx context.Context, uuid string) error
 	UpdateVideo(ctx context.Context, video domain.Video) (domain.Video, error)
 	TruncateVideos(ctx context.Context) error
-	Store(ctx context.Context, v domain.Video, data []byte) error
+	Store(ctx context.Context, v domain.Video, r io.Reader) error
 	Notify(ctx context.Context, v domain.Video) error
 	TranscodeProcessing(ctx context.Context, uuid string) error
 	TranscodeSuccess(ctx context.Context, uuid string) error
@@ -84,7 +85,7 @@ func (s *videoService) GetVideosOlderThan(ctx context.Context, cutoffTime time.T
 	return s.repo.GetVideosOlderThan(ctx, cutoffTime)
 }
 
-func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) error {
+func (s *videoService) Store(ctx context.Context, v domain.Video, r io.Reader) error {
 	logger := logging.NewLoggerFromEnv()
 
 	if v.ID == "" {
@@ -93,7 +94,7 @@ func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) e
 
 	key := fmt.Sprintf("videos/%s.webm", v.ID)
 
-	err := s.storage.PutFile(s.bucket, key, data)
+	err := s.storage.PutFile(s.bucket, key, r)
 	if err != nil {
 		return fmt.Errorf("uploading file to storage: %w", err)
 	}
@@ -120,6 +121,11 @@ func (s *videoService) Notify(ctx context.Context, v domain.Video) error {
 		logger.Fatal().Msg("🤯 NATS_SERVER environment variable is not set")
 	}
 
+	natsSubject := os.Getenv("NATS_VIDEO_SUBJECT")
+	if natsSubject == "" {
+		natsSubject = "neuroscan.videos"
+	}
+
 	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to NATS server: %w", err)
@@ -127,7 +133,7 @@ func (s *videoService) Notify(ctx context.Context, v domain.Video) error {
 
 	defer nc.Close()
 
-	nc.Publish("neuroscan.videos", []byte(v.ID))
+	nc.Publish(natsSubject, []byte(v.ID))
 
 	return nil
 }

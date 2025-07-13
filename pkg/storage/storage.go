@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/joho/godotenv"
 )
 
@@ -30,15 +30,15 @@ func NewStorage() (*Storage, error) {
 	}, nil
 }
 
-func (s *Storage) PutFile(bucket string, key string, data []byte) error {
+func (s *Storage) PutFile(bucket string, key string, r io.Reader) error {
 	logger := logging.NewLoggerFromEnv()
 
-	body := bytes.NewReader(data)
+	uploader := s3manager.NewUploaderWithClient(s.Client)
 
-	_, err := s.Client.PutObject(&s3.PutObjectInput{
+	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		Body:   body,
+		Body:   r,
 		ACL:    aws.String("public-read"),
 	})
 	if err != nil {
