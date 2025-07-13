@@ -22,6 +22,7 @@ type VideoRepository interface {
 	TranscodeProcessing(ctx context.Context, uuid string) error
 	TranscodeSuccess(ctx context.Context, uuid string) error
 	TranscodeError(ctx context.Context, uuid string, err string) error
+	GetVideosOlderThan(ctx context.Context, cutoffTime time.Time) ([]domain.Video, error)
 }
 
 type Video struct {
@@ -171,13 +172,39 @@ func (r *PostgresVideoRepository) TranscodeSuccess(ctx context.Context, uuid str
 
 func (r *PostgresVideoRepository) TranscodeError(ctx context.Context, uuid string, errMsg string) error {
 	query := `
-		UPDATE videos SET status = $1, error_message = $2, updated_at = NOW(), completed_at = NOW() WHERE id = $2
+		UPDATE videos SET status = $1, error_message = $2, updated_at = NOW(), completed_at = NOW() WHERE id = $3
 	`
 
-	_, err := r.DB.Exec(ctx, query, domain.VideoStatusFailed, uuid, errMsg)
+	_, err := r.DB.Exec(ctx, query, domain.VideoStatusFailed, errMsg, uuid)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *PostgresVideoRepository) GetVideosOlderThan(ctx context.Context, cutoffTime time.Time) ([]domain.Video, error) {
+	query := "SELECT id, ulid, status, error_message, created_at, updated_at, completed_at FROM videos WHERE created_at < $1"
+
+	rows, err := r.DB.Query(ctx, query, cutoffTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var videos []domain.Video
+	for rows.Next() {
+		var v Video
+		err := rows.Scan(&v.ID, &v.ULID, &v.Status, &v.ErrorMessage, &v.CreatedAt, &v.UpdatedAt, &v.CompletedAt)
+		if err != nil {
+			return nil, err
+		}
+		videos = append(videos, v.ToDomain())
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return videos, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"neuroscan/cmd/cleanup"
 	"neuroscan/cmd/ingest"
 	"neuroscan/cmd/transcode"
 	"neuroscan/cmd/web"
@@ -16,6 +17,7 @@ type Cli struct {
 	Web       web.WebCmd             `cmd:"" help:"Start the web server."`
 	Ingest    ingest.IngestCmd       `cmd:"" help:"Ingest files into the database."`
 	Transcode transcode.TranscodeCmd `cmd:"" help:"Listen for videos and transcode."`
+	Cleanup   cleanup.CleanupCmd     `cmd:"" help:"Clean up old videos from storage and database."`
 }
 
 func main() {

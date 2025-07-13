@@ -45,7 +45,7 @@ const RecordControlModal = (props) => {
 
     // poll the server to check if the mp4 is ready at /videos/status/:id every 2 seconds
 
-    const checkStatus = async (retries = 15) => {
+    const checkStatus = async (retries = 30) => {
       if (retries === 0) {
         console.error('Max retries reached');
         return null;

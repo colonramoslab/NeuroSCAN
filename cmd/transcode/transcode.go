@@ -166,7 +166,7 @@ func (cmd *TranscodeCmd) convertWebmToMp4(ctx context.Context, videoService serv
 
 	client := videoService.StorageHandle()
 
-	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", remoteFile, "-r", "24", destTemp.Name())
+	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", remoteFile, "-vf", "scale=-2:1080", "-r", "24", destTemp.Name())
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {

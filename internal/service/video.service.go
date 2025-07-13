@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/repository"
@@ -25,6 +26,7 @@ type VideoService interface {
 	TranscodeProcessing(ctx context.Context, uuid string) error
 	TranscodeSuccess(ctx context.Context, uuid string) error
 	TranscodeError(ctx context.Context, uuid string, err string) error
+	GetVideosOlderThan(ctx context.Context, cutoffTime time.Time) ([]domain.Video, error)
 	StorageHandle() storage.Storage
 	BucketName() string
 }
@@ -76,6 +78,10 @@ func (s *videoService) TranscodeSuccess(ctx context.Context, uuid string) error 
 
 func (s *videoService) TranscodeError(ctx context.Context, uuid string, err string) error {
 	return s.repo.TranscodeError(ctx, uuid, err)
+}
+
+func (s *videoService) GetVideosOlderThan(ctx context.Context, cutoffTime time.Time) ([]domain.Video, error) {
+	return s.repo.GetVideosOlderThan(ctx, cutoffTime)
 }
 
 func (s *videoService) Store(ctx context.Context, v domain.Video, data []byte) error {
