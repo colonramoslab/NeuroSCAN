@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -155,15 +154,8 @@ func (cmd *TranscodeCmd) transcodeVideo(ctx context.Context, videoService servic
 
 func (cmd *TranscodeCmd) convertWebmToMp4(ctx context.Context, videoService service.VideoService, uuid string) error {
 	key := fmt.Sprintf("videos/%s.webm", uuid)
-	// get the .webm from storage
-	// store in a temp location
 
-	tempFile, err := os.CreateTemp("", uuid+"-*.webm")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
-	}
-
-	defer os.Remove(tempFile.Name())
+	remoteFile := fmt.Sprintf("https://neuroscan-spaces.nyc3.digitaloceanspaces.com/%s", key)
 
 	destTemp, err := os.CreateTemp("", uuid+"-*.mp4")
 	if err != nil {
@@ -174,18 +166,7 @@ func (cmd *TranscodeCmd) convertWebmToMp4(ctx context.Context, videoService serv
 
 	client := videoService.StorageHandle()
 
-	data, err := client.GetFile(videoService.BucketName(), key)
-	if err != nil {
-		return fmt.Errorf("failed to get file from storage: %w", err)
-	}
-
-	if _, err := io.Copy(tempFile, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("failed to write to temp file: %w", err)
-	}
-
-	tempFile.Close()
-
-	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", tempFile.Name(), "-r", "24", destTemp.Name())
+	command := exec.CommandContext(ctx, "ffmpeg", "-y", "-i", remoteFile, "-r", "24", destTemp.Name())
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
