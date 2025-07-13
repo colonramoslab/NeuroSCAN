@@ -1,5 +1,5 @@
 #!/bin/bash
-# heck if we are in the root of the neuroscan repository
+# check if we are in the root of the neuroscan repository
     # if not, exit with an error message
 if [ ! -d ".git" ]; then
     echo "This script must be run from the root of the neuroscan repository."
