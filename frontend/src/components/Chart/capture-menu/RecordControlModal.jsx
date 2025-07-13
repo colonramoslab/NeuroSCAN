@@ -39,8 +39,8 @@ const RecordControlModal = (props) => {
     setProcessing(true);
     setShowDownload(false);
     // const mp4 = Buffer.from(await webmToMp4(Buffer.from(await videoBlob.arrayBuffer())));
-    const videoBuffer = await videoBlob.arrayBuffer();
-    const videoMeta = await webmToMp4(videoBuffer);
+    // const videoBuffer = await videoBlob.arrayBuffer();
+    const videoMeta = await webmToMp4(videoBlob);
     const videoUUID = videoMeta.id;
 
     // poll the server to check if the mp4 is ready at /videos/status/:id every 2 seconds
@@ -54,7 +54,15 @@ const RecordControlModal = (props) => {
       // wait for 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}videos/status/${videoUUID}`);
-      if (response.status === 200) {
+      // if the response.status is any 200
+      if (!response.ok) {
+        console.error('Error fetching video status:', response.status);
+        setError('Error fetching video status');
+        return null;
+      }
+      // if the response is any 200
+
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json();
         if (data.status === 'completed') {
           return data;

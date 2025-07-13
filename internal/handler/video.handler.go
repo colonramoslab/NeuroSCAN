@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -27,34 +28,38 @@ func NewVideoHandler(videoService service.VideoService) *VideoHandler {
 }
 
 func (h *VideoHandler) UploadWebm(c echo.Context) error {
-	// Limit request body to 100MB
-	maxSize := int64(100 * 1024 * 1024)
+	const max = int64(100 << 20)
 	req := c.Request()
-	req.Body = http.MaxBytesReader(c.Response(), req.Body, maxSize)
+	req.Body = http.MaxBytesReader(c.Response(), req.Body, max)
+
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "read body failed")
+	}
 
 	video := domain.Video{}
-	err := video.New()
+	if err := video.New(); err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to create video object: %v", err))
+	}
+	newVideo, err := h.videoService.CreateVideo(req.Context(), video)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to create video: %v", err))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to create video in database: %v", err))
 	}
 
-	newVideo, err := h.videoService.CreateVideo(c.Request().Context(), video)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("failed to store video metadata: %v", err))
-	}
-
-	go func(ctx context.Context, body io.Reader, v domain.Video) {
-		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute) // independent of client
+	// 3. Fire-and-forget upload from RAM.
+	go func(buf []byte, v domain.Video) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
-		if err := h.videoService.Store(ctx, v, body); err != nil {
-			_ = h.videoService.TranscodeError(ctx, newVideo.ID, err.Error())
+		if err := h.videoService.Store(ctx, v, bytes.NewReader(buf)); err != nil {
+			_ = h.videoService.TranscodeError(ctx, v.ID, err.Error())
 		} else {
 			_ = h.videoService.Notify(ctx, v)
 		}
-	}(req.Context(), req.Body, newVideo)
+	}(data, newVideo)
 
-	return c.JSON(http.StatusOK, newVideo)
+	// 4. Immediate response; body already consumed.
+	return c.JSON(http.StatusAccepted, newVideo)
 }
 
 func (h *VideoHandler) UploadStatus(c echo.Context) error {
