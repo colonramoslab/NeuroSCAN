@@ -60,7 +60,7 @@ func (cmd *CleanupCmd) Run(ctx *context.Context) error {
 func (cmd *CleanupCmd) cleanupOldVideos(ctx context.Context, videoService service.VideoService) error {
 	logger := logging.FromContext(ctx)
 
-	cutoffTime := time.Now().Add(-4 * time.Hour)
+	cutoffTime := time.Now().Add(-4 * time.Hour).UTC()
 	logger.Info().Msgf("Starting cleanup of videos older than %s", cutoffTime.Format(time.RFC3339))
 
 	oldVideos, err := videoService.GetVideosOlderThan(ctx, cutoffTime)
