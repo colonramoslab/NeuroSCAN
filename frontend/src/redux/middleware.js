@@ -225,6 +225,8 @@ const middleware = (store) => (next) => async (action) => {
 
     case DARKEN_COLORS_FLASHING: {
       const widget = getWidget(store, action.viewerId);
+      console.log(action.uids);
+      console.log(action.uids);
       const instances = darkenColorSelectedInstances(
         widget.config.instances,
         action.uids,
@@ -339,21 +341,22 @@ const middleware = (store) => (next) => async (action) => {
           const contacts = getInstancesOfType(addedObjectsToViewer, CONTACT_TYPE) || [];
           const synapses = getInstancesOfType(addedObjectsToViewer, SYNAPSE_TYPE) || [];
           const scale = getInstancesOfType(addedObjectsToViewer, SCALE_TYPE) || [];
-          const nerveRing = getInstancesOfType(addedObjectsToViewer, NERVE_RING_TYPE) || [];
+          // const nerveRing = getInstancesOfType(addedObjectsToViewer, NERVE_RING_TYPE) || [];
 
           const newNeurons = await fetchDataForEntity(neuronService, newTimePoint, neurons);
           const newContacts = await fetchDataForEntity(contactService, newTimePoint, contacts);
           const newSynapses = await fetchDataForEntity(synapseService, newTimePoint, synapses);
           const newScale = await fetchDataForEntity(scaleService, newTimePoint, scale);
           // const newScale = await scaleService.getByUID(newTimePoint);
-          const newNerveRing = await fetchDataForEntity(nerveRingService, newTimePoint, nerveRing);
+          // const newNerveRing = await fetchDataForEntity(nerveRingService,
+          // newTimePoint, nerveRing);
 
           const newInstances = [
             ...newNeurons,
             ...newContacts,
             ...newSynapses,
             ...newScale,
-            ...newNerveRing,
+            // ...newNerveRing,
           ].map((i) => mapToInstance(i));
           createSimpleInstancesFromInstances(newInstances).then(async () => {
             const newWidget = createWidget(store, newTimePoint, widgetType);

@@ -3,6 +3,7 @@ import { useSelector, useStore } from 'react-redux';
 import { Box, CircularProgress, makeStyles } from '@material-ui/core';
 import { getLayoutManagerInstance } from '@metacell/geppetto-meta-client/common/layout/LayoutManager';
 import LeftSidebar from '../components/LeftSidebar';
+import SidebarBackdrop from '../components/SidebarBackdrop';
 import DataOverlay from '../components/DataOverlay/DataOverlay';
 import Header from '../components/Header';
 import { VIEWS } from '../utilities/constants';
@@ -72,6 +73,7 @@ export default function NeuroScan() {
         <Box className={classes.left}>
           <Header shrink={shrinkSidebar} toggleSidebar={handleToggle} view={VIEWS?.neuroScan} />
           <LeftSidebar shrink={shrinkSidebar} />
+          <SidebarBackdrop shrink={shrinkSidebar} setShrink={setShrinkSidebar} />
         </Box>
         <Box className={classes.right}>
           <Box className={`primary-structure_content ${classes.layoutContainer} ${viewerCount > 0 ? 'padding' : ''}`}>

@@ -26,6 +26,7 @@ const AddToViewerMenu = ({
   fullMenu = true,
   useAnchorPosition = false,
   anchorPosition = { top: 0, left: 0 },
+  kind,
 }) => {
   const classes = useStyles();
   const timePoint = useSelector((state) => state.search.filters.timePoint);
@@ -40,6 +41,10 @@ const AddToViewerMenu = ({
           const instanceName = anchorEl?.parentNode?.textContent.replace('Add to', '');
           let isEnabled = viewer.config.timePoint === timePoint
             && viewer.config.type === VIEWERS.InstanceViewer;
+
+          if (kind === 'nervering') {
+            isEnabled = true;
+          }
           if (isEnabled) {
             const isInstancePresent = (inst) => {
               let instName = inst.name;

@@ -41,6 +41,8 @@ const tooltipText = (instance) => {
 
   if (instance.o.instanceType === 'synapse') {
     title = formatSynapseUID(instance.o.uidFromDb);
+  } else if (instance.o.instanceType === 'cluster') {
+    title = instance.o.name;
   } else {
     title = instance.o.uidFromDb;
   }
@@ -194,6 +196,8 @@ class Viewer extends React.Component {
   hoverListener(objs, canvasX, canvasY) {
     const obj = objs[0];
     const { instances } = this.props;
+    // console.log({ instances });
+    // console.log(obj);
     const intersectedInstanceUid = this.findInstanceUidForObj(obj.object);
     const intersectedInstance = instances.find((i) => i.uid === intersectedInstanceUid);
 

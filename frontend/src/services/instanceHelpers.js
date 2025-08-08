@@ -162,7 +162,7 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
 
   const selected = instances.find((instance) => selectedUids.includes(instance.uid));
 
-  if (selected && selected.instanceType === 'scale') {
+  if (selected && (selected.instanceType === 'scale')) {
     return;
   }
 
