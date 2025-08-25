@@ -572,11 +572,5 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 		query += fmt.Sprintf(" offset $%d", len(args))
 	}
 
-	// print the query for debugging
-	fmt.Println(query)
-
-	// print the args for debugging
-	fmt.Println(args)
-
 	return query, args
 }

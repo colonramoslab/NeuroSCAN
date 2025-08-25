@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"neuroscan/internal/cache"
@@ -16,6 +17,8 @@ import (
 	"neuroscan/pkg/logging"
 	"neuroscan/pkg/storage"
 
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -99,6 +102,11 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 
 		e.Use(middleware.Recover())
 		e.Use(middleware.Secure())
+
+		err = cmd.sentryInit(appEnv, e)
+		if err != nil {
+			logger.Info().Err(err).Msg("🤯 failed to initialize sentry")
+		}
 	}
 
 	e.Use(middleware.Logger())
@@ -174,6 +182,46 @@ func (cmd *WebCmd) Run(ctx *context.Context) error {
 	e = router.NewRouter(e, neuronHandler, contactHandler, synapseHandler, cphateHandler, nerveringHandler, scaleHandler, promoterHandler, devStageHandler, videoHandler)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", port)))
+
+	return nil
+}
+
+func (cmd *WebCmd) sentryInit(env string, webApp *echo.Echo) error {
+	tracingEnabled := false
+	sampleRate := 0.0
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn == "" {
+		return fmt.Errorf("SENTRY_DSN environment variable is not set")
+	}
+
+	sentryTracing := os.Getenv("SENTRY_TRACING")
+	if sentryTracing == "true" {
+		tracingEnabled = true
+	}
+
+	sentrySampleRate := os.Getenv("SENTRY_SAMPLE_RATE")
+	if sentrySampleRate != "" {
+		rate, _ := strconv.ParseFloat(sentrySampleRate, 64)
+		if rate > 0.0 && rate <= 1.0 {
+			sampleRate = rate
+		}
+	}
+
+	// To initialize Sentry's handler, you need to initialize Sentry itself beforehand
+	if err := sentry.Init(sentry.ClientOptions{
+		Environment:      env,
+		Dsn:              dsn,
+		EnableTracing:    tracingEnabled,
+		TracesSampleRate: sampleRate,
+		EnableLogs:       true,
+	}); err != nil {
+		return fmt.Errorf("Sentry initialization failed: %v\n", err)
+	}
+	defer sentry.Flush(2 * time.Second)
+
+	webApp.Use(sentryecho.New(sentryecho.Options{
+		Repanic: true,
+	}))
 
 	return nil
 }

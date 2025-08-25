@@ -46,6 +46,8 @@ require (
 	github.com/elastic/go-sysinfo v1.15.2 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect
+	github.com/getsentry/sentry-go v0.35.1 // indirect
+	github.com/getsentry/sentry-go/echo v0.35.1 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-sql-driver/mysql v1.9.1 // indirect
