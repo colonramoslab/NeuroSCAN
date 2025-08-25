@@ -48,6 +48,7 @@ const AboutModal = (props) => {
           </Typography>
           <Typography>
             For questions or support, please contact
+            {' '}
             <a href="mailtp:sarah.emerson@yale.edu">sarah.emerson@yale.edu</a>
             .
           </Typography>
