@@ -46,6 +46,11 @@ const AboutModal = (props) => {
           <Typography>
             {`${title} was originally developed by MetaCell and has since been further advanced and maintained by Bilte Co.`}
           </Typography>
+          <Typography>
+            For questions or support, please contact
+            <a href="mailtp:sarah.emerson@yale.edu">sarah.emerson@yale.edu</a>
+            .
+          </Typography>
         </Box>
         <Box className="modal-footer">
           {/* <Button variant="outlined" onClick={handleClose}>
