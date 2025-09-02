@@ -44,7 +44,7 @@ const AboutModal = (props) => {
           ))}
           <h3>Website design and development:</h3>
           <Typography>
-            {`${title} was originally developed by MetaCell and has since been further advanced and maintained by Bilte Co.`}
+            {`${title} was originally developed by MetaCell and has since been further advanced and maintained by <a href="https://bilte.co" target="_blank">Bilte Co</a>.`}
           </Typography>
           <Typography>
             For questions or support, please contact
