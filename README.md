@@ -1,6 +1,6 @@
-# Geppetto - NeuroSC & PromoterDB
+# NeuroSC & PromoterDB
 
-The Yale NeuroSC &amp; Promoter DB Project
+NeuroSC is an accessible and interactive tool for streamlined observation of neuronal morphology, membrane contact, and synaptic connectivity across developmental stages in the nematode C. elegans. Details can be found [here](https://elifesciences.org/reviewed-preprints/103977v1).
 
 This repository contains the frontend and backend code supporting the NeuroSC and PromoterDB websites. The frontend is built on React, while the backend is build using Golang.
 
