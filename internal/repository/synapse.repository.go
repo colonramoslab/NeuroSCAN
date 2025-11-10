@@ -26,6 +26,7 @@ type SynapseRepository interface {
 	DeleteSynapse(ctx context.Context, uid string, timepoint int) error
 	IngestSynapse(ctx context.Context, synapse domain.Synapse, skipExisting bool, force bool) (bool, error)
 	TruncateSynapses(ctx context.Context) error
+	ValidSynapseTimepoints(ctx context.Context) ([]int, error)
 }
 
 type Synapse struct {
@@ -573,4 +574,33 @@ func (r *PostgresSynapseRepository) ParseSynapseAPIV1Request(ctx context.Context
 	}
 
 	return query, args
+}
+
+func (r *PostgresSynapseRepository) ValidSynapseTimepoints(ctx context.Context) ([]int, error) {
+	if timepoints, ok := r.cache.Get("synapses:valid_timepoints"); ok {
+		return timepoints.([]int), nil
+	}
+
+	query := "SELECT DISTINCT timepoint FROM synapses"
+	rows, err := r.DB.Query(ctx, query)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	var timepoints []int
+	for rows.Next() {
+		var timepoint int
+		if err := rows.Scan(&timepoint); err != nil {
+			return nil, err
+		}
+		timepoints = append(timepoints, timepoint)
+	}
+
+	r.cache.Set("synapses:valid_timepoints", timepoints)
+
+	return timepoints, nil
 }

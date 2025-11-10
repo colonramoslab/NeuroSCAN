@@ -26,6 +26,7 @@ type NeuronRepository interface {
 	UpdateNeuron(ctx context.Context, neuron domain.Neuron) error
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
 	TruncateNeurons(ctx context.Context) error
+	ValidNeuronTimepoints(ctx context.Context) ([]int, error)
 }
 
 type Neuron struct {
@@ -458,4 +459,33 @@ func (r *PostgresNeuronRepository) ParseNeuronAPIV1Request(ctx context.Context, 
 	}
 
 	return query, args
+}
+
+func (r *PostgresNeuronRepository) ValidNeuronTimepoints(ctx context.Context) ([]int, error) {
+	if timepoints, ok := r.cache.Get("neurons:valid_timepoints"); ok {
+		return timepoints.([]int), nil
+	}
+
+	query := "SELECT DISTINCT timepoint FROM neurons"
+	rows, err := r.DB.Query(ctx, query)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	var timepoints []int
+	for rows.Next() {
+		var timepoint int
+		if err := rows.Scan(&timepoint); err != nil {
+			return nil, err
+		}
+		timepoints = append(timepoints, timepoint)
+	}
+
+	r.cache.Set("neurons:valid_timepoints", timepoints)
+
+	return timepoints, nil
 }

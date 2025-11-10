@@ -22,6 +22,7 @@ type ContactService interface {
 	IngestContact(ctx context.Context, contact domain.Contact, skipExisting bool, force bool) (bool, error)
 	TruncateContacts(ctx context.Context) error
 	ParseMeta(ctx context.Context, row []string, timepoint int, dataType string) error
+	ValidContactTimepoints(ctx context.Context) ([]int, error)
 }
 
 type contactService struct {
@@ -95,4 +96,8 @@ func (s *contactService) ParseMeta(ctx context.Context, row []string, timepoint 
 	}
 
 	return s.repo.UpdateContact(ctx, contact)
+}
+
+func (s *contactService) ValidContactTimepoints(ctx context.Context) ([]int, error) {
+	return s.repo.ValidContactTimepoints(ctx)
 }

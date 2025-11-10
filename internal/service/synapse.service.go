@@ -16,6 +16,7 @@ type SynapseService interface {
 	CreateSynapse(ctx context.Context, synapse domain.Synapse) error
 	IngestSynapse(ctx context.Context, synapse domain.Synapse, skipExisting bool, force bool) (bool, error)
 	TruncateSynapses(ctx context.Context) error
+	ValidSynapseTimepoints(ctx context.Context) ([]int, error)
 }
 
 type synapseService struct {
@@ -58,4 +59,8 @@ func (s *synapseService) IngestSynapse(ctx context.Context, synapse domain.Synap
 
 func (s *synapseService) TruncateSynapses(ctx context.Context) error {
 	return s.repo.TruncateSynapses(ctx)
+}
+
+func (s *synapseService) ValidSynapseTimepoints(ctx context.Context) ([]int, error) {
+	return s.repo.ValidSynapseTimepoints(ctx)
 }

@@ -35,6 +35,7 @@ type ContactRepository interface {
 	UpdateContact(ctx context.Context, contact domain.Contact) error
 	IngestContact(ctx context.Context, contact domain.Contact, skipExisting bool, force bool) (bool, error)
 	TruncateContacts(ctx context.Context) error
+	ValidContactTimepoints(ctx context.Context) ([]int, error)
 }
 
 type Contact struct {
@@ -590,4 +591,34 @@ func (r *PostgresContactRepository) ParseContactAPIV1Request(ctx context.Context
 	}
 
 	return query, args
+}
+
+func (r *PostgresContactRepository) ValidContactTimepoints(ctx context.Context) ([]int, error) {
+	// check the cache first, we can store this for a long time
+	if timepoints, ok := r.cache.Get("contacts:valid_timepoints"); ok {
+		return timepoints.([]int), nil
+	}
+
+	query := "SELECT DISTINCT timepoint FROM contacts"
+	rows, err := r.DB.Query(ctx, query)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []int{}, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	var timepoints []int
+	for rows.Next() {
+		var timepoint int
+		if err := rows.Scan(&timepoint); err != nil {
+			return nil, err
+		}
+		timepoints = append(timepoints, timepoint)
+	}
+
+	r.cache.Set("contacts:valid_timepoints", timepoints)
+
+	return timepoints, nil
 }

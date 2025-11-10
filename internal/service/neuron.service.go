@@ -22,6 +22,7 @@ type NeuronService interface {
 	IngestNeuron(ctx context.Context, neuron domain.Neuron, skipExisting bool, force bool) (bool, error)
 	TruncateNeurons(ctx context.Context) error
 	ParseMeta(ctx context.Context, row []string, timepoint int, dataType string) error
+	ValidNeuronTimepoints(ctx context.Context) ([]int, error)
 }
 
 type neuronService struct {
@@ -103,4 +104,8 @@ func (s *neuronService) ParseMeta(ctx context.Context, row []string, timepoint i
 	}
 
 	return s.repo.UpdateNeuron(ctx, neuron)
+}
+
+func (s *neuronService) ValidNeuronTimepoints(ctx context.Context) ([]int, error) {
+	return s.repo.ValidNeuronTimepoints(ctx)
 }

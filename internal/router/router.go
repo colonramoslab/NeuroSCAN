@@ -8,15 +8,18 @@ import (
 
 func NewRouter(e *echo.Echo, neuronHandler *handler.NeuronHandler, contactHandler *handler.ContactHandler, synapseHandler *handler.SynapseHandler, cphateHandler *handler.CphateHandler, nerveringHandler *handler.NerveRingHandler, scaleHandler *handler.ScaleHandler, promoterHandler *handler.PromoterHandler, developmentalStageHandler *handler.DevelopmentalStageHandler, videoHandler *handler.VideoHandler) *echo.Echo {
 	e.GET("/neurons", neuronHandler.SearchNeurons)
-	e.GET("/neurons/:ulid", neuronHandler.FindNeuron)
+	e.GET("/neurons/:ulid", neuronHandler.FindNeuronByULID)
+	e.GET("/neurons/:timepoint/:uid", neuronHandler.FindNeuronByUID)
 	e.GET("/neurons/count", neuronHandler.CountNeurons)
 
 	e.GET("/contacts", contactHandler.SearchContacts)
-	e.GET("/contacts/:ulid", contactHandler.FindContact)
+	e.GET("/contacts/:ulid", contactHandler.FindContactByULID)
+	e.GET("/contacts/:timepoint/:uid", contactHandler.FindContactByUID)
 	e.GET("/contacts/count", contactHandler.CountContacts)
 
 	e.GET("/synapses", synapseHandler.SearchSynapses)
-	e.GET("/synapses/:ulid", synapseHandler.FindSynapse)
+	e.GET("/synapses/:ulid", synapseHandler.FindSynapseByULID)
+	e.GET("/synapses/:timepoint/:uid", synapseHandler.FindSynapseByUID)
 	e.GET("/synapses/count", synapseHandler.CountSynapses)
 
 	e.GET("/cphates", cphateHandler.CphateByTimepoint)
