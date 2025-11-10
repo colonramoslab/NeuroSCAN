@@ -3,6 +3,8 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"slices"
+	"strings"
 
 	"neuroscan/internal/domain"
 	"neuroscan/internal/service"
@@ -18,7 +20,7 @@ func NewContactHandler(contactService service.ContactService) *ContactHandler {
 	return &ContactHandler{contactService: contactService}
 }
 
-func (h *ContactHandler) FindContact(c echo.Context) error {
+func (h *ContactHandler) FindContactByULID(c echo.Context) error {
 	var req domain.APIV1Request
 
 	if err := c.Bind(&req); err != nil {
@@ -40,6 +42,50 @@ func (h *ContactHandler) FindContact(c echo.Context) error {
 	}
 
 	c.JSON(http.StatusOK, contact)
+	return nil
+}
+
+func (h *ContactHandler) FindContactByUID(c echo.Context) error {
+	var req domain.APIV1Request
+
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	contactUID := req.UID
+	timepoint := req.Timepoint
+
+	if contactUID == "" {
+		c.JSON(http.StatusBadRequest, "invalid neuron UID")
+		return errors.New("invalid neuron UID")
+	}
+
+	contactUID = strings.ToUpper(strings.TrimSpace(contactUID))
+
+	if timepoint == nil {
+		c.JSON(http.StatusBadRequest, "timepoint is required")
+		return errors.New("timepoint is required")
+	}
+
+	validTimepoints, err := h.contactService.ValidContactTimepoints(c.Request().Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+
+	if !slices.Contains(validTimepoints, *timepoint) {
+		c.JSON(http.StatusBadRequest, "invalid timepoint")
+		return errors.New("invalid timepoint")
+	}
+
+	neuron, err := h.contactService.GetContactByUID(c.Request().Context(), contactUID, *timepoint)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	}
+
+	c.JSON(http.StatusOK, neuron)
 	return nil
 }
 
