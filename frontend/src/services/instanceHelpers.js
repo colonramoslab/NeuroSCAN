@@ -1,4 +1,5 @@
 /* eslint-disable import/no-cycle */
+import { v4 as uuidv4 } from 'uuid';
 import SimpleInstance from '@metacell/geppetto-meta-core/model/SimpleInstance';
 import {
   setOriginalColors,
@@ -13,6 +14,8 @@ import store from '../redux/store';
 import {
   CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE, SCALE_TYPE,
 } from '../utilities/constants';
+
+export const LOCAL_TYPE = 'local';
 // import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
 
 // const neuronColorLegend = [];
@@ -278,6 +281,9 @@ const getDevStageFromTimepoint = (timepoint) => {
 };
 
 export const getLocationPrefixFromType = (item) => {
+  if (item.instanceType === LOCAL_TYPE) {
+    return 'local';
+  }
   const devStage = getDevStageFromTimepoint(item.timepoint);
   switch (item.instanceType) {
     case NEURON_TYPE: {
@@ -303,6 +309,26 @@ export const getLocationPrefixFromType = (item) => {
     }
   }
 };
+
+export const mapLocalGltfToInstance = ({ fileName, base64 }) => ({
+  id: null,
+  uid: `local_${uuidv4()}`,
+  uidFromDb: null,
+  name: fileName.replace('.gltf', ''),
+  selected: false,
+  color: {
+    r: Math.random(), g: Math.random(), b: Math.random(), a: 0.98,
+  },
+  instanceType: LOCAL_TYPE,
+  group: null,
+  content: {
+    type: 'base64',
+    location: 'local',
+    fileName,
+    base64,
+  },
+  getId() { return this.id; },
+});
 
 export const buildColor = (arr) => ({
   r: arr[0],
@@ -365,13 +391,13 @@ const getContentService = (content) => {
 const createSimpleInstance = async (instance) => {
   const { content } = instance;
 
-  // TODO: uncomment line below, for testing purpose always add sphere.obj
-  const contentService = getContentService(content);
-  // TODO: and remove these 3 lines
-  // const contentService = urlService;
-  // content.fileName = 'sphere.obj';
-  // content.location = `${filesURL}/../uploads/${content.fileName}`;
-  const base64Content = await contentService.getBase64(content.location, content.fileName);
+  let base64Content;
+  if (content.type && content.type.toLowerCase() === 'base64') {
+    base64Content = content.base64;
+  } else {
+    const contentService = getContentService(content);
+    base64Content = await contentService.getBase64(content.location, content.fileName);
+  }
   let visualValue;
   const fileExtension = content.fileName.split('.').pop().toLowerCase();
   switch (fileExtension) {

@@ -11,11 +11,11 @@ import (
 	"sync"
 	"syscall"
 
-	"neuroscan/internal/cache"
+	// "neuroscan/internal/cache"
 	"neuroscan/internal/database"
-	"neuroscan/internal/repository"
 	"neuroscan/internal/service"
-	"neuroscan/pkg/storage"
+
+	// "neuroscan/pkg/storage"
 
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
@@ -47,10 +47,10 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 		bucket = "neuroscan"
 	}
 
-	store, err := storage.NewStorage()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to create storage client")
-	}
+	// store, err := storage.NewStorage()
+	// if err != nil {
+	// 	logger.Fatal().Err(err).Msg("🤯 failed to create storage client")
+	// }
 
 	db, err := database.NewFromEnv(cntx)
 	if err != nil {
@@ -60,15 +60,15 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	}
 	defer db.Close(cntx)
 
-	cache, err := cache.NewCache(cntx)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("🤯 failed to connect to cache")
-		cancel()
-		return fmt.Errorf("failed to connect to cache: %w", err)
-	}
+	// cache, err := cache.NewCache(cntx)
+	// if err != nil {
+	// 	logger.Fatal().Err(err).Msg("🤯 failed to connect to cache")
+	// 	cancel()
+	// 	return fmt.Errorf("failed to connect to cache: %w", err)
+	// }
 
-	videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
-	videoService := service.NewVideoService(videoRepo, *store, bucket)
+	// videoRepo := repository.NewPostgresVideoRepository(db.Pool, cache)
+	// videoService := service.NewVideoService(videoRepo, *store, bucket)
 
 	// we need to capture any interrupt signal to gracefully shutdown
 	sigCh := make(chan os.Signal, 1)
@@ -78,14 +78,14 @@ func (cmd *TranscodeCmd) Run(ctx *context.Context) error {
 	var wg sync.WaitGroup
 
 	// Start your actual work in a goroutine
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := cmd.videoListener(cntx, videoService)
-		if err != nil {
-			logger.Error().Err(err).Msg("Error during transcoding")
-		}
-	}()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	err := cmd.videoListener(cntx, videoService)
+	// 	if err != nil {
+	// 		logger.Error().Err(err).Msg("Error during transcoding")
+	// 	}
+	// }()
 
 	// Wait for a termination signal
 	select {

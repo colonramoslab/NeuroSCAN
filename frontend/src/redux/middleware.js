@@ -72,7 +72,8 @@ export const createWidget = (store, timePoint, viewerType) => {
     }
     return maxViewerNumber;
   }, 1);
-  const viewerName = `${viewerType} ${viewerNumber} (${devStage.uid} ${timePoint})`;
+  const devStageLabel = devStage ? `${devStage.uid} ${timePoint}` : 'Local';
+  const viewerName = `${viewerType} ${viewerNumber} (${devStageLabel})`;
   return {
     id: null,
     name: viewerName,
