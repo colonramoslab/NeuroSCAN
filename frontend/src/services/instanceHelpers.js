@@ -388,6 +388,23 @@ const getContentService = (content) => {
   }
 };
 
+const base64ToUtf8Text = (input) => {
+  if (!input) return input;
+
+  const trimmed = input.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return input;
+
+  const b64 = trimmed.startsWith('data:')
+    ? trimmed.split(',')[1]
+    : trimmed;
+
+  const binary = window.atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+
+  return new TextDecoder('utf-8').decode(bytes);
+};
+
 const createSimpleInstance = async (instance) => {
   const { content } = instance;
 
@@ -407,12 +424,14 @@ const createSimpleInstance = async (instance) => {
         obj: base64Content,
       };
       break;
-    case 'gltf':
+    case 'gltf': {
+      const gltfJsonText = base64ToUtf8Text(base64Content);
       visualValue = {
         eClass: window.GEPPETTO.Resources.GLTF,
-        gltf: base64Content,
+        gltf: gltfJsonText,
       };
       break;
+    }
     default:
       visualValue = {
         eClass: window.GEPPETTO.Resources.OBJ,
