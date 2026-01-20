@@ -312,7 +312,7 @@ export const getLocationPrefixFromType = (item) => {
 
 export const mapLocalGltfToInstance = ({ fileName, base64 }) => ({
   id: null,
-  uid: `local_${uuidv4()}`,
+  uid: `local_${uuidv4().replace(/-/g, '_')}`,
   uidFromDb: null,
   name: fileName.replace('.gltf', ''),
   selected: false,
