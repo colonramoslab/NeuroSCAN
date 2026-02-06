@@ -1,4 +1,3 @@
-/* eslint-disable import/no-cycle */
 import { v4 as uuidv4 } from 'uuid';
 import SimpleInstance from '@metacell/geppetto-meta-core/model/SimpleInstance';
 import {
@@ -10,18 +9,12 @@ import {
 import { getDataOverlay, clearDataOverlay } from '../redux/actions/dataOverlay';
 import urlService from './UrlService';
 import zipService from './ZipService';
-import store from '../redux/store';
+import { GeppettoAdapter, InstancesRegistry } from '../infra/geppetto';
 import {
   CONTACT_TYPE, CPHATE_TYPE, filesURL, NERVE_RING_TYPE, NEURON_TYPE, SYNAPSE_TYPE, SCALE_TYPE,
 } from '../utilities/constants';
 
 export const LOCAL_TYPE = 'local';
-// import NeuronColorLegendFile from '../assets/fullUniversal_ColorLegend.lgd';
-
-// const neuronColorLegend = [];
-// fetch(NeuronColorLegendFile)
-//   .then((response) => response.text())
-//   .then((data) => data.split('\n').forEach((r) => neuronColorLegend.push(r.split(','))));
 
 export const instanceEqualsInstance = (instanceA, instanceB) => instanceA.uid === instanceB.uid
   && instanceA.instanceType === instanceB.instanceType;
@@ -44,8 +37,8 @@ export const lightenColor = ({
   r, g, b, a: a + 0.7,
 });
 
-export const resetDataOverlay = () => {
-  store.dispatch(clearDataOverlay());
+export const resetDataOverlay = (dispatch) => {
+  dispatch(clearDataOverlay());
 };
 
 export const invertColorSelectedInstances = (instances, selectedUids) => (
@@ -115,9 +108,6 @@ const updateInstanceSelected = (instances, selectedUids) => {
         flash: true,
         colorOriginal: instance.color,
         color: instance.color,
-        // ? invertColor(instance.color)
-        // eslint-disable-next-line object-curly-newline
-        // : { r: 1, g: 0, b: 0, a: 1 },
       };
     }
     return {
@@ -127,12 +117,6 @@ const updateInstanceSelected = (instances, selectedUids) => {
   });
   return i;
 };
-
-// const getFileJSONPayload = async (url) => (
-//   await fetch(url)
-//     .then((resp) => resp.text())
-//     .then((data) => JSON.parse(data))
-// );
 
 const hideInstanceSelected = (instances, selectedUids) => instances.map((instance) => {
   if (selectedUids.find((x) => x === instance.uid)) {
@@ -158,7 +142,7 @@ const showInstanceSelected = (instances, selectedUids) => instances.map((instanc
   };
 });
 
-export const setSelectedInstances = (viewerId, instances, selectedUids) => {
+export const setSelectedInstances = (dispatch, viewerId, instances, selectedUids) => {
   const newInstances = updateInstanceSelected(
     instances, selectedUids,
   );
@@ -172,14 +156,14 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   const canShowDataOverlay = ['neuron', 'contact', 'synapse'];
 
   if (selected && canShowDataOverlay.includes(selected.instanceType)) {
-    store.dispatch(getDataOverlay(selected));
+    dispatch(getDataOverlay(selected));
   }
 
   const colorPickerColor = selectedUids.length > 0
     ? newInstances.find((i) => i.uid === selectedUids[selectedUids.length - 1]).colorOriginal
     : null;
 
-  store.dispatch(updateWidgetConfig(
+  dispatch(updateWidgetConfig(
     viewerId, {
       flash: true,
       hidden: false,
@@ -192,54 +176,50 @@ export const setSelectedInstances = (viewerId, instances, selectedUids) => {
   const interval = setInterval(() => {
     if (counter === 6) {
       clearInterval(interval);
-      store.dispatch(setOriginalColors(viewerId, selectedUids));
+      dispatch(setOriginalColors(viewerId, selectedUids));
     } else {
-      // store.dispatch(invertColorsFlashing(viewerId, selectedUids));
-      store.dispatch(darkenColorsFlashing(viewerId, selectedUids));
+      dispatch(darkenColorsFlashing(viewerId, selectedUids));
     }
     counter += 1;
   }, 750);
 
-  // Add the last Selected instances uid
   const newSelectedUid = instances.find((item) => (item.selected === false)
       && selectedUids.includes(item.uid));
   if (newSelectedUid) {
-    store.dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
+    dispatch(addLastSelectedInstance(viewerId, [newSelectedUid.uid]));
   }
 };
 
-export const deleteSelectedInstances = (viewerId, selectedUids) => {
-  const { selectedInstanceToDelete, widgets } = store.getState();
-
-  // get current viewer config for the selected instance
+export const deleteSelectedInstances = (
+  dispatch, selectedInstanceToDelete, widgets, selectedUids,
+) => {
   const currentWidget = widgets[selectedInstanceToDelete.viewerId];
   const { config } = currentWidget;
 
-  // remove selected instances from instances and newAddedObjectsToViewer lists
   const newInstances = config?.instances.filter((instance) => !selectedUids.includes(instance.uid));
   const newAddedObjectsToViewer = config?.addedObjectsToViewer
     .filter((obj) => !selectedUids.includes(obj.uid));
 
-  store.dispatch(updateWidgetConfig(
-    viewerId, {
+  dispatch(updateWidgetConfig(
+    selectedInstanceToDelete.viewerId, {
       instances: newInstances,
       addedObjectsToViewer: newAddedObjectsToViewer,
     },
   ));
 };
 
-export const hideSelectedInstances = (viewerId, instances, selectedUids) => {
+export const hideSelectedInstances = (dispatch, viewerId, instances, selectedUids) => {
   const newInstances = hideInstanceSelected(instances, selectedUids);
-  store.dispatch(updateWidgetConfig(
+  dispatch(updateWidgetConfig(
     viewerId, {
       instances: newInstances,
     },
   ));
 };
 
-export const showSelectedInstances = (viewerId, instances, selectedUids) => {
+export const showSelectedInstances = (dispatch, viewerId, instances, selectedUids) => {
   const newInstances = showInstanceSelected(instances, selectedUids);
-  store.dispatch(updateWidgetConfig(
+  dispatch(updateWidgetConfig(
     viewerId, {
       instances: newInstances,
     },
@@ -272,19 +252,18 @@ export const setInstancesColor = (instances, instanceList, newColor = null) => i
     };
   });
 
-const getDevStageFromTimepoint = (timepoint) => {
-  const state = store.getState();
-  const devStage = state.devStages.neuroSCAN
+const getDevStageFromTimepoint = (timepoint, devStages) => {
+  const devStage = devStages
     .find((stage) => stage.timepoints !== null
       && stage.timepoints.includes(timepoint));
   return devStage.uid;
 };
 
-export const getLocationPrefixFromType = (item) => {
+export const getLocationPrefixFromType = (item, devStages) => {
   if (item.instanceType === LOCAL_TYPE) {
     return 'local';
   }
-  const devStage = getDevStageFromTimepoint(item.timepoint);
+  const devStage = getDevStageFromTimepoint(item.timepoint, devStages);
   switch (item.instanceType) {
     case NEURON_TYPE: {
       return `${filesURL}/neuroscan/${devStage}/${item.timepoint}/neurons/${item.filename}`;
@@ -337,25 +316,13 @@ export const buildColor = (arr) => ({
   a: arr[3],
 });
 
-export const mapToInstance = (item) => {
+export const mapToInstance = (item, devStages) => {
   const fileName = item.filename || '';
-  const location = getLocationPrefixFromType(item);
+  const location = getLocationPrefixFromType(item, devStages);
 
   let color = {
     r: Math.random(), g: Math.random(), b: Math.random(), a: 0.98,
   };
-
-  // if ('name' in item) {
-  //   const colorLegend = neuronColorLegend.find((value, index) => value[0] === item.name);
-  //   if (colorLegend) {
-  //     color = {
-  //       r: colorLegend[3] / 255,
-  //       g: colorLegend[4] / 255,
-  //       b: colorLegend[5] / 255,
-  //       a: 1,
-  //     };
-  //   }
-  // }
 
   if (item.color && item.color.length === 4) {
     color = buildColor(item.color);
@@ -422,6 +389,7 @@ const hasExternalReferences = (gltfJson) => {
 
 const createSimpleInstance = async (instance) => {
   const { content } = instance;
+  const Resources = GeppettoAdapter.getResources();
 
   let base64Content;
   if (content.type && content.type.toLowerCase() === 'base64') {
@@ -435,7 +403,7 @@ const createSimpleInstance = async (instance) => {
   switch (fileExtension) {
     case 'obj':
       visualValue = {
-        eClass: window.GEPPETTO.Resources.OBJ,
+        eClass: Resources.OBJ,
         obj: base64Content,
       };
       break;
@@ -443,24 +411,23 @@ const createSimpleInstance = async (instance) => {
       const gltfJsonText = base64ToUtf8Text(base64Content);
       if (hasExternalReferences(gltfJsonText)) {
         console.warn(`GLTF file "${content.fileName}" references external .bin or texture files which cannot be resolved from a local drag-and-drop.`);
-        window.alert(`"${content.fileName}" references external files (.bin, textures) that cannot be loaded via drag-and-drop. For best results, use a self-contained .gltf with embedded buffers or a .glb file.`);
       }
       visualValue = {
-        eClass: window.GEPPETTO.Resources.GLTF,
+        eClass: Resources.GLTF,
         gltf: gltfJsonText,
       };
       break;
     }
     case 'glb': {
       visualValue = {
-        eClass: window.GEPPETTO.Resources.GLTF,
+        eClass: Resources.GLTF,
         gltf: base64Content,
       };
       break;
     }
     default:
       visualValue = {
-        eClass: window.GEPPETTO.Resources.OBJ,
+        eClass: Resources.OBJ,
         obj: base64Content,
       };
   }
@@ -474,22 +441,13 @@ const createSimpleInstance = async (instance) => {
   });
 };
 
-const removeDuplicates = (arr) => arr.filter(
-  (v, i, a) => {
-    const x = a.findIndex((t) => (t.getId() === v.getId()));
-    return x === i;
-  },
-);
-
 // this project runs on node 14, so settimeout is not wrapped in a promise yet.
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 export const createSimpleInstancesFromInstances = (instances) => {
-  // filter out already existing instances
   const newInstances = instances.filter(
-    (instance) => !window.Instances.find((i) => i.wrappedObj.id === instance.uid),
+    (instance) => !InstancesRegistry.has(instance.uid),
   );
-  // if newInstance size is bigger than 100, create simple instances in batches
   if (newInstances.length > 100) {
     const results = [];
     const batches = [];
@@ -500,31 +458,25 @@ export const createSimpleInstancesFromInstances = (instances) => {
 
     // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve) => {
-      // run promise all for each batch with await
       while (batches.length >= 1) {
         // eslint-disable-next-line no-loop-func, no-await-in-loop
         results.push(await Promise.all(
-          // create geppetto simple instances from the instances
           batches[0].map((instance) => createSimpleInstance(instance)),
         ));
-        delay(5000);
+        // eslint-disable-next-line no-await-in-loop
+        await delay(5000);
         batches.shift();
       }
       resolve(results);
     }).then((newSimpleInstances) => {
-      // add the new simple instances to geppetto
-      window.Instances = removeDuplicates([...window.Instances, ...newSimpleInstances.flat()]);
-      window.GEPPETTO.Manager.augmentInstancesArray(window.Instances);
+      GeppettoAdapter.addInstances(newSimpleInstances.flat());
     });
   }
 
   return Promise.all(
-    // create geppetto simple instances from the instances
     newInstances.map((instance) => createSimpleInstance(instance)),
   ).then((newSimpleInstances) => {
-    // add the new simple instances to geppetto
-    window.Instances = removeDuplicates([...window.Instances, ...newSimpleInstances]);
-    window.GEPPETTO.Manager.augmentInstancesArray(window.Instances);
+    GeppettoAdapter.addInstances(newSimpleInstances);
   });
 };
 
@@ -536,19 +488,6 @@ export const getGroupsFromInstances = (instances) => (
         .map((instance) => instance.group),
     ),
   ]);
-
-// export const groupBy = (items, key) => items
-//   .filter((item) => item[key] !== null)
-//   .reduce(
-//     (result, item) => ({
-//       ...result,
-//       [item[key]]: [
-//         ...(result[item[key]] || []),
-//         item,
-//       ],
-//     }),
-//     {},
-//   );
 
 export const groupBy = (items, key) => {
   const results = {};
@@ -571,10 +510,10 @@ export const getInstancesOfType = (instances, instanceType) => (
 export const getInstancesByGroups = (instances) => (
   groupBy(instances, 'group'));
 
-export const handleSelect = (viewerId, selectedInstance, widgets) => {
+export const handleSelect = (dispatch, viewerId, selectedInstance, widgets) => {
   if (viewerId) {
     const { instances } = widgets[viewerId].config;
-    setSelectedInstances(viewerId, instances, [selectedInstance.uid]);
+    setSelectedInstances(dispatch, viewerId, instances, [selectedInstance.uid]);
   }
 };
 

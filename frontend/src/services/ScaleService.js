@@ -27,11 +27,11 @@ export class ScaleService {
     };
   }
 
-  getInstances(scale) {
+  getInstances(scale, devStages) {
     const scaleFile = getLocationPrefixFromType({
       timepoint: scale.timepoint,
       instanceType: SCALE_TYPE,
-    });
+    }, devStages);
     return this.mapScaleInstance(scale, scaleFile, 'url');
   }
 
