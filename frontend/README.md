@@ -28,6 +28,7 @@ We have to overwrite a couple of vendor files, run the below to do do:
 ````bash
 cp ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/
 cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
+cp ./overwrite/OBJLoader.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
 ```
 
 ### Configure Backend URL

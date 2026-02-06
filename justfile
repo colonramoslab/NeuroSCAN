@@ -1,3 +1,7 @@
+# List commands
+default:
+    @just --list
+
 build-backend:
     @echo "Building backend..."
     go build -trimpath -buildmode=pie -buildvcs=false -ldflags "-w -s" -o ./neuroscan cmd/main.go
