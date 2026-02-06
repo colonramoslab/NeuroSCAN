@@ -243,21 +243,17 @@ var ThreeDEngine = /*#__PURE__*/function () {
     key: "addInstancesToScene",
     value: function () {
       var _addInstancesToScene = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(proxyInstances) {
-        var instances;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                instances = proxyInstances.map(function (pInstance) {
-                  return Instances.getInstance(pInstance.instancePath);
-                });
-                _context.next = 3;
-                return this.meshFactory.start(instances);
+                _context.next = 2;
+                return this.meshFactory.start(this.instancesMap);
 
-              case 3:
+              case 2:
                 this.updateGroupMeshes(proxyInstances);
 
-              case 4:
+              case 3:
               case "end":
                 return _context.stop();
             }

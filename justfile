@@ -6,7 +6,7 @@ build-backend:
     @echo "Building backend..."
     go build -trimpath -buildmode=pie -buildvcs=false -ldflags "-w -s" -o ./neuroscan cmd/main.go
 
-build-frontend:
+build-js:
     @echo "Building frontend..."
     cd frontend && NODE_OPTIONS=--openssl-legacy-provider npm run build
 
@@ -15,7 +15,9 @@ copy-vendored:
     cd frontend && cp ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/ && cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/ && cp ./overwrite/MeshFactory.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/ && cp ./overwrite/OBJLoader.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
     @echo "Done copying vendored assets."
 
-build: build-backend build-frontend copy-vendored
+build-frontend: copy-vendored build-js
+
+build: build-backend build-frontend
 
 test:
 	@echo "Running tests..."
