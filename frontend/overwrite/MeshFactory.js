@@ -83,6 +83,9 @@ export default class MeshFactory {
 
 
   async traverseInstances (instances) {
+    if (!instances || typeof instances.entries !== 'function') {
+      return;
+    }
     for (const mInstance of instances.entries()) {
       if (mInstance[1].visibility === false) {
         delete this.meshes[mInstance[0]];

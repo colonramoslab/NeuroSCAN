@@ -115,6 +115,7 @@ var ThreeDEngine = /*#__PURE__*/function () {
     this.setupControls(); // Setup Listeners
 
     this.setupListeners(onSelection);
+    this.instancesMap = new Map();
     this.start = this.start.bind(this);
     this.stop = this.stop.bind(this);
     this.animate = this.animate.bind(this);
@@ -243,17 +244,29 @@ var ThreeDEngine = /*#__PURE__*/function () {
     key: "addInstancesToScene",
     value: function () {
       var _addInstancesToScene = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(proxyInstances) {
+        var _this2, i, pInstance, geppettoInstance;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                _context.next = 2;
+                _this2 = this;
+                this.instancesMap.clear();
+                if (Array.isArray(proxyInstances)) {
+                  for (i = 0; i < proxyInstances.length; i++) {
+                    pInstance = proxyInstances[i];
+                    geppettoInstance = Instances.getInstance(pInstance.instancePath);
+                    if (geppettoInstance) {
+                      _this2.traverseAndMapInstance(pInstance, geppettoInstance);
+                    }
+                  }
+                }
+                _context.next = 5;
                 return this.meshFactory.start(this.instancesMap);
 
-              case 2:
+              case 5:
                 this.updateGroupMeshes(proxyInstances);
 
-              case 3:
+              case 6:
               case "end":
                 return _context.stop();
             }
@@ -267,6 +280,31 @@ var ThreeDEngine = /*#__PURE__*/function () {
 
       return addInstancesToScene;
     }()
+  }, {
+    key: "traverseAndMapInstance",
+    value: function traverseAndMapInstance(proxyInstance, geppettoInstance) {
+      try {
+        if ((0, _util.hasVisualValue)(geppettoInstance)) {
+          this.instancesMap.set(geppettoInstance.getInstancePath(), proxyInstance);
+        } else if ((0, _util.hasVisualType)(geppettoInstance)) {
+          if (geppettoInstance.getType().getMetaType() !== GEPPETTO.Resources.ARRAY_TYPE_NODE && geppettoInstance.getVisualType()) {
+            this.instancesMap.set(geppettoInstance.getInstancePath(), proxyInstance);
+          }
+          if (geppettoInstance.getMetaType() === GEPPETTO.Resources.INSTANCE_NODE) {
+            var children = geppettoInstance.getChildren();
+            for (var i = 0; i < children.length; i++) {
+              this.traverseAndMapInstance(proxyInstance, children[i]);
+            }
+          } else if (geppettoInstance.getMetaType() === GEPPETTO.Resources.ARRAY_INSTANCE_NODE) {
+            for (var j = 0; j < geppettoInstance.length; j++) {
+              this.traverseAndMapInstance(proxyInstance, geppettoInstance[j]);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
     /*
      * Check that the material for the already present instance did not change.
      * return true if the color changed, otherwise false.
