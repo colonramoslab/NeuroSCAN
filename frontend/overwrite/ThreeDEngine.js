@@ -87,7 +87,7 @@ var ThreeDEngine = /*#__PURE__*/function () {
       y: 0
     };
     this.frameId = null;
-    this.meshFactory = new _MeshFactory["default"](this.scene, linesThreshold, cameraOptions.depthWrite, 300, 1, null, dracoDecoderPath, null);
+    this.meshFactory = new _MeshFactory["default"](this.scene, linesThreshold, 500, cameraOptions.depthWrite, 300, 1, null, dracoDecoderPath, null);
     this.pickingEnabled = pickingEnabled;
     this.hoverListeners = hoverListeners;
     this.emptyHoverListener = emptyHoverListener;
