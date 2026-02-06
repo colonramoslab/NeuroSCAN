@@ -12,7 +12,7 @@ build-frontend:
 
 copy-vendored:
     @echo "Copying vendored assets..."
-    cd frontend && cp ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/ && cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/ && cp ./overwrite/MeshFactory.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
+    cd frontend && cp ./overwrite/Canvas.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/ && cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/ && cp ./overwrite/MeshFactory.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/ && cp ./overwrite/OBJLoader.js ./node_modules/@metacell/geppetto-meta-ui/3d-canvas/threeDEngine/
     @echo "Done copying vendored assets."
 
 build: build-backend build-frontend copy-vendored
