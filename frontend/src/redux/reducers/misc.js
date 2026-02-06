@@ -21,9 +21,11 @@ export default (state = MISC_DEFAULT_STATUS, action) => {
         },
       };
     case LOADING_SUCCESS: {
-      const newState = { ...state };
-      delete newState.loading[action.data.offAction];
-      return newState;
+      const { [action.data.offAction]: removed, ...remainingLoading } = (state.loading || {});
+      return {
+        ...state,
+        loading: remainingLoading,
+      };
     }
     case RAISE_ERROR:
       return {

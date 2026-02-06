@@ -1,13 +1,8 @@
 import * as search from './actions/search';
-// eslint-disable-next-line import/no-cycle
 import doSearch from '../services/helpers';
-// eslint-disable-next-line import/no-cycle
 import doGetAll from '../services/getAllHelper';
-// eslint-disable-next-line import/no-cycle
 import nerveRingService from '../services/NerveRingService';
-// eslint-disable-next-line import/no-cycle
 import cphateService from '../services/CphateService';
-// eslint-disable-next-line import/no-cycle
 import scaleService from '../services/ScaleService';
 import {
   ADD_CPHATE, ADD_NERVE_RING, ADD_SCALE, addInstances,
@@ -50,11 +45,13 @@ const searchMiddleware = (store) => (next) => (action) => {
         .getCphateByTimepoint(timePoint)
         .then((cphate) => {
           if (cphate) {
-            const cphateInstances = cphateService.getInstances(cphate);
+            const devStages = store.getState().devStages.neuroSCAN;
+            const cphateInstances = cphateService.getInstances(cphate, devStages);
             store.dispatch(addInstances(null, cphateInstances, VIEWERS.CphateViewer));
           }
           next(loadingSuccess(msg, action.type));
-        }, (e) => {
+        }, (error) => {
+          console.error(msg, error);
           next(raiseError(msg));
         });
       break;
@@ -72,7 +69,8 @@ const searchMiddleware = (store) => (next) => (action) => {
         .getNerveRingByTimepoint(timePoint)
         .then((ring) => {
           if (ring) {
-            const ringInstances = nerveRingService.getInstances(ring);
+            const devStages = store.getState().devStages.neuroSCAN;
+            const ringInstances = nerveRingService.getInstances(ring, devStages);
             store.dispatch(addInstances(viewerId, ringInstances, VIEWERS.InstanceViewer));
           }
           next(loadingSuccess(msg, action.type));
@@ -92,12 +90,14 @@ const searchMiddleware = (store) => (next) => (action) => {
         .getScaleByTimepoint(timePoint)
         .then((scale) => {
           if (scale) {
-            const scaleInstances = scaleService.getInstances(scale);
+            const devStages = store.getState().devStages.neuroSCAN;
+            const scaleInstances = scaleService.getInstances(scale, devStages);
             store.dispatch(addInstances(null, scaleInstances, VIEWERS.InstanceViewer));
           }
           next(loadingSuccess(msg, action.type));
         },
-        (e) => {
+        (error) => {
+          console.error(msg, error);
           next(raiseError(msg));
         });
       break;

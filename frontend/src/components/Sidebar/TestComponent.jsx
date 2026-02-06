@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@material-ui/core';
 import cphateService from '../../services/CphateService';
 import { addInstances } from '../../redux/actions/widget';
@@ -7,6 +7,7 @@ import { VIEWERS } from '../../utilities/constants';
 
 function TestComponent() {
   const dispatch = useDispatch();
+  const devStages = useSelector((state) => state.devStages.neuroSCAN);
 
   const createCphateViewer = async (timepoint) => {
     let cphate;
@@ -17,7 +18,7 @@ function TestComponent() {
         cphate = await cphateService.createTestCphate();
       }
     }
-    const cphateInstances = cphateService.getInstances(cphate);
+    const cphateInstances = cphateService.getInstances(cphate, devStages);
     dispatch(addInstances(null, cphateInstances, VIEWERS.CphateViewer));
   };
 

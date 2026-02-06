@@ -1,5 +1,6 @@
 /* eslint-disable import/no-cycle */
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import {
   IconButton,
   Typography,
@@ -20,8 +21,8 @@ import STOP from '../../../images/graph/stop.svg';
 import RecordControlModal from './RecordControlModal';
 import DownloadMenu from './DownloadMenu';
 import { DOWNLOAD_OBJS, DOWNLOAD_SCREENSHOT } from '../../../utilities/constants';
-import store from '../../../redux/store';
 import zipService from '../../../services/ZipService';
+import { GeppettoAdapter, InstancesRegistry } from '../../../infra/geppetto';
 import HighlightPopover from './highlight/HighlightPopover';
 
 const CaptureControls = (props) => {
@@ -72,12 +73,15 @@ const CaptureControls = (props) => {
     setHighlightPopoverOpen(false);
   };
 
+  const widgets = useSelector((state) => state.widgets);
+  const Resources = GeppettoAdapter.getResources();
+
   const handleDownloadObjs = () => {
-    const state = store.getState();
-    const { instances } = state.widgets[viewerId].config;
+    const { instances } = widgets[viewerId].config;
     const files = instances.map((i) => {
-      const { visualValue } = window.Instances.find((wi) => wi.wrappedObj.id === i.uid).wrappedObj;
-      const base64Content = visualValue.eClass === window.GEPPETTO.Resources.GLTF
+      const simpleInstance = InstancesRegistry.get(i.uid);
+      const { visualValue } = simpleInstance.wrappedObj;
+      const base64Content = visualValue.eClass === Resources.GLTF
         ? visualValue.gltf : visualValue.obj;
       const content = atob(base64Content.slice('data:model/obj;base64,'.length));
       return {

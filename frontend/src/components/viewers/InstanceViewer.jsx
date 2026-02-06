@@ -1,4 +1,3 @@
-/* eslint-disable import/no-cycle */
 import { connect } from 'react-redux';
 import Viewer from './viewer';
 import { canvasUpdateStarted, canvasUpdateEnded } from '../../redux/actions/misc';
@@ -9,8 +8,11 @@ const InstanceViewer = connect(
   (state) => ({
     timePoint: state.search.filters.timePoint,
     selectedInstanceToDelete: state.selectedInstanceToDelete,
+    widgets: state.widgets,
+    devStages: state.devStages.neuroSCAN,
   }),
   (dispatch) => ({
+    dispatch,
     loadingStarted: () => dispatch(canvasUpdateStarted()),
     loadingFinished: () => dispatch(canvasUpdateEnded()),
     addInstancesToViewer: (viewerId, instances) => dispatch(

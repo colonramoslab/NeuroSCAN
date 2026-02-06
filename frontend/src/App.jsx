@@ -19,21 +19,17 @@ import { loadPromoters } from './redux/actions/promoters';
 import '@metacell/geppetto-meta-ui/flex-layout/style/dark.scss';
 import './flexLayout.css';
 import { CANVAS_STARTED } from './utilities/constants';
+import { GeppettoAdapter } from './infra/geppetto';
 
-if (window.location.host === 'promoters.wormguides.org' || window.location.host === 'neuroscan.net') {
-  posthog.init('phc_cuoRrQDAJFfkKureV66PysaW5hkbrmsuzC4A1SRDAtk', {
-    api_host: 'https://us.i.posthog.com',
+const posthogKey = process.env.REACT_APP_POSTHOG_KEY;
+const posthogHost = process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com';
+if (posthogKey) {
+  posthog.init(posthogKey, {
+    api_host: posthogHost,
   });
 }
 
-const Manager = require('@metacell/geppetto-meta-client/common/Manager').default;
-
-const GEPPETTO = {};
-window.GEPPETTO = GEPPETTO;
-GEPPETTO.Resources = require('@metacell/geppetto-meta-core/Resources').default;
-
-GEPPETTO.Manager = new Manager();
-window.Instances = [];
+GeppettoAdapter.init();
 
 const App = () => {
   const dispatch = useDispatch();

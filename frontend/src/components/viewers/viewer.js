@@ -115,6 +115,9 @@ class Viewer extends React.Component {
 
     this.timeoutRef = React.createRef();
     this.tooltipRef = React.createRef();
+    this.hoverTimeout = null;
+    this.instancesMap = new Map();
+    this.cachedCanvasData = null;
     this.onMount = this.onMount.bind(this);
     this.onSelection = this.onSelection.bind(this);
     this.hoverListener = this.hoverListener.bind(this);
@@ -123,33 +126,54 @@ class Viewer extends React.Component {
   }
 
   componentDidMount() {
+    this.updateInstancesMap();
     this.handleDeleteKeyPress = (event) => {
       if ((event.key === 'Delete' || event.key === 'Backspace')) {
-        const { selectedInstanceToDelete } = this.props;
-        deleteSelectedInstances(selectedInstanceToDelete.viewerId, selectedInstanceToDelete.uid);
+        const { selectedInstanceToDelete, widgets, dispatch } = this.props;
+        deleteSelectedInstances(
+          dispatch, selectedInstanceToDelete, widgets, selectedInstanceToDelete.uid,
+        );
       }
     };
     window.addEventListener('keydown', this.handleDeleteKeyPress);
   }
 
+  componentDidUpdate(prevProps) {
+    const { instances, highlightedInstances } = this.props;
+    if (prevProps.instances !== instances) {
+      this.updateInstancesMap();
+    }
+    if (
+      prevProps.instances !== instances
+      || prevProps.highlightedInstances !== highlightedInstances
+    ) {
+      this.cachedCanvasData = null;
+    }
+  }
+
   componentWillUnmount() {
-    resetDataOverlay();
+    if (this.hoverTimeout) {
+      cancelAnimationFrame(this.hoverTimeout);
+    }
+    const { dispatch } = this.props;
+    resetDataOverlay(dispatch);
     window.removeEventListener('keydown', this.handleDeleteKeyPress);
   }
 
   onMount(scene) {
-    resetDataOverlay();
+    const { dispatch } = this.props;
+    resetDataOverlay(dispatch);
     // eslint-disable-next-line no-console
     // console.log(scene);
   }
 
   onSelection(selectedInstances, event) {
     const {
-      viewerId, instances, type,
+      viewerId, instances, type, dispatch,
     } = this.props;
     if (selectedInstances.length > 0) {
       if (event.button === 0) { // left click
-        setSelectedInstances(viewerId, instances, selectedInstances);
+        setSelectedInstances(dispatch, viewerId, instances, selectedInstances);
       } else if (event.button === 2 && type === VIEWERS.CphateViewer) { // right click
         const selectedUid = selectedInstances[0];
         const selectedInstance = instances.find((i) => i.uid === selectedUid);
@@ -178,7 +202,8 @@ class Viewer extends React.Component {
       const uids = contextMenuInstance.name.split('(')[0].split(',').map((uid) => uid.trim());
       neuronService.getByUID(timePoint, uids)
         .then((fetchedNeurons) => {
-          const instances = fetchedNeurons.map((neuron) => mapToInstance(neuron));
+          const { devStages } = this.props;
+          const instances = fetchedNeurons.map((neuron) => mapToInstance(neuron, devStages));
           if (addToViewerId) {
             addInstancesToViewer(addToViewerId, instances);
           } else {
@@ -193,21 +218,33 @@ class Viewer extends React.Component {
     this.setState({ contextMenuOpen: false, contextMenuInstance: null });
   };
 
-  hoverListener(objs, canvasX, canvasY) {
-    const obj = objs[0];
+  updateInstancesMap() {
     const { instances } = this.props;
-    // console.log({ instances });
-    // console.log(obj);
-    const intersectedInstanceUid = this.findInstanceUidForObj(obj.object);
-    const intersectedInstance = instances.find((i) => i.uid === intersectedInstanceUid);
-
-    if (intersectedInstance?.uid) {
-      this.tooltipRef?.current?.updateIntersected({
-        o: intersectedInstance,
-        x: canvasX + 10, // move it 10 px so the onselect (onclick) will fire on the instance
-        y: canvasY + 10, // and not on the tooltip ;-)
+    this.instancesMap = new Map();
+    if (instances) {
+      instances.forEach((instance) => {
+        this.instancesMap.set(instance.uid, instance);
       });
     }
+  }
+
+  hoverListener(objs, canvasX, canvasY) {
+    if (this.hoverTimeout) {
+      cancelAnimationFrame(this.hoverTimeout);
+    }
+    this.hoverTimeout = requestAnimationFrame(() => {
+      const obj = objs[0];
+      const intersectedInstanceUid = this.findInstanceUidForObj(obj.object);
+      const intersectedInstance = this.instancesMap.get(intersectedInstanceUid);
+
+      if (intersectedInstance?.uid) {
+        this.tooltipRef?.current?.updateIntersected({
+          o: intersectedInstance,
+          x: canvasX + 10,
+          y: canvasY + 10,
+        });
+      }
+    });
   }
 
   emptyHoverListener() {
@@ -224,9 +261,12 @@ class Viewer extends React.Component {
   }
 
   initCanvasData() {
+    if (this.cachedCanvasData) {
+      return this.cachedCanvasData;
+    }
     const { instances, highlightedInstances } = this.props;
 
-    return instances.filter((instance) => !instance.hidden).map((instance) => {
+    this.cachedCanvasData = instances.filter((instance) => !instance.hidden).map((instance) => {
       let { color } = instance;
 
       if (shouldApplyGreyOut(instance, highlightedInstances)) {
@@ -238,6 +278,7 @@ class Viewer extends React.Component {
         color,
       };
     });
+    return this.cachedCanvasData;
   }
 
   render() {

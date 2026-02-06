@@ -7,7 +7,7 @@ import {
   Popover,
   Typography,
 } from '@material-ui/core';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import MenuGroups from './MenuGroups';
 import MENU from '../../../images/menu-chevron.svg';
 import {
@@ -20,17 +20,19 @@ import {
 const ExplorerMenu = ({
   anchorEl, handleMenuClose, open, viewerId, instance, ...other
 }) => {
+  const dispatch = useDispatch();
   const widgets = useSelector((state) => state.widgets);
+  const selectedInstanceToDelete = useSelector((state) => state.selectedInstanceToDelete);
 
   const handleSelectClick = () => {
-    handleSelect(viewerId, instance, widgets);
+    handleSelect(dispatch, viewerId, instance, widgets);
     handleMenuClose();
   };
 
   const handleDeleteClick = async () => {
     if (viewerId) {
-      await handleSelect(viewerId, instance, widgets);
-      deleteSelectedInstances(viewerId, [instance.uid]);
+      await handleSelect(dispatch, viewerId, instance, widgets);
+      deleteSelectedInstances(dispatch, selectedInstanceToDelete, widgets, [instance.uid]);
     }
     handleMenuClose();
   };
@@ -38,7 +40,7 @@ const ExplorerMenu = ({
   const handleHideClick = () => {
     if (viewerId) {
       const { instances } = widgets[viewerId].config;
-      hideSelectedInstances(viewerId, instances, [instance.uid]);
+      hideSelectedInstances(dispatch, viewerId, instances, [instance.uid]);
     }
     handleMenuClose();
   };
@@ -46,7 +48,7 @@ const ExplorerMenu = ({
   const handleShowClick = () => {
     if (viewerId) {
       const { instances } = widgets[viewerId].config;
-      showSelectedInstances(viewerId, instances, [instance.uid]);
+      showSelectedInstances(dispatch, viewerId, instances, [instance.uid]);
     }
     handleMenuClose();
   };

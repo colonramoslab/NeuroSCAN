@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Typography,
@@ -111,21 +111,31 @@ const PromoterDB = () => {
   // const min = Math.min(...devStages.map((devStage) => devStage.begin));
   const [timePoint, setTimePoint] = useState(null);
   const { promoters } = useSelector((state) => state.promoterDB);
-  const neurons = [...new Set(promoters.reduce((r, p) => (
+  const neurons = useMemo(() => [...new Set(promoters.reduce((r, p) => (
     p.cellsByLineaging
       ? r.concat(
         p.cellsByLineaging
           .split(' ')
           .filter((e) => e.length > 0),
       ) : []), [])),
-  ].sort();
+  ].sort(), [promoters]);
   const [selectedPromoters, setSelectedPromoters] = useState([]);
   const [selectedNeurons, setSelectedNeurons] = useState([]);
   const [selectedDevStage, setSelectedDevStage] = useState([]);
   const [filteredPromoters, setFilteredPromoters] = useState(promoters);
 
-  const promoterOptions = promoters.map((p) => ({ title: p.uid }));
-  const neuronOptions = neurons.map((n) => ({ title: n }));
+  const promoterOptions = useMemo(() => promoters.map((p) => ({ title: p.uid })), [promoters]);
+  const neuronOptions = useMemo(() => neurons.map((n) => ({ title: n })), [neurons]);
+
+  const promotersWithParsedCells = useMemo(() => promoters.map((p) => ({
+    ...p,
+    cellsByLineagingSet: new Set(
+      p.cellsByLineaging ? p.cellsByLineaging.split(' ').filter((e) => e.length > 0) : [],
+    ),
+    otherCellsSet: new Set(
+      p.otherCells ? p.otherCells.split(' ').filter((e) => e.length > 0) : [],
+    ),
+  })), [promoters]);
 
   const handleMenuClose = () => {
     setAnchorEl(null);
@@ -136,33 +146,34 @@ const PromoterDB = () => {
     setSelectedNeurons(pSelectedNeurons);
     setTimePoint(pTimepoint);
     const minTimePoint = Math.min(...devStages.map((devStage) => devStage.begin));
-    const fp = promoters.filter((p) => (
-      pTimepoint === Infinity
-      || pTimepoint === minTimePoint
-      || (p.timePointStart <= pTimepoint
-      && p.timePointEnd > pTimepoint)
-    )).filter((p) => (
-      pSelectedPromoters.length === 0
-      || pSelectedPromoters.find((sp) => sp.title === p.uid)
-    )).filter((p) => (
-      // eslint-disable-next-line no-nested-ternary
-      pSelectedNeurons.length === 0
-      || p.cellsByLineaging ? p.cellsByLineaging.split(' ').filter((n) => pSelectedNeurons.findIndex((sn) => sn.title === n) > -1).length > 0 : false
-      || p.otherCells ? p.otherCells.split(' ').filter((n) => pSelectedNeurons.findIndex((sn) => sn.title === n) > -1).length > 0 : false
 
-    ));
+    const selectedNeuronTitles = new Set(pSelectedNeurons.map((sn) => sn.title));
+    const selectedPromoterTitles = new Set(pSelectedPromoters.map((sp) => sp.title));
+
+    const fp = promotersWithParsedCells.filter((p) => {
+      if (pTimepoint !== Infinity && pTimepoint !== minTimePoint) {
+        if (p.timePointStart > pTimepoint || p.timePointEnd <= pTimepoint) return false;
+      }
+      if (selectedPromoterTitles.size > 0 && !selectedPromoterTitles.has(p.uid)) return false;
+      if (selectedNeuronTitles.size > 0) {
+        const hasLineaging = [...p.cellsByLineagingSet].some((n) => selectedNeuronTitles.has(n));
+        const hasOther = [...p.otherCellsSet].some((n) => selectedNeuronTitles.has(n));
+        if (!hasLineaging && !hasOther) return false;
+      }
+      return true;
+    });
     setFilteredPromoters(fp);
   };
 
   useEffect(() => {
     if (promoters.length > 0) {
-      setFilteredPromoters(promoters);
+      setFilteredPromoters(promotersWithParsedCells);
     }
     const minTimePoint = Math.min(...devStages.map((devStage) => devStage.begin));
     if (timePoint === null) {
       setTimePoint(minTimePoint);
     }
-  }, [promoters, devStages]);
+  }, [promotersWithParsedCells, devStages]);
 
   const handlePromoterOnChange = (event, values) => {
     setFilters(values, selectedNeurons, timePoint);
