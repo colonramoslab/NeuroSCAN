@@ -23,4 +23,4 @@
 
 ## Environment
 - Copy `.env.example` to `.env` and configure `DB_DSN`, `APP_FRONTEND_DIR`, `APP_GLTF_DIR`
-- Frontend build required before serving: `REACT_APP_BACKEND_URL=http://localhost:8123/ yarn build`
+- Frontend build required before serving: `yarn build` (env vars loaded from `frontend/.env.development`; override with `frontend/.env.development.local`)

@@ -34,11 +34,21 @@ cp ./overwrite/ThreeDEngine.js ./node_modules/@metacell/geppetto-meta-ui/3d-canv
 
 Environment variable: `REACT_APP_BACKEND_URL`
 
-When building, we need to specify the backend URL that the frontend will use to communicate with the backend API. This can be done by setting the `REACT_APP_BACKEND_URL` environment variable.
+The backend URL is configured via CRA's built-in `.env` file support. The committed `.env.development` file sets the default for local development:
 
-```bash
-REACT_APP_BACKEND_URL=http://localhost:8123/ cross-env craco build
+```
+REACT_APP_BACKEND_URL=http://localhost:8123/
 ```
 
-This should output static files to the `fronted/build/` directory.
+To override locally without modifying tracked files, create a `.env.development.local` file (gitignored).
+
+In production, when the Go backend serves the frontend build, leave `REACT_APP_BACKEND_URL` unset so API calls use same-origin relative URLs.
+
+### Build
+
+```bash
+yarn build
+```
+
+This should output static files to the `frontend/build/` directory.
 ````

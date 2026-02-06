@@ -111,7 +111,10 @@ export default function NeuroScan() {
     const { files } = e.dataTransfer;
     if (!files || files.length === 0) return;
 
-    const gltfFiles = Array.from(files).filter((file) => file.name.toLowerCase().endsWith('.gltf'));
+    const gltfFiles = Array.from(files).filter((file) => {
+      const name = file.name.toLowerCase();
+      return name.endsWith('.gltf') || name.endsWith('.glb');
+    });
 
     if (gltfFiles.length === 0) return;
 
@@ -175,7 +178,7 @@ export default function NeuroScan() {
           >
             {isDragging && (
               <Box className={classes.dropOverlay}>
-                <span className={classes.dropText}>Drop .gltf file to load</span>
+                <span className={classes.dropText}>Drop .gltf/.glb file to load</span>
               </Box>
             )}
             {componentToRender}

@@ -8,6 +8,7 @@ import CLOSE from '../../../images/close.svg';
 import DOWNLOAD from '../../../images/download.svg';
 import DELETE from '../../../images/delete.svg';
 import DELETE_WHITE from '../../../images/delete-white.svg';
+import { backendURL } from '../../../utilities/constants';
 
 import webmToMp4 from '../../../utilities/webmToMp4';
 
@@ -53,7 +54,7 @@ const RecordControlModal = (props) => {
 
       // wait for 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}videos/status/${videoUUID}`);
+      const response = await fetch(`${backendURL}videos/status/${videoUUID}`);
       // if the response.status is any 200
       if (!response.ok) {
         console.error('Error fetching video status:', response.status);
@@ -89,7 +90,7 @@ const RecordControlModal = (props) => {
     }
 
     if (status.status === 'completed') {
-      downloadVideo(`${process.env.REACT_APP_BACKEND_URL}videos/download/${videoUUID}.mp4`, `${videoUUID}.mp4`);
+      downloadVideo(`${backendURL}videos/download/${videoUUID}.mp4`, `${videoUUID}.mp4`);
       setShowDownload(true);
       handleClose();
     } else {

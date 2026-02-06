@@ -314,7 +314,7 @@ export const mapLocalGltfToInstance = ({ fileName, base64 }) => ({
   id: null,
   uid: `local_${uuidv4().replace(/-/g, '_')}`,
   uidFromDb: null,
-  name: fileName.replace('.gltf', ''),
+  name: fileName.replace(/\.(gltf|glb)$/i, ''),
   selected: false,
   color: {
     r: Math.random(), g: Math.random(), b: Math.random(), a: 0.98,
@@ -405,6 +405,21 @@ const base64ToUtf8Text = (input) => {
   return new TextDecoder('utf-8').decode(bytes);
 };
 
+const hasExternalReferences = (gltfJson) => {
+  try {
+    const parsed = JSON.parse(gltfJson);
+    const externalBuffers = (parsed.buffers || []).some(
+      (b) => b.uri && !b.uri.startsWith('data:'),
+    );
+    const externalImages = (parsed.images || []).some(
+      (img) => img.uri && !img.uri.startsWith('data:'),
+    );
+    return externalBuffers || externalImages;
+  } catch {
+    return false;
+  }
+};
+
 const createSimpleInstance = async (instance) => {
   const { content } = instance;
 
@@ -426,9 +441,20 @@ const createSimpleInstance = async (instance) => {
       break;
     case 'gltf': {
       const gltfJsonText = base64ToUtf8Text(base64Content);
+      if (hasExternalReferences(gltfJsonText)) {
+        console.warn(`GLTF file "${content.fileName}" references external .bin or texture files which cannot be resolved from a local drag-and-drop.`);
+        window.alert(`"${content.fileName}" references external files (.bin, textures) that cannot be loaded via drag-and-drop. For best results, use a self-contained .gltf with embedded buffers or a .glb file.`);
+      }
       visualValue = {
         eClass: window.GEPPETTO.Resources.GLTF,
         gltf: gltfJsonText,
+      };
+      break;
+    }
+    case 'glb': {
+      visualValue = {
+        eClass: window.GEPPETTO.Resources.GLTF,
+        gltf: base64Content,
       };
       break;
     }
