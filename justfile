@@ -4,7 +4,7 @@ build-backend:
 
 build-frontend:
     @echo "Building frontend..."
-    cd frontend && npm run build
+    cd frontend && NODE_OPTIONS=--openssl-legacy-provider npm run build
 
 copy-vendored:
     @echo "Copying vendored assets..."
