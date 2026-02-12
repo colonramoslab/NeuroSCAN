@@ -13,7 +13,8 @@ const searchMiddleware = (store) => (next) => (action) => {
       next(loading(msg, action.type));
       doSearch(store.dispatch, state.promoterDB).then(() => {
         next(loadingSuccess(msg, action.type));
-      }, (e) => {
+      }, (error) => {
+        console.error(msg, error);
         next(raiseError(msg));
       });
       break;

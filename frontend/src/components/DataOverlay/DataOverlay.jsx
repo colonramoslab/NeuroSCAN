@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   makeStyles,
   Accordion,
@@ -387,6 +387,7 @@ const dataOverlayTitle = (dataOverlay) => {
 
 const DataOverlay = () => {
   const classes = useStyles();
+  const dispatch = useDispatch();
   const storeData = useSelector((state) => state.dataOverlay);
   const { dataOverlay } = storeData;
 
@@ -402,7 +403,7 @@ const DataOverlay = () => {
             />
           </Typography>
           <Button
-            onClick={() => resetDataOverlay()}
+            onClick={() => resetDataOverlay(dispatch)}
             fontSize="large"
             className="data-overlay-icon"
           >

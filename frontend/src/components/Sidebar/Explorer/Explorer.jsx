@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Typography, Box } from '@material-ui/core';
 import TreeView from '@material-ui/lab/TreeView';
 import StyledTreeItem from './TreeItem';
@@ -79,6 +79,7 @@ const Explorer = () => {
   const [selected, setSelected] = React.useState([]);
   const [expanded, setExpanded] = React.useState([]);
 
+  const dispatch = useDispatch();
   const stateLayout = useSelector((state) => state.layout.layout);
   const widgets = useSelector((state) => state.widgets);
 
@@ -112,7 +113,7 @@ const Explorer = () => {
             instance={instance}
             viewerId={viewerId}
             groups={groups}
-            onClick={() => handleSelect(viewerId, instance, widgets)}
+            onClick={() => handleSelect(dispatch, viewerId, instance, widgets)}
             {...other}
           />
         ))}

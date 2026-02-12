@@ -27,11 +27,11 @@ export class NerveRingService {
     };
   }
 
-  getInstances(nerveRing) {
+  getInstances(nerveRing, devStages) {
     const nerveRingFile = getLocationPrefixFromType({
       timepoint: nerveRing.timepoint,
       instanceType: NERVE_RING_TYPE,
-    });
+    }, devStages);
     return [this.mapNerveRingInstance(nerveRing, nerveRingFile, 'url')];
   }
 

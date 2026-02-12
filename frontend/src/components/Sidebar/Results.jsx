@@ -44,6 +44,7 @@ const Results = ({ timePoint }) => {
 
   const searchesCount = useSelector((state) => state.search.searchesCount);
   const scaleItems = useSelector((state) => state.search.results.scale);
+  const devStages = useSelector((state) => state.devStages.neuroSCAN);
   const handleClick = (event, selectedItem) => {
     setCurrentItem(selectedItem);
     setAnchorEl(event.currentTarget);
@@ -56,16 +57,16 @@ const Results = ({ timePoint }) => {
 
   const handleAddToViewer = async (viewerId = null) => {
     if (currentItem) {
-      const instances = [mapToInstance(currentItem)];
+      const instances = [mapToInstance(currentItem, devStages)];
       if (scaleItems.items && scaleItems.items.length > 0) {
-        instances.push(mapToInstance(scaleItems.items[0]));
+        instances.push(mapToInstance(scaleItems.items[0], devStages));
       }
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
     } else if (Object.values(selectedItems).some((array) => array.length > 0)) {
       const itemsArray = Object.values(selectedItems).flat();
-      const instances = itemsArray.map((item) => mapToInstance(item));
+      const instances = itemsArray.map((item) => mapToInstance(item, devStages));
       if (scaleItems.items && scaleItems.items.length > 0) {
-        instances.push(mapToInstance(scaleItems.items[0]));
+        instances.push(mapToInstance(scaleItems.items[0], devStages));
       }
       dispatch(addInstances(viewerId, instances, VIEWERS.InstanceViewer));
       setSelectedItems(initialSelectedItems);

@@ -28,11 +28,8 @@ import { DevStageService } from '../services/DevStageService';
 import neuronService from '../services/NeuronService';
 import contactService from '../services/ContactService';
 import synapseService from '../services/SynapseService';
-// eslint-disable-next-line import/no-cycle
 import cphateService from '../services/CphateService';
-// eslint-disable-next-line import/no-cycle
 import scaleService from '../services/ScaleService';
-// eslint-disable-next-line import/no-cycle
 import nerveRingService from '../services/NerveRingService';
 import {
   CONTACT_TYPE,
@@ -42,11 +39,8 @@ import {
   NERVE_RING_TYPE,
   VIEWERS,
 } from '../utilities/constants';
-// eslint-disable-next-line import/no-cycle
 import { cameraControlsRotateState } from '../components/Chart/CameraControls';
-// eslint-disable-next-line import/no-cycle
 import { addToWidget } from '../utilities/functions';
-// eslint-disable-next-line import/no-cycle
 import {
   createSimpleInstancesFromInstances,
   updateInstanceGroup,
@@ -112,12 +106,11 @@ const cleanEmpty = (store) => {
   }
   const cleanedWidgets = Object
     .values(widgets)
-    .each((w) => {
-      if (w.config?.instances?.length > 0) {
-        const { addedObjectsToViewer } = w.config;
-        store.dispatch(addToWidget(w, [], true, addedObjectsToViewer));
-      }
-    });
+    .filter((w) => w.config?.instances?.length > 0);
+  cleanedWidgets.forEach((w) => {
+    const { addedObjectsToViewer } = w.config;
+    store.dispatch(addToWidget(w, [], true, addedObjectsToViewer));
+  });
   return cleanedWidgets.length > 0 ? cleanedWidgets : false;
 };
 
@@ -129,7 +122,8 @@ const middleware = (store) => (next) => async (action) => {
       devStagesService.getDevStages().then((stages) => {
         store.dispatch(receivedDevStages(stages));
         next(loadingSuccess(msg, action.type));
-      }, () => {
+      }, (error) => {
+        console.error(msg, error);
         next(raiseError(msg));
       });
       break;
@@ -163,7 +157,8 @@ const middleware = (store) => (next) => async (action) => {
             ),
           );
           next(loadingSuccess(msg, action.type));
-        }, () => {
+        }, (error) => {
+          console.error(msg, error);
           next(raiseError(msg));
         });
       break;
@@ -187,7 +182,8 @@ const middleware = (store) => (next) => async (action) => {
             ),
           );
           next(loadingSuccess(msg, action.type));
-        }, (e) => {
+        }, (error) => {
+          console.error(msg, error);
           next(raiseError(msg));
         });
       break;
@@ -226,8 +222,6 @@ const middleware = (store) => (next) => async (action) => {
 
     case DARKEN_COLORS_FLASHING: {
       const widget = getWidget(store, action.viewerId);
-      console.log(action.uids);
-      console.log(action.uids);
       const instances = darkenColorSelectedInstances(
         widget.config.instances,
         action.uids,
@@ -255,6 +249,7 @@ const middleware = (store) => (next) => async (action) => {
             store.dispatch(renderDataOverlay(neuron));
             next(loadingSuccess(msg, action.type));
           }, (error) => {
+            console.error(msg, error);
             next(raiseError(error));
           });
           break;
@@ -263,6 +258,7 @@ const middleware = (store) => (next) => async (action) => {
             store.dispatch(renderDataOverlay(synapse));
             next(loadingSuccess(msg, action.type));
           }, (error) => {
+            console.error(msg, error);
             next(raiseError(error));
           });
           break;
@@ -271,6 +267,7 @@ const middleware = (store) => (next) => async (action) => {
             store.dispatch(renderDataOverlay(contact));
             next(loadingSuccess(msg, action.type));
           }, (error) => {
+            console.error(msg, error);
             next(raiseError(error));
           });
           break;
@@ -310,7 +307,8 @@ const middleware = (store) => (next) => async (action) => {
             .getCphateByTimepoint(newTimePoint)
             .then((cphate) => {
               if (cphate) {
-                const cphateInstances = cphateService.getInstances(cphate);
+                const devStages = store.getState().devStages.neuroSCAN;
+                const cphateInstances = cphateService.getInstances(cphate, devStages);
                 createSimpleInstancesFromInstances(cphateInstances)
                   .then(() => {
                     let newWidget;
@@ -330,7 +328,8 @@ const middleware = (store) => (next) => async (action) => {
                     next(loadingSuccess(msg, action.type));
                   });
               }
-            }, (e) => {
+            }, (error) => {
+              console.error(msg, error);
               next(raiseError(msg));
             });
         } else {
@@ -358,7 +357,7 @@ const middleware = (store) => (next) => async (action) => {
             ...newSynapses,
             ...newScale,
             // ...newNerveRing,
-          ].map((i) => mapToInstance(i));
+          ].map((i) => mapToInstance(i, store.getState().devStages.neuroSCAN));
           createSimpleInstancesFromInstances(newInstances).then(async () => {
             const newWidget = createWidget(store, newTimePoint, widgetType);
             store.dispatch(addToWidget(newWidget, newInstances, false, addedObjectsToViewer));

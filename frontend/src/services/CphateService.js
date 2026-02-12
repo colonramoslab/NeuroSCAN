@@ -45,11 +45,11 @@ export class CphateService {
     };
   }
 
-  getInstances(cphate) {
+  getInstances(cphate, devStages) {
     const cphateFile = getLocationPrefixFromType({
       timepoint: cphate.timepoint,
       instanceType: CPHATE_TYPE,
-    });
+    }, devStages);
     const sortedCphateStructure = sortedInstances(cphate.structure);
     return sortedCphateStructure.map((obj) => this.mapCphateInstance(cphate, cphateFile, obj, 'url'));
   }
